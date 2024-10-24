@@ -33,19 +33,20 @@ namespace reserved
 /* This defines an object with a unique identifier. This object is non
  * copyable, but moving it transfers the unique id to the destination object.
  */
-template <typename C, C...>
+template <typename C>
 class unique_id
 {
 public:
   unique_id() = default;
-  constexpr unique_id(unique_id&& other) noexcept
+  unique_id(unique_id&& other) noexcept
       : _value(::std::exchange(other._value, -1))
   {}
-  constexpr unique_id(const int val) noexcept
+  unique_id(const int val) noexcept
       : _value(val)
   {}
-  constexpr operator int() const noexcept
+  operator int() const noexcept
   {
+    assert(_value >= 0 && "This unique id has been destroyed or moved from.");
     return _value;
   }
 
@@ -60,6 +61,7 @@ public:
 
   bool operator==(const unique_id& other) const noexcept
   {
+    assert((_value == other._value) == (this == &other) && "Distinct unique_id objects cannot have the same id.");
     return _value == other._value;
   }
 
@@ -75,10 +77,10 @@ private:
 
 } // end namespace reserved
 
-template <typename C, C... letters>
-struct hash<reserved::unique_id<C, letters...>>
+template <typename C>
+struct hash<reserved::unique_id<C>>
 {
-  size_t operator()(const reserved::unique_id<C, letters...>& id) const
+  size_t operator()(const reserved::unique_id<C>& id) const
   {
     return ::std::hash<int>()(id);
   }
