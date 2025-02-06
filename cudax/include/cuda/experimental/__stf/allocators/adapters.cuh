@@ -129,12 +129,19 @@ class stream_adapter
         cuda_safe_call(cudaMallocAsync(&result, s, state->stream));
       }
 
+      if (s >= 0)
+      {
+        info.track_allocate(result, s, 46, -1);
+      }
+
       return result;
     }
 
     void deallocate(
       backend_ctx_untyped&, const data_place& memory_node, event_list& /* prereqs */, void* ptr, size_t sz) override
     {
+      info.track_deallocate(ptr);
+
       // Do not deallocate buffers, this is done later when we call clear()
       state->to_free.emplace_back(ptr, sz, memory_node);
       // Prereqs are unchanged

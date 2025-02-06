@@ -109,6 +109,42 @@ public:
     const auto s = to_string();
     fprintf(stderr, "No additional info for allocator of kind \"%.*s\".\n", static_cast<int>(s.size()), s.data());
   }
+
+  class debug_info
+  {
+  public:
+    debug_info()
+        : id(0)
+        , alloc_id(0)
+    {}
+
+    // return an ID for this allocation, parent_alloc_id if this is a suballocator relying on some "uncached allocator"
+    // for example, -1 if ignored
+    int track_allocate(void* addr, size_t sz, int where_id, int parent_alloc_id)
+    {
+      fprintf(stderr,
+              "[ALLOCATOR:%d %p] ALLOCATE(addr %p sz %ld, where %d) => ID %d\n",
+              alloc_id,
+              this,
+              addr,
+              sz,
+              where_id,
+              id);
+      return id++;
+    }
+
+    void track_deallocate(void* addr)
+    {
+      fprintf(stderr, "[ALLOCATOR:%d %p] DEALLOCATE(addr %p)\n", alloc_id, this, addr);
+    }
+
+  private:
+    int id;
+    // TODO alloc id
+    int alloc_id;
+  };
+
+  debug_info info;
 };
 
 /**

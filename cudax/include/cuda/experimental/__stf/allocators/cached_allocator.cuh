@@ -75,12 +75,17 @@ public:
         prereqs.merge(mv(e.prereq));
         void* result = e.ptr;
         m.erase(it2);
+        info.track_allocate(result, s, 42, -1);
         return result;
       }
     }
 
     // That is a miss, we need to allocate data using the root allocator
-    return root_allocator.allocate(ctx, memory_node, s, prereqs);
+    auto* result = root_allocator.allocate(ctx, memory_node, s, prereqs);
+
+    info.track_allocate(result, s, 42, -1);
+
+    return result;
   }
 
   /**
@@ -98,6 +103,9 @@ public:
   deallocate(backend_ctx_untyped&, const data_place& memory_node, event_list& prereqs, void* ptr, size_t sz) override
   {
     ::std::lock_guard<::std::mutex> g(allocator_mutex);
+
+    info.track_deallocate(ptr);
+
     // We do not call the deallocate method of the root allocator, we discard buffers instead
     free_cache[memory_node].emplace(sz, alloc_cache_entry{ptr, prereqs});
   }
