@@ -321,6 +321,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="extended_api.html">Extended API</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="extended_api/bit.html">Bit</a></li>
 <li class="toctree-l4"><a class="reference internal" href="extended_api/execution_model.html">Execution model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="extended_api/exceptions.html">Exception Handling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="extended_api/memory_model.html">Memory model</a></li>
 <li class="toctree-l4"><a class="reference internal" href="extended_api/thread_groups.html">Thread Groups</a></li>
 <li class="toctree-l4"><a class="reference internal" href="extended_api/synchronization_primitives.html">Synchronization Primitives</a></li>
@@ -605,6 +606,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1ad79fa34a6d206203d5a611b450c4225a.html">cub::SmVersionUncached</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a75d6eade310f187ff42915ae82e963d0.html">cub::SmVersion</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1abd7ca1c640b97afa0183c61e7970b316.html">cub::SyncStream</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a3855abd619d80468337b76cff16f4bc4.html">cub::MaxPotentialDynamicSmemBytes</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a8b6177c635dcc16dd321af6da3e538db.html">cub::MaxSmOccupancy</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a91f7ed12997a1c479e6c40039816e94c.html">cub::Nominal4BItemsToItemsCombined</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a92146627fb9025cf631ce6894da54068.html">cub::Nominal4BItemsToItems</a></li>
@@ -1176,7 +1178,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1blocked__partition__custom.html">cuda::experimental::stf::blocked_partition_custom</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1box.html">cuda::experimental::stf::box</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1buddy__allocator.html">cuda::experimental::stf::buddy_allocator</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1buffer.html">cuda::experimental::buffer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1cached__block__allocator.html">cuda::experimental::stf::cached_block_allocator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1cached__block__allocator__fifo.html">cuda::experimental::stf::cached_block_allocator_fifo</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1constant__logical__data.html">cuda::experimental::stf::constant_logical_data</a></li>
@@ -1192,7 +1193,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1data__place.html">cuda::experimental::stf::data_place</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1deferred__stream__task.html">cuda::experimental::stf::deferred_stream_task</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1dim4.html">cuda::experimental::stf::dim4</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1dynamic__shared__memory.html">cuda::experimental::dynamic_shared_memory</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1event__impl.html">cuda::experimental::stf::event_impl</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1event__list.html">cuda::experimental::stf::event_list</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__affinity.html">cuda::experimental::stf::exec_affinity</a></li>
@@ -1274,7 +1274,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1void__graph__interface.html">cuda::experimental::stf::void_graph_interface</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1void__interface.html">cuda::experimental::stf::void_interface</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1void__stream__interface.html">cuda::experimental::stf::void_stream_interface</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1cooperative__launch.html">cuda::experimental::cooperative_launch</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1cuda__kernel__desc.html">cuda::experimental::stf::cuda_kernel_desc</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1decorated__stream.html">cuda::experimental::stf::decorated_stream</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1graph.html">cuda::experimental::graph</a></li>
@@ -1297,8 +1296,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1hash_3_01void__interface_01_4.html">cuda::experimental::stf::hash&lt; void_interface &gt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1hash_3_1_1std_1_1pair_3_01T1_00_01T2_01_4_01_4.html">cuda::experimental::stf::hash&lt;::std::pair&lt; T1, T2 &gt; &gt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1hash_3_1_1std_1_1tuple_3_01Ts_8_8_8_01_4_01_4.html">cuda::experimental::stf::hash&lt;::std::tuple&lt; Ts… &gt; &gt;</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1kernel__config.html">cuda::experimental::kernel_config</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1launch__priority.html">cuda::experimental::launch_priority</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1layout__stride.html">cuda::experimental::stf::layout_stride</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1owning__container__of.html">cuda::experimental::stf::owning_container_of</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1owning__container__of_3_01scalar__view_3_01T_01_4_01_4.html">cuda::experimental::stf::owning_container_of&lt; scalar_view&lt; T &gt; &gt;</a></li>
@@ -1313,15 +1310,9 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1streamed__interface__of_3_01mdspan_3_01T_00_01P_8_8_8_01_4_01_4.html">cuda::experimental::stf::streamed_interface_of&lt; mdspan&lt; T, P… &gt; &gt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1streamed__interface__of_3_01scalar__view_3_01T_01_4_01_4.html">cuda::experimental::stf::streamed_interface_of&lt; scalar_view&lt; T &gt; &gt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1streamed__interface__of_3_01void__interface_01_4.html">cuda::experimental::stf::streamed_interface_of&lt; void_interface &gt;</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1synchronous__resource__adapter.html">cuda::experimental::synchronous_resource_adapter</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a15d66a4607d1b265790613032220837f.html">cuda::experimental::make_buffer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1ae52f048fec5bb8c0e028ec6ee18e0ae4.html">cuda::experimental::depends_on</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a587013ea961cd2d72ce2255c4a665e7e.html">cuda::experimental::start_path</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a1d24b80b5330c98dbf8386c0453364a8.html">cuda::experimental::operator&amp;</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1afe420231beacc68eea61533757fb93fd.html">cuda::experimental::make_config</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a591c99d80c8d7f96a29174492e72a859.html">cuda::experimental::distribute</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1aa8263d79aa1b3db93c6b40ca61634080.html">cuda::experimental::launch</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1device_1a3df43b2f3236f232dc1d7a51545cd389.html">cuda::experimental::device::dynamic_shared_memory_view</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1ad18742cd2980317d08fa22179fe9838b.html">cuda::experimental::stf::join</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a15334df9162430aaae8d98d9f6614164.html">cuda::experimental::stf::register_stream</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1ad4e01a86f130b065598ee6eccc017de9.html">cuda::experimental::stf::unregister_stream</a></li>
@@ -1379,8 +1370,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1af7bbd0c16d200ff11f25a06b6f8f9f9c.html">cuda::experimental::stf::shuffled_tuple</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a7769bac86e1a10e2b46241e166f27d4a.html">cuda::experimental::stf::shuffled_array_tuple</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1ab6102f1f400fb5014573fd1424e1ae0c.html">cuda::experimental::stf::unstable_unique</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1ae54655ac955ae7ca93f731b0676f02ea.html">cuda::experimental::device_buffer</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1aa6269c4bd17a8918a50a7cdb60b3f38e.html">cuda::experimental::host_buffer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1ad79958209ea876e5dafe78f59ab52d79.html">cuda::experimental::stf::array_tuple</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1aa7d4170e1a89607a1064da6257130929.html">cuda::experimental::stf::blocked_partition</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a57eb9d03994cae3406bf9101c62d80dd.html">cuda::experimental::stf::event</a></li>
@@ -1392,7 +1381,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1aa9c8a86afb5d22780fd035a16435c768.html">cuda::experimental::stf::token</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a0d0aa10903bca9350c88da9e7121c089.html">cuda::experimental::uninitialized_device_buffer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a4401baa9c7798a0dd6f981de4e549d86.html">cuda::experimental::graph_node_type</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a239626d48731dada15add5fd2597eb53.html">cuda::experimental::non_portable_t</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a923aa8f0346e2b2a9e970a0fab753673.html">cuda::experimental::stf::access_mode</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a82008bf924d44262d76e4dd3e923e196.html">cuda::experimental::stf::hw_scope</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a0aecbcdcde59511ead903c663bd205da.html">cuda::experimental::stf::instance_id_t</a></li>
@@ -1403,14 +1391,9 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a83e404642d89549ec95c95a057bf341e.html">cuda::experimental::graph_inserter</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a4cbd53d4681c0629ef0d1ec521f3146f.html">cuda::experimental::in</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a22a860b92240dc157802c575121a2bd8.html">cuda::experimental::inout</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a97b53da02786843bd7f3006b2c996cec.html">cuda::experimental::non_portable</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a0e77b206698879c24f721c676694fb6d.html">cuda::experimental::out</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a03453c0becd124285de9dad062506ef6.html">cuda::experimental::stf::type_name</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1ac2bd49a968880629779df2659e34459e.html">cuda::experimental::work_submitter</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/group__construction.html">Construction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/group__iterators.html">Iterators</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/group__access.html">Access</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/group__size.html">Size</a></li>
 </ul>
 </details></li>
 </ul>
@@ -1575,12 +1558,20 @@ available in C++14.</p>
 <tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/bitset">&lt;bitset&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/utility_library/bitset.html#libcudacxx-standard-api-utility-bitset"><span class="std std-ref">&lt;cuda/std/bitset&gt;</span></a></p></td>
 <td><p>✅</p></td>
-<td></td>
+<td><p>✅</p></td>
 <td></td>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/chrono">&lt;chrono&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/charconv">&lt;charconv&gt;</a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&lt;cuda/std/charconv&gt;</span></code></p></td>
+<td><p>✅</p></td>
+<td></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p>Converting floating point types is currently unsupported</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/chrono">&lt;chrono&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/time_library.html#libcudacxx-standard-api-time"><span class="std std-ref">&lt;cuda/std/chrono&gt;</span></a></p></td>
 <td><p>✅</p></td>
 <td><p>✅</p></td>
@@ -1588,7 +1579,7 @@ available in C++14.</p>
 <td></td>
 <td><p>Timezone and clocks added in C++20 are not available</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/complex">&lt;complex&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/complex">&lt;complex&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/numerics_library/complex.html#libcudacxx-standard-api-numerics-complex"><span class="std std-ref">&lt;cuda/std/complex&gt;</span></a></p></td>
 <td><p>✅</p></td>
 <td><p>✅</p></td>
@@ -1596,7 +1587,7 @@ available in C++14.</p>
 <td><p>✅</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">constexpr</span></code> if <code class="docutils literal notranslate"><span class="pre">is_constant_evaluated</span></code> is supported</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/concepts">&lt;concepts&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/concepts">&lt;concepts&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/concepts_library.html#libcudacxx-standard-api-concepts"><span class="std std-ref">&lt;cuda/std/concepts&gt;</span></a></p></td>
 <td></td>
 <td><p>✅</p></td>
@@ -1604,7 +1595,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/execution">&lt;execution&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/execution">&lt;execution&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/execution_library.html#libcudacxx-standard-api-execution"><span class="std std-ref">&lt;cuda/std/execution&gt;</span></a></p></td>
 <td></td>
 <td></td>
@@ -1612,7 +1603,7 @@ available in C++14.</p>
 <td><p>✅</p></td>
 <td><p>Only <code class="docutils literal notranslate"><span class="pre">cuda::std::execution::prop</span></code>, <code class="docutils literal notranslate"><span class="pre">cuda::std::execution::env</span></code>, <code class="docutils literal notranslate"><span class="pre">cuda::std::execution::get_env</span></code> for now</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/expected">&lt;expected&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/expected">&lt;expected&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/utility_library/expected.html#libcudacxx-standard-api-utility-expected"><span class="std std-ref">&lt;cuda/std/expected&gt;</span></a></p></td>
 <td></td>
 <td></td>
@@ -1620,7 +1611,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/functional">&lt;functional&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/functional">&lt;functional&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/utility_library/functional.html#libcudacxx-standard-api-utility-functional"><span class="std std-ref">&lt;cuda/std/functional&gt;</span></a></p></td>
 <td><p>✅</p></td>
 <td></td>
@@ -1628,7 +1619,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/initializer_list">&lt;initializer_list&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/initializer_list">&lt;initializer_list&gt;</a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&lt;cuda/std/initializer_list&gt;</span></code></p></td>
 <td><p>✅</p></td>
 <td></td>
@@ -1636,7 +1627,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/inplace_vector">&lt;inplace_vector&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/inplace_vector">&lt;inplace_vector&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/container_library/inplace_vector.html#libcudacxx-standard-api-container-inplace-vector"><span class="std std-ref">&lt;cuda/std/inplace_vector&gt;</span></a></p></td>
 <td></td>
 <td></td>
@@ -1644,7 +1635,7 @@ available in C++14.</p>
 <td><p>✅</p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/iterator">&lt;iterator&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/iterator">&lt;iterator&gt;</a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&lt;cuda/std/iterator&gt;</span></code></p></td>
 <td><p>✅</p></td>
 <td></td>
@@ -1652,7 +1643,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/latch">&lt;latch&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/latch">&lt;latch&gt;</a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&lt;cuda/std/latch&gt;</span></code></p></td>
 <td></td>
 <td><p>✅</p></td>
@@ -1660,7 +1651,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/limits">&lt;limits&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/limits">&lt;limits&gt;</a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&lt;cuda/std/limits&gt;</span></code></p></td>
 <td><p>✅</p></td>
 <td></td>
@@ -1668,7 +1659,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/linalg">&lt;linalg&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/linalg">&lt;linalg&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/numerics_library/linalg.html#libcudacxx-standard-api-numerics-linalg"><span class="std std-ref">&lt;cuda/std/linalg&gt;</span></a></p></td>
 <td></td>
 <td></td>
@@ -1676,7 +1667,7 @@ available in C++14.</p>
 <td><p>✅</p></td>
 <td><p>Accessors, transposed layout, and related functions</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/mdspan">&lt;mdspan&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/mdspan">&lt;mdspan&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/container_library/mdspan.html#libcudacxx-standard-api-container-mdspan"><span class="std std-ref">&lt;cuda/std/mdspan&gt;</span></a></p></td>
 <td></td>
 <td></td>
@@ -1684,7 +1675,7 @@ available in C++14.</p>
 <td><p>✅</p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/memory">&lt;memory&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/memory">&lt;memory&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/utility_library/memory.html#libcudacxx-standard-api-utility-memory"><span class="std std-ref">&lt;cuda/std/memory&gt;</span></a></p></td>
 <td><p>✅</p></td>
 <td><p>✅</p></td>
@@ -1692,7 +1683,7 @@ available in C++14.</p>
 <td></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">cuda::std::addressof</span></code>, <code class="docutils literal notranslate"><span class="pre">cuda::std::align</span></code>, <code class="docutils literal notranslate"><span class="pre">cuda::std::assume_aligned</span></code>, Uninitialized memory algorithms</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/numbers">&lt;numbers&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/numbers">&lt;numbers&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/numerics_library/numbers.html#libcudacxx-standard-api-numerics-numbers"><span class="std std-ref">&lt;cuda/std/numbers&gt;</span></a></p></td>
 <td></td>
 <td><p>✅</p></td>
@@ -1700,7 +1691,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/numeric">&lt;numeric&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/numeric">&lt;numeric&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/numerics_library/numeric.html#libcudacxx-standard-api-numerics-numeric"><span class="std std-ref">&lt;cuda/std/numeric&gt;</span></a></p></td>
 <td><p>✅</p></td>
 <td></td>
@@ -1708,7 +1699,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/optional">&lt;optional&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/optional">&lt;optional&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/utility_library/optional.html#libcudacxx-standard-api-utility-optional"><span class="std std-ref">&lt;cuda/std/optional&gt;</span></a></p></td>
 <td><p>✅</p></td>
 <td></td>
@@ -1716,7 +1707,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/ranges">&lt;ranges&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/ranges">&lt;ranges&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/ranges_library.html#libcudacxx-standard-api-ranges"><span class="std std-ref">&lt;cuda/std/ranges&gt;</span></a></p></td>
 <td><p>✅</p></td>
 <td><p>✅</p></td>
@@ -1724,7 +1715,7 @@ available in C++14.</p>
 <td></td>
 <td><p>Requires C++20, Range based algorithms and views are not provided</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/ratio">&lt;ratio&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/ratio">&lt;ratio&gt;</a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&lt;cuda/std/ratio&gt;</span></code></p></td>
 <td><p>✅</p></td>
 <td></td>
@@ -1732,7 +1723,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/semaphore">&lt;semaphore&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/semaphore">&lt;semaphore&gt;</a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&lt;cuda/std/semaphore&gt;</span></code></p></td>
 <td></td>
 <td><p>✅</p></td>
@@ -1740,7 +1731,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/source_location">&lt;source_location&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/source_location">&lt;source_location&gt;</a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&lt;cuda/std/source_location&gt;</span></code></p></td>
 <td></td>
 <td><p>✅</p></td>
@@ -1748,7 +1739,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/span">&lt;span&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/span">&lt;span&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/container_library/span.html#libcudacxx-standard-api-container-span"><span class="std std-ref">&lt;cuda/std/span&gt;</span></a></p></td>
 <td></td>
 <td><p>✅</p></td>
@@ -1756,7 +1747,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/tuple">&lt;tuple&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/tuple">&lt;tuple&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/utility_library/tuple.html#libcudacxx-standard-api-utility-tuple"><span class="std std-ref">&lt;cuda/std/tuple&gt;</span></a></p></td>
 <td><p>✅</p></td>
 <td></td>
@@ -1764,7 +1755,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/type_traits">&lt;type_traits&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/type_traits">&lt;type_traits&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/utility_library/type_traits.html#libcudacxx-standard-api-utility-type-traits"><span class="std std-ref">&lt;cuda/std/type_traits&gt;</span></a></p></td>
 <td><p>✅</p></td>
 <td><p>✅</p></td>
@@ -1772,7 +1763,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/utility">&lt;utility&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/utility">&lt;utility&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/utility_library/utility.html#libcudacxx-standard-api-utility-utility"><span class="std std-ref">&lt;cuda/std/utility&gt;</span></a></p></td>
 <td><p>✅</p></td>
 <td><p>✅</p></td>
@@ -1780,7 +1771,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/variant">&lt;variant&gt;</a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/variant">&lt;variant&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/utility_library/variant.html#libcudacxx-standard-api-utility-variant"><span class="std std-ref">&lt;cuda/std/variant&gt;</span></a></p></td>
 <td><p>✅</p></td>
 <td></td>
@@ -1788,7 +1779,7 @@ available in C++14.</p>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/version">&lt;version&gt;</a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://en.cppreference.com/w/cpp/header/version">&lt;version&gt;</a></p></td>
 <td><p><a class="reference internal" href="standard_api/utility_library/version.html#libcudacxx-standard-api-utility-version"><span class="std std-ref">&lt;cuda/std/version&gt;</span></a></p></td>
 <td><p>✅</p></td>
 <td></td>
@@ -1964,7 +1955,7 @@ available in C++14.</p>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
     <br/>
   </p>
 </div>

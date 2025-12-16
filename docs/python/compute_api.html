@@ -321,6 +321,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../libcudacxx/extended_api.html">Extended API</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="../libcudacxx/extended_api/bit.html">Bit</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../libcudacxx/extended_api/execution_model.html">Execution model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../libcudacxx/extended_api/exceptions.html">Exception Handling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../libcudacxx/extended_api/memory_model.html">Memory model</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../libcudacxx/extended_api/thread_groups.html">Thread Groups</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../libcudacxx/extended_api/synchronization_primitives.html">Synchronization Primitives</a></li>
@@ -605,6 +606,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1ad79fa34a6d206203d5a611b450c4225a.html">cub::SmVersionUncached</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a75d6eade310f187ff42915ae82e963d0.html">cub::SmVersion</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1abd7ca1c640b97afa0183c61e7970b316.html">cub::SyncStream</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a3855abd619d80468337b76cff16f4bc4.html">cub::MaxPotentialDynamicSmemBytes</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a8b6177c635dcc16dd321af6da3e538db.html">cub::MaxSmOccupancy</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a91f7ed12997a1c479e6c40039816e94c.html">cub::Nominal4BItemsToItemsCombined</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a92146627fb9025cf631ce6894da54068.html">cub::Nominal4BItemsToItems</a></li>
@@ -1176,7 +1178,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1blocked__partition__custom.html">cuda::experimental::stf::blocked_partition_custom</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1box.html">cuda::experimental::stf::box</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1buddy__allocator.html">cuda::experimental::stf::buddy_allocator</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1buffer.html">cuda::experimental::buffer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1cached__block__allocator.html">cuda::experimental::stf::cached_block_allocator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1cached__block__allocator__fifo.html">cuda::experimental::stf::cached_block_allocator_fifo</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1constant__logical__data.html">cuda::experimental::stf::constant_logical_data</a></li>
@@ -1192,7 +1193,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1data__place.html">cuda::experimental::stf::data_place</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1deferred__stream__task.html">cuda::experimental::stf::deferred_stream_task</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1dim4.html">cuda::experimental::stf::dim4</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1dynamic__shared__memory.html">cuda::experimental::dynamic_shared_memory</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1event__impl.html">cuda::experimental::stf::event_impl</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1event__list.html">cuda::experimental::stf::event_list</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__affinity.html">cuda::experimental::stf::exec_affinity</a></li>
@@ -1274,7 +1274,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1void__graph__interface.html">cuda::experimental::stf::void_graph_interface</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1void__interface.html">cuda::experimental::stf::void_interface</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/classcuda_1_1experimental_1_1stf_1_1void__stream__interface.html">cuda::experimental::stf::void_stream_interface</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1cooperative__launch.html">cuda::experimental::cooperative_launch</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1cuda__kernel__desc.html">cuda::experimental::stf::cuda_kernel_desc</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1decorated__stream.html">cuda::experimental::stf::decorated_stream</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1graph.html">cuda::experimental::graph</a></li>
@@ -1297,8 +1296,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1hash_3_01void__interface_01_4.html">cuda::experimental::stf::hash&lt; void_interface &gt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1hash_3_1_1std_1_1pair_3_01T1_00_01T2_01_4_01_4.html">cuda::experimental::stf::hash&lt;::std::pair&lt; T1, T2 &gt; &gt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1hash_3_1_1std_1_1tuple_3_01Ts_8_8_8_01_4_01_4.html">cuda::experimental::stf::hash&lt;::std::tuple&lt; Ts… &gt; &gt;</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1kernel__config.html">cuda::experimental::kernel_config</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1launch__priority.html">cuda::experimental::launch_priority</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1layout__stride.html">cuda::experimental::stf::layout_stride</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1owning__container__of.html">cuda::experimental::stf::owning_container_of</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1owning__container__of_3_01scalar__view_3_01T_01_4_01_4.html">cuda::experimental::stf::owning_container_of&lt; scalar_view&lt; T &gt; &gt;</a></li>
@@ -1313,15 +1310,9 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1streamed__interface__of_3_01mdspan_3_01T_00_01P_8_8_8_01_4_01_4.html">cuda::experimental::stf::streamed_interface_of&lt; mdspan&lt; T, P… &gt; &gt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1streamed__interface__of_3_01scalar__view_3_01T_01_4_01_4.html">cuda::experimental::stf::streamed_interface_of&lt; scalar_view&lt; T &gt; &gt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1stf_1_1streamed__interface__of_3_01void__interface_01_4.html">cuda::experimental::stf::streamed_interface_of&lt; void_interface &gt;</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/structcuda_1_1experimental_1_1synchronous__resource__adapter.html">cuda::experimental::synchronous_resource_adapter</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a15d66a4607d1b265790613032220837f.html">cuda::experimental::make_buffer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1ae52f048fec5bb8c0e028ec6ee18e0ae4.html">cuda::experimental::depends_on</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a587013ea961cd2d72ce2255c4a665e7e.html">cuda::experimental::start_path</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a1d24b80b5330c98dbf8386c0453364a8.html">cuda::experimental::operator&amp;</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1afe420231beacc68eea61533757fb93fd.html">cuda::experimental::make_config</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a591c99d80c8d7f96a29174492e72a859.html">cuda::experimental::distribute</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1aa8263d79aa1b3db93c6b40ca61634080.html">cuda::experimental::launch</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1device_1a3df43b2f3236f232dc1d7a51545cd389.html">cuda::experimental::device::dynamic_shared_memory_view</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1ad18742cd2980317d08fa22179fe9838b.html">cuda::experimental::stf::join</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a15334df9162430aaae8d98d9f6614164.html">cuda::experimental::stf::register_stream</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1ad4e01a86f130b065598ee6eccc017de9.html">cuda::experimental::stf::unregister_stream</a></li>
@@ -1379,8 +1370,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1af7bbd0c16d200ff11f25a06b6f8f9f9c.html">cuda::experimental::stf::shuffled_tuple</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a7769bac86e1a10e2b46241e166f27d4a.html">cuda::experimental::stf::shuffled_array_tuple</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1ab6102f1f400fb5014573fd1424e1ae0c.html">cuda::experimental::stf::unstable_unique</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1ae54655ac955ae7ca93f731b0676f02ea.html">cuda::experimental::device_buffer</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1aa6269c4bd17a8918a50a7cdb60b3f38e.html">cuda::experimental::host_buffer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1ad79958209ea876e5dafe78f59ab52d79.html">cuda::experimental::stf::array_tuple</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1aa7d4170e1a89607a1064da6257130929.html">cuda::experimental::stf::blocked_partition</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a57eb9d03994cae3406bf9101c62d80dd.html">cuda::experimental::stf::event</a></li>
@@ -1392,7 +1381,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1aa9c8a86afb5d22780fd035a16435c768.html">cuda::experimental::stf::token</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a0d0aa10903bca9350c88da9e7121c089.html">cuda::experimental::uninitialized_device_buffer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a4401baa9c7798a0dd6f981de4e549d86.html">cuda::experimental::graph_node_type</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a239626d48731dada15add5fd2597eb53.html">cuda::experimental::non_portable_t</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a923aa8f0346e2b2a9e970a0fab753673.html">cuda::experimental::stf::access_mode</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a82008bf924d44262d76e4dd3e923e196.html">cuda::experimental::stf::hw_scope</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a0aecbcdcde59511ead903c663bd205da.html">cuda::experimental::stf::instance_id_t</a></li>
@@ -1403,14 +1391,9 @@
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a83e404642d89549ec95c95a057bf341e.html">cuda::experimental::graph_inserter</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a4cbd53d4681c0629ef0d1ec521f3146f.html">cuda::experimental::in</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a22a860b92240dc157802c575121a2bd8.html">cuda::experimental::inout</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a97b53da02786843bd7f3006b2c996cec.html">cuda::experimental::non_portable</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1a0e77b206698879c24f721c676694fb6d.html">cuda::experimental::out</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1_1stf_1a03453c0becd124285de9dad062506ef6.html">cuda::experimental::stf::type_name</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cudax/api/namespacecuda_1_1experimental_1ac2bd49a968880629779df2659e34459e.html">cuda::experimental::work_submitter</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/group__construction.html">Construction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/group__iterators.html">Iterators</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/group__access.html">Access</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudax/api/group__size.html">Size</a></li>
 </ul>
 </details></li>
 </ul>
@@ -1509,7 +1492,7 @@ The API is subject to change without notice.</p>
 <span id="algorithms"></span><h2>Algorithms<a class="headerlink" href="#module-cuda.compute.algorithms" title="Link to this heading">#</a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="cuda.compute.algorithms.reduce_into">
-<span class="sig-prename descclassname"><span class="pre">cuda.compute.algorithms.</span></span><span class="sig-name descname"><span class="pre">reduce_into</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_items</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_init</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stream</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.reduce_into" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cuda.compute.algorithms.</span></span><span class="sig-name descname"><span class="pre">reduce_into</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_items</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_init</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stream</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.reduce_into" title="Link to this definition">#</a></dt>
 <dd><p>Performs device-wide reduction.</p>
 <p>This function automatically handles temporary storage allocation and execution.</p>
 <p class="rubric">Example</p>
@@ -1556,7 +1539,7 @@ The API is subject to change without notice.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cuda.compute.algorithms.make_reduce_into">
-<span class="sig-prename descclassname"><span class="pre">cuda.compute.algorithms.</span></span><span class="sig-name descname"><span class="pre">make_reduce_into</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_init</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.make_reduce_into" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cuda.compute.algorithms.</span></span><span class="sig-name descname"><span class="pre">make_reduce_into</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_init</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.make_reduce_into" title="Link to this definition">#</a></dt>
 <dd><p>Computes a device-wide reduction using the specified binary <code class="docutils literal notranslate"><span class="pre">op</span></code> and initial value <code class="docutils literal notranslate"><span class="pre">init</span></code>.</p>
 <p class="rubric">Example</p>
 <p>Below, <code class="docutils literal notranslate"><span class="pre">make_reduce_into</span></code> is used to create a reduction object that can be reused.</p>
@@ -1606,7 +1589,7 @@ The API is subject to change without notice.</p>
 <li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array (of size 1) that will store the result of the reduction</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the binary operator to apply</p></li>
 <li><p><strong>init</strong> – Numpy array storing initial value of the reduction</p></li>
-<li><p><strong>h_init</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><em>ndarray</em></a>)</p></li>
+<li><p><strong>h_init</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><em>ndarray</em></a><em> | </em><em>GpuStruct</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1835,6 +1818,8 @@ The API is subject to change without notice.</p>
 <span class="sig-prename descclassname"><span class="pre">cuda.compute.algorithms.</span></span><span class="sig-name descname"><span class="pre">unary_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_items</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stream</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.unary_transform" title="Link to this definition">#</a></dt>
 <dd><p>Performs device-wide unary transform.</p>
 <p>This function automatically handles temporary storage allocation and execution.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">op</span></code> function can reference device arrays as globals or closures - they will
+be automatically captured as state arrays, enabling stateful operations like counting.</p>
 <p class="rubric">Example</p>
 <p>Below, <code class="docutils literal notranslate"><span class="pre">unary_transform</span></code> is used to apply a transformation to each element of the input.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
@@ -1930,7 +1915,8 @@ to help with type inference. See the binary transform struct example for referen
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items.</p></li>
 <li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the result of the transformation.</p></li>
-<li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the unary operation to apply to each element of the input.</p></li>
+<li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the unary operation to apply to each element of the input.
+Can reference device arrays as globals/closures - they will be automatically captured.</p></li>
 <li><p><strong>num_items</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items to transform.</p></li>
 <li><p><strong>stream</strong> – CUDA stream to use for the operation.</p></li>
 </ul>
@@ -2094,7 +2080,8 @@ to help with type inference. See the following example:</p>
 <li><p><strong>d_in1</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the first input sequence of data items.</p></li>
 <li><p><strong>d_in2</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the second input sequence of data items.</p></li>
 <li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the result of the transformation.</p></li>
-<li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the binary operation to apply to each pair of items from the input sequences.</p></li>
+<li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the binary operation to apply to each pair of items from the input sequences.
+Can reference device arrays as globals/closures - they will be automatically captured.</p></li>
 <li><p><strong>num_items</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items to transform.</p></li>
 <li><p><strong>stream</strong> – CUDA stream to use for the operation.</p></li>
 </ul>
@@ -2198,8 +2185,8 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <span class="n">d_samples</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h_samples</span><span class="p">)</span>
 <span class="n">num_levels</span> <span class="o">=</span> <span class="mi">7</span>
 <span class="n">d_histogram</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">num_levels</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span>
-<span class="n">lower_level</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">upper_level</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">lower_level</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">upper_level</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
 
 <span class="c1"># Perform the histogram even.</span>
 <span class="n">cuda</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">histogram_even</span><span class="p">(</span>
@@ -2275,8 +2262,8 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <span class="c1"># note that the object API requires passing numpy arrays</span>
 <span class="c1"># rather than scalars:</span>
 <span class="n">h_num_output_levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">num_levels</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<span class="n">h_lower_level</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-<span class="n">h_upper_level</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">10.0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">h_lower_level</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">h_upper_level</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">10.0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
 <span class="n">d_histogram</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_levels</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span>
 
@@ -2892,7 +2879,7 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <li><p><strong>end_offsets_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing offsets to end of segments</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the binary operator to apply</p></li>
 <li><p><strong>init</strong> – Numpy array storing initial value of the reduction</p></li>
-<li><p><strong>h_init</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><em>ndarray</em></a>)</p></li>
+<li><p><strong>h_init</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><em>ndarray</em></a><em> | </em><em>GpuStruct</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -3378,8 +3365,10 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <li><p><strong>d_second_part_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the second part of the output</p></li>
 <li><p><strong>d_unselected_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the unselected items</p></li>
 <li><p><strong>d_num_selected_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array to store the number of items selected. The total number of items selected by <code class="docutils literal notranslate"><span class="pre">select_first_part_op</span></code> and <code class="docutils literal notranslate"><span class="pre">select_second_part_op</span></code> is stored in <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[0]</span></code> and <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[1]</span></code>, respectively.</p></li>
-<li><p><strong>select_first_part_op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>) – Callable representing the unary operator to select the first part</p></li>
-<li><p><strong>select_second_part_op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>) – Callable representing the unary operator to select the second part</p></li>
+<li><p><strong>select_first_part_op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>_OpAdapter</em>) – Callable representing the unary operator to select the first part.
+Can reference device arrays as globals/closures - they will be automatically captured.</p></li>
+<li><p><strong>select_second_part_op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>_OpAdapter</em>) – Callable representing the unary operator to select the second part.
+Can reference device arrays as globals/closures - they will be automatically captured.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -3396,6 +3385,8 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 function <code class="docutils literal notranslate"><span class="pre">cond</span></code> returns true (non-zero) and writes them to the output in a
 compacted form. The number of selected elements is written to <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[0]</span></code>.</p>
 <p>This function automatically handles temporary storage allocation and execution.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">cond</span></code> function can reference device arrays as globals or closures - they will
+be automatically captured as state arrays, enabling stateful operations like counting.</p>
 <p class="rubric">Example</p>
 <p>Below, <code class="docutils literal notranslate"><span class="pre">select</span></code> is used to select even numbers from an input array:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
@@ -3474,7 +3465,8 @@ compacted form. The number of selected elements is written to <code class="docut
 <li><p><strong>d_num_selected_out</strong> (<em>DeviceArrayLike</em>) – Device array to store the number of items that passed the selection.
 The count is stored in <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[0]</span></code>.</p></li>
 <li><p><strong>cond</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>) – Callable representing the selection condition (predicate). Should return a
-boolean-like value (typically uint8) where non-zero means the item passes the selection.</p></li>
+boolean-like value (typically uint8) where non-zero means the item passes the selection.
+Can reference device arrays as globals/closures - they will be automatically captured.</p></li>
 <li><p><strong>num_items</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items in the input sequence.</p></li>
 <li><p><strong>stream</strong> – CUDA stream to use for the operation (optional).</p></li>
 </ul>
@@ -3557,7 +3549,7 @@ boolean-like value (typically uint8) where non-zero means the item passes the se
 
 <dl class="py class">
 <dt class="sig sig-object py" id="cuda.compute.algorithms.DoubleBuffer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cuda.compute.algorithms.</span></span><span class="sig-name descname"><span class="pre">DoubleBuffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_current</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_alternate</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.DoubleBuffer" title="Link to this definition">#</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cuda.compute.algorithms.</span></span><span class="sig-name descname"><span class="pre">DoubleBuffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_current</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_alternate</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.DoubleBuffer" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3580,33 +3572,20 @@ boolean-like value (typically uint8) where non-zero means the item passes the se
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="cuda.compute.algorithms.DoubleBuffer.current">
-<span class="sig-name descname"><span class="pre">current</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.DoubleBuffer.current" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="cuda.compute.algorithms.DoubleBuffer.alternate">
+<span class="sig-name descname"><span class="pre">alternate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.DoubleBuffer.alternate" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="cuda.compute.algorithms.DoubleBuffer.alternate">
-<span class="sig-name descname"><span class="pre">alternate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.DoubleBuffer.alternate" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="cuda.compute.algorithms.DoubleBuffer.current">
+<span class="sig-name descname"><span class="pre">current</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.DoubleBuffer.current" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="cuda.compute.algorithms.SortOrder">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cuda.compute.algorithms.</span></span><span class="sig-name descname"><span class="pre">SortOrder</span></span><span class="sig-paren">(</span>
-
-<dl>
-<dd><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">names=&lt;not</span> <span class="pre">given&gt;</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">*values</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">module=None</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">qualname=None</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">type=None</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">start=1</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">boundary=None</span></span></em>,</dd>
-</dl>
-
-<span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.SortOrder" title="Link to this definition">#</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cuda.compute.algorithms.</span></span><span class="sig-name descname"><span class="pre">SortOrder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.algorithms.SortOrder" title="Link to this definition">#</a></dt>
 <dd><dl class="py attribute">
 <dt class="sig sig-object py" id="cuda.compute.algorithms.SortOrder.ASCENDING">
 <span class="sig-name descname"><span class="pre">ASCENDING</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#cuda.compute.algorithms.SortOrder.ASCENDING" title="Link to this definition">#</a></dt>
@@ -4253,7 +4232,7 @@ combining two device arrays:</p>
 <h2>Operators<a class="headerlink" href="#operators" title="Link to this heading">#</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="cuda.compute.iterators.cuda.compute.op.OpKind">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cuda.compute.op.</span></span><span class="sig-name descname"><span class="pre">OpKind</span></span><a class="headerlink" href="#cuda.compute.iterators.cuda.compute.op.OpKind" title="Link to this definition">#</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cuda.compute.op.</span></span><span class="sig-name descname"><span class="pre">OpKind</span></span><a class="headerlink" href="#cuda.compute.iterators.cuda.compute.op.OpKind" title="Link to this definition">#</a></dt>
 <dd><p>Enumeration of operator kinds for CUDA parallel algorithms.</p>
 <p>This enum defines the types of operations that can be performed
 in parallel algorithms, including arithmetic, logical, and bitwise operations.</p>
@@ -4358,8 +4337,23 @@ in parallel algorithms, including arithmetic, logical, and bitwise operations.</
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="cuda.compute.iterators.cuda.compute.op.OpKind.IDENTITY">
+<span class="sig-name descname"><span class="pre">IDENTITY</span></span><a class="headerlink" href="#cuda.compute.iterators.cuda.compute.op.OpKind.IDENTITY" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="cuda.compute.iterators.cuda.compute.op.OpKind.NEGATE">
 <span class="sig-name descname"><span class="pre">NEGATE</span></span><a class="headerlink" href="#cuda.compute.iterators.cuda.compute.op.OpKind.NEGATE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cuda.compute.iterators.cuda.compute.op.OpKind.MINIMUM">
+<span class="sig-name descname"><span class="pre">MINIMUM</span></span><a class="headerlink" href="#cuda.compute.iterators.cuda.compute.op.OpKind.MINIMUM" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cuda.compute.iterators.cuda.compute.op.OpKind.MAXIMUM">
+<span class="sig-name descname"><span class="pre">MAXIMUM</span></span><a class="headerlink" href="#cuda.compute.iterators.cuda.compute.op.OpKind.MAXIMUM" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -4584,8 +4578,8 @@ Numba type can be obtained using <code class="docutils literal notranslate"><spa
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.algorithms.make_select"><code class="docutils literal notranslate"><span class="pre">make_select()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.algorithms.DoubleBuffer"><code class="docutils literal notranslate"><span class="pre">DoubleBuffer</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.algorithms.DoubleBuffer.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.algorithms.DoubleBuffer.current"><code class="docutils literal notranslate"><span class="pre">current()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.algorithms.DoubleBuffer.alternate"><code class="docutils literal notranslate"><span class="pre">alternate()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.algorithms.DoubleBuffer.current"><code class="docutils literal notranslate"><span class="pre">current()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.algorithms.SortOrder"><code class="docutils literal notranslate"><span class="pre">SortOrder</span></code></a><ul class="nav section-nav flex-column">
@@ -4629,7 +4623,10 @@ Numba type can be obtained using <code class="docutils literal notranslate"><spa
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.cuda.compute.op.OpKind.BIT_OR"><code class="docutils literal notranslate"><span class="pre">BIT_OR</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.cuda.compute.op.OpKind.BIT_XOR"><code class="docutils literal notranslate"><span class="pre">BIT_XOR</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.cuda.compute.op.OpKind.BIT_NOT"><code class="docutils literal notranslate"><span class="pre">BIT_NOT</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.cuda.compute.op.OpKind.IDENTITY"><code class="docutils literal notranslate"><span class="pre">IDENTITY</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.cuda.compute.op.OpKind.NEGATE"><code class="docutils literal notranslate"><span class="pre">NEGATE</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.cuda.compute.op.OpKind.MINIMUM"><code class="docutils literal notranslate"><span class="pre">MINIMUM</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.cuda.compute.op.OpKind.MAXIMUM"><code class="docutils literal notranslate"><span class="pre">MAXIMUM</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -4688,7 +4685,7 @@ Numba type can be obtained using <code class="docutils literal notranslate"><spa
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
     <br/>
   </p>
 </div>
