@@ -355,14 +355,21 @@
 </ul>
 </details></li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../libcudacxx/api/index.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classbasic__any__resource.html">basic_any_resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classbasic__resource__ref.html">basic_resource_ref</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classcompute__capability.html">compute_capability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classconstant__iterator.html">constant_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classcounting__iterator.html">counting_iterator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classdevice__memory__pool__ref.html">device_memory_pool_ref</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classdevice__ref.html">device_ref</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classdiscard__iterator.html">discard_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classevent.html">event</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classevent__ref.html">event_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classlegacy__managed__memory__resource.html">legacy_managed_memory_resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classlegacy__pinned__memory__resource.html">legacy_pinned_memory_resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classmanaged__memory__pool__ref.html">managed_memory_pool_ref</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classpermutation__iterator.html">permutation_iterator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classpinned__memory__pool__ref.html">pinned_memory_pool_ref</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classshuffle__iterator.html">shuffle_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classstream__ref.html">stream_ref</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classstrided__iterator.html">strided_iterator</a></li>
@@ -377,8 +384,17 @@
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structarch__traits__t.html">arch_traits_t</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structdevice__attributes_1_1compute__capability__t.html">device_attributes::compute_capability_t</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structcopy__configuration.html">copy_configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structdevice__accessible.html">device_accessible</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structdevice__memory__pool.html">device_memory_pool</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structget__stream__t.html">get_stream_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structhost__accessible.html">host_accessible</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structmanaged__memory__pool.html">managed_memory_pool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structmemory__pool__properties.html">memory_pool_properties</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structpinned__memory__pool.html">pinned_memory_pool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structproperties__list.html">properties_list</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structshared__resource.html">shared_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structstream.html">stream</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structsynchronous__resource__adapter.html">synchronous_resource_adapter</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__iterators_1ga83ac1a6f53e106d83b8f7db6757f7334.html">zip_iterator::difference_type</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__iterators_1gadcd3d726e080dfd5ec73d1816aa41744.html">zip_iterator::iterator_concept</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__iterators_1ga3a57fccd85438fe6ac517f59802807b5.html">zip_iterator::pointer</a></li>
@@ -1135,11 +1151,17 @@
 <li class="toctree-l3"><a class="reference internal" href="../../cudax/index.html">Overview</a></li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../cudax/container.html">Containers library</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../cudax/api/classcuda_1_1experimental_1_1uninitialized__buffer.html">cuda::experimental::uninitialized_buffer</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../cudax/api/classcuda_1_1experimental_1_1stf_1_1small__vector.html">cuda::experimental::stf::small_vector</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../cudax/api/classcuda_1_1experimental_1_1stf_1_1task__dep__vector.html">cuda::experimental::stf::task_dep_vector</a></li>
 </ul>
 </details></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../cudax/memory_resource.html">Memory Resources</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="simple">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../cudax/memory_resource.html">Memory Resources</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classbasic__any__resource.html">basic_any_resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structmemory__pool__properties.html">memory_pool_properties</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structdevice__memory__pool.html">device_memory_pool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structpinned__memory__pool.html">pinned_memory_pool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structmanaged__memory__pool.html">managed_memory_pool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classlegacy__pinned__memory__resource.html">legacy_pinned_memory_resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classlegacy__managed__memory__resource.html">legacy_managed_memory_resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structshared__resource.html">shared_resource</a></li>
 </ul>
 </details></li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../cudax/graph.html">Graphs library</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -1708,7 +1730,7 @@ The following code snippet demonstrates how to fill a <code class="docutils lite
 
   <p class="copyright">
     
-      Copyright © 2025, NVIDIA Corporation.
+      Copyright © 2026, NVIDIA Corporation.
       <br/>
     
   </p>
