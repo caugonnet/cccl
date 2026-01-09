@@ -73,6 +73,7 @@ Structs
 * :doc:`cub::ChainedPolicy <structcub_1_1ChainedPolicy>`
 * :doc:`cub::DeviceAdjacentDifference <structcub_1_1DeviceAdjacentDifference>`
 * :doc:`cub::DeviceCopy <structcub_1_1DeviceCopy>`
+* :doc:`cub::DeviceFind <structcub_1_1DeviceFind>`
 * :doc:`cub::DeviceFor <structcub_1_1DeviceFor>`
 * :doc:`cub::DeviceHistogram <structcub_1_1DeviceHistogram>`
 * :doc:`cub::DeviceMemcpy <structcub_1_1DeviceMemcpy>`
@@ -269,6 +270,7 @@ Enumerations
    structcub_1_1ChainedPolicy
    structcub_1_1DeviceAdjacentDifference
    structcub_1_1DeviceCopy
+   structcub_1_1DeviceFind
    structcub_1_1DeviceFor
    structcub_1_1DeviceHistogram
    structcub_1_1DeviceMemcpy

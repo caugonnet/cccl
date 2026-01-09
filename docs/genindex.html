@@ -541,6 +541,7 @@
 <li class="toctree-l4"><a class="reference internal" href="cub/api/structcub_1_1ChainedPolicy.html">cub::ChainedPolicy</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/structcub_1_1DeviceAdjacentDifference.html">cub::DeviceAdjacentDifference</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/structcub_1_1DeviceCopy.html">cub::DeviceCopy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cub/api/structcub_1_1DeviceFind.html">cub::DeviceFind</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/structcub_1_1DeviceFor.html">cub::DeviceFor</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/structcub_1_1DeviceHistogram.html">cub::DeviceHistogram</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/structcub_1_1DeviceMemcpy.html">cub::DeviceMemcpy</a></li>
@@ -992,10 +993,6 @@
 <li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1ga30dd0858022330597b14a4c034e1936d.html">thrust::integer_sequence_push_front</a></li>
 <li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1gafcd0e9ee2ab2f7123caf84f6c85a691b.html">thrust::is_contiguous_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1ga8cff578125e8f610db7f03cdba1e271d.html">thrust::is_execution_policy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1ga80899866447b02e95640aa86cb3b9d5b.html">thrust::is_operator_greater_function_object</a></li>
-<li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1ga89fa2cd21cf618ac3f6742e015347bd4.html">thrust::is_operator_less_function_object</a></li>
-<li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1ga9e81f0f06e410e65fd4ae0ff3649aa8d.html">thrust::is_operator_less_or_greater_function_object</a></li>
-<li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1ga4951501a3c7337be79222a966d1f9d73.html">thrust::is_operator_plus_function_object</a></li>
 <li class="toctree-l4"><a class="reference internal" href="thrust/api/group__iterator__traits_1gadffd965cb3b426d99eab1f6506c30ed6.html">thrust::iterator_difference_t</a></li>
 <li class="toctree-l4"><a class="reference internal" href="thrust/api/group__iterator__traits_1ga9410f26f50e2038f458b0274dd0a39cf.html">thrust::iterator_pointer_t</a></li>
 <li class="toctree-l4"><a class="reference internal" href="thrust/api/group__iterator__traits_1ga6bbc4f5672e0638f4fb040db3a3ea90b.html">thrust::iterator_reference_t</a></li>
@@ -1070,10 +1067,6 @@
 <li class="toctree-l4"><a class="reference internal" href="thrust/api/group__execution__policies_1gaebabcc1c0958344babfccdcf379915e5.html">thrust::host</a></li>
 <li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1ga1da323e7acfe527a28ea6bd940488584.html">thrust::is_contiguous_iterator_v</a></li>
 <li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1ga2bdbeb4d76c1629f2b2e2323ce10a556.html">thrust::is_execution_policy_v</a></li>
-<li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1ga42415f71c7b50c51763edc7a3591a400.html">thrust::is_operator_greater_function_object_v</a></li>
-<li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1ga38d413b5daee16a97fa7d9da9f3c4b29.html">thrust::is_operator_less_function_object_v</a></li>
-<li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1gac4884b2dd3b4d114ebc739d254c9d505.html">thrust::is_operator_less_or_greater_function_object_v</a></li>
-<li class="toctree-l4"><a class="reference internal" href="thrust/api/group__type__traits_1gad5d7207e2d28604f48cef2daccf1ed22.html">thrust::is_operator_plus_function_object_v</a></li>
 <li class="toctree-l4"><a class="reference internal" href="thrust/api/group__transformations.html">Transformations</a></li>
 <li class="toctree-l4"><a class="reference internal" href="thrust/api/group__algorithms.html">Algorithms</a></li>
 <li class="toctree-l4"><a class="reference internal" href="thrust/api/group__searching.html">Searching</a></li>
@@ -1483,6 +1476,7 @@
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#N"><strong>N</strong></a>
+ | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
@@ -1939,13 +1933,13 @@
 </li>
       <li><a href="python/compute_api.html#cuda.compute.algorithms.binary_transform">binary_transform() (in module cuda.compute.algorithms)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.BIT_AND">BIT_AND (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.BIT_AND">BIT_AND (cuda.compute.op.OpKind attribute)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.BIT_NOT">BIT_NOT (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.BIT_NOT">BIT_NOT (cuda.compute.op.OpKind attribute)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.BIT_OR">BIT_OR (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.BIT_OR">BIT_OR (cuda.compute.op.OpKind attribute)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.BIT_XOR">BIT_XOR (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.BIT_XOR">BIT_XOR (cuda.compute.op.OpKind attribute)</a>
 </li>
       <li><a href="cub/api/classcub_1_1BlockAdjacentDifference.html#_CPPv4I0_i_i_iEN3cub23BlockAdjacentDifferenceE">BlockAdjacentDifference (C++ class)</a>
 </li>
@@ -2463,7 +2457,11 @@
 </li>
       <li><a href="libcudacxx/api/classcompute__capability.html#_CPPv4NK18compute_capability5majorEv">compute_capability::major (C++ function)</a>
 </li>
+      <li><a href="libcudacxx/api/classcompute__capability.html#_CPPv4NK18compute_capability9major_capEv">compute_capability::major_cap (C++ function)</a>
+</li>
       <li><a href="libcudacxx/api/classcompute__capability.html#_CPPv4NK18compute_capability5minorEv">compute_capability::minor (C++ function)</a>
+</li>
+      <li><a href="libcudacxx/api/classcompute__capability.html#_CPPv4NK18compute_capability9minor_capEv">compute_capability::minor_cap (C++ function)</a>
 </li>
       <li><a href="libcudacxx/api/classcompute__capability.html#_CPPv4NK18compute_capabilitycviEv">compute_capability::operator int (C++ function)</a>
 </li>
@@ -2601,8 +2599,6 @@
         <li><a href="python/compute_api.html#module-cuda.compute.iterators">module</a>
 </li>
       </ul></li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind">cuda.compute.op.OpKind (class in cuda.compute.iterators)</a>
-</li>
       <li>
     cuda.compute.struct
 
@@ -3784,7 +3780,7 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4N4cuda12experimental3stf10exec_placeE">cuda::experimental::stf::exec_place (C++ class)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place8activateER19backend_ctx_untyped">cuda::experimental::stf::exec_place::activate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place8activateEv">cuda::experimental::stf::exec_place::activate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place17affine_data_placeEv">cuda::experimental::stf::exec_place::affine_data_place (C++ function)</a>
 </li>
@@ -3798,7 +3794,7 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4N4cuda12experimental3stf10exec_place14current_deviceEv">cuda::experimental::stf::exec_place::current_device (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place10deactivateER19backend_ctx_untypedRK10exec_place">cuda::experimental::stf::exec_place::deactivate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place10deactivateERK10exec_place">cuda::experimental::stf::exec_place::deactivate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4N4cuda12experimental3stf10exec_place6deviceEi">cuda::experimental::stf::exec_place::device (C++ function)</a>
 </li>
@@ -3824,11 +3820,11 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4N4cuda12experimental3stf10exec_place4implE">cuda::experimental::stf::exec_place::impl (C++ class)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place4impl8activateER19backend_ctx_untyped">cuda::experimental::stf::exec_place::impl::activate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place4impl8activateEv">cuda::experimental::stf::exec_place::impl::activate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place4impl17affine_data_placeEv">cuda::experimental::stf::exec_place::impl::affine_data_place (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place4impl10deactivateER19backend_ctx_untypedRK10exec_place">cuda::experimental::stf::exec_place::impl::deactivate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place4impl10deactivateERK10exec_place">cuda::experimental::stf::exec_place::impl::deactivate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place4impl15get_stream_poolER22async_resources_handleb">cuda::experimental::stf::exec_place::impl::get_stream_pool (C++ function)</a>
 </li>
@@ -3882,17 +3878,23 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_placeeqERK10exec_place">cuda::experimental::stf::exec_place::operator== (C++ function)</a>
 </li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place16pick_all_streamsER22async_resources_handleb">cuda::experimental::stf::exec_place::pick_all_streams (C++ function)</a>
+</li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place11pick_streamER22async_resources_handleb">cuda::experimental::stf::exec_place::pick_stream (C++ function)</a>
+</li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4N4cuda12experimental3stf10exec_place6repeatERK10exec_place6size_t">cuda::experimental::stf::exec_place::repeat (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4N4cuda12experimental3stf10exec_place21set_affine_data_placeE10data_place">cuda::experimental::stf::exec_place::set_affine_data_place (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place4sizeEv">cuda::experimental::stf::exec_place::size (C++ function)</a>
 </li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place16stream_pool_sizeER22async_resources_handleb">cuda::experimental::stf::exec_place::stream_pool_size (C++ function)</a>
+</li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place.html#_CPPv4NK4cuda12experimental3stf10exec_place9to_stringEv">cuda::experimental::stf::exec_place::to_string (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4N4cuda12experimental3stf22exec_place_cuda_streamE">cuda::experimental::stf::exec_place_cuda_stream (C++ class)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream8activateER19backend_ctx_untyped">cuda::experimental::stf::exec_place_cuda_stream::activate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream8activateEv">cuda::experimental::stf::exec_place_cuda_stream::activate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream17affine_data_placeEv">cuda::experimental::stf::exec_place_cuda_stream::affine_data_place (C++ function)</a>
 </li>
@@ -3906,7 +3908,7 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4N4cuda12experimental3stf22exec_place_cuda_stream14current_deviceEv">cuda::experimental::stf::exec_place_cuda_stream::current_device (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream10deactivateER19backend_ctx_untypedRK10exec_place">cuda::experimental::stf::exec_place_cuda_stream::deactivate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream10deactivateERK10exec_place">cuda::experimental::stf::exec_place_cuda_stream::deactivate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4N4cuda12experimental3stf22exec_place_cuda_stream6deviceEi">cuda::experimental::stf::exec_place_cuda_stream::device (C++ function)</a>
 </li>
@@ -3932,11 +3934,11 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4N4cuda12experimental3stf22exec_place_cuda_stream4implE">cuda::experimental::stf::exec_place_cuda_stream::impl (C++ class)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream4impl8activateER19backend_ctx_untyped">cuda::experimental::stf::exec_place_cuda_stream::impl::activate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream4impl8activateEv">cuda::experimental::stf::exec_place_cuda_stream::impl::activate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream4impl17affine_data_placeEv">cuda::experimental::stf::exec_place_cuda_stream::impl::affine_data_place (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream4impl10deactivateER19backend_ctx_untypedRK10exec_place">cuda::experimental::stf::exec_place_cuda_stream::impl::deactivate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream4impl10deactivateERK10exec_place">cuda::experimental::stf::exec_place_cuda_stream::impl::deactivate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream4impl15get_stream_poolER22async_resources_handleb">cuda::experimental::stf::exec_place_cuda_stream::impl::get_stream_pool (C++ function)</a>
 </li>
@@ -3974,17 +3976,23 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_streameqERK10exec_place">cuda::experimental::stf::exec_place_cuda_stream::operator== (C++ function)</a>
 </li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream16pick_all_streamsER22async_resources_handleb">cuda::experimental::stf::exec_place_cuda_stream::pick_all_streams (C++ function)</a>
+</li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream11pick_streamER22async_resources_handleb">cuda::experimental::stf::exec_place_cuda_stream::pick_stream (C++ function)</a>
+</li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4N4cuda12experimental3stf22exec_place_cuda_stream6repeatERK10exec_place6size_t">cuda::experimental::stf::exec_place_cuda_stream::repeat (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4N4cuda12experimental3stf22exec_place_cuda_stream21set_affine_data_placeE10data_place">cuda::experimental::stf::exec_place_cuda_stream::set_affine_data_place (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream4sizeEv">cuda::experimental::stf::exec_place_cuda_stream::size (C++ function)</a>
 </li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream16stream_pool_sizeER22async_resources_handleb">cuda::experimental::stf::exec_place_cuda_stream::stream_pool_size (C++ function)</a>
+</li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__cuda__stream.html#_CPPv4NK4cuda12experimental3stf22exec_place_cuda_stream9to_stringEv">cuda::experimental::stf::exec_place_cuda_stream::to_string (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4N4cuda12experimental3stf20exec_place_green_ctxE">cuda::experimental::stf::exec_place_green_ctx (C++ class)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx8activateER19backend_ctx_untyped">cuda::experimental::stf::exec_place_green_ctx::activate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx8activateEv">cuda::experimental::stf::exec_place_green_ctx::activate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx17affine_data_placeEv">cuda::experimental::stf::exec_place_green_ctx::affine_data_place (C++ function)</a>
 </li>
@@ -3998,7 +4006,7 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4N4cuda12experimental3stf20exec_place_green_ctx14current_deviceEv">cuda::experimental::stf::exec_place_green_ctx::current_device (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx10deactivateER19backend_ctx_untypedRK10exec_place">cuda::experimental::stf::exec_place_green_ctx::deactivate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx10deactivateERK10exec_place">cuda::experimental::stf::exec_place_green_ctx::deactivate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4N4cuda12experimental3stf20exec_place_green_ctx6deviceEi">cuda::experimental::stf::exec_place_green_ctx::device (C++ function)</a>
 </li>
@@ -4024,11 +4032,11 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4N4cuda12experimental3stf20exec_place_green_ctx4implE">cuda::experimental::stf::exec_place_green_ctx::impl (C++ class)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx4impl8activateER19backend_ctx_untyped">cuda::experimental::stf::exec_place_green_ctx::impl::activate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx4impl8activateEv">cuda::experimental::stf::exec_place_green_ctx::impl::activate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx4impl17affine_data_placeEv">cuda::experimental::stf::exec_place_green_ctx::impl::affine_data_place (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx4impl10deactivateER19backend_ctx_untypedRK10exec_place">cuda::experimental::stf::exec_place_green_ctx::impl::deactivate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx4impl10deactivateERK10exec_place">cuda::experimental::stf::exec_place_green_ctx::impl::deactivate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx4impl15get_stream_poolER22async_resources_handleb">cuda::experimental::stf::exec_place_green_ctx::impl::get_stream_pool (C++ function)</a>
 </li>
@@ -4066,17 +4074,23 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctxeqERK10exec_place">cuda::experimental::stf::exec_place_green_ctx::operator== (C++ function)</a>
 </li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx16pick_all_streamsER22async_resources_handleb">cuda::experimental::stf::exec_place_green_ctx::pick_all_streams (C++ function)</a>
+</li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx11pick_streamER22async_resources_handleb">cuda::experimental::stf::exec_place_green_ctx::pick_stream (C++ function)</a>
+</li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4N4cuda12experimental3stf20exec_place_green_ctx6repeatERK10exec_place6size_t">cuda::experimental::stf::exec_place_green_ctx::repeat (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4N4cuda12experimental3stf20exec_place_green_ctx21set_affine_data_placeE10data_place">cuda::experimental::stf::exec_place_green_ctx::set_affine_data_place (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx4sizeEv">cuda::experimental::stf::exec_place_green_ctx::size (C++ function)</a>
 </li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx16stream_pool_sizeER22async_resources_handleb">cuda::experimental::stf::exec_place_green_ctx::stream_pool_size (C++ function)</a>
+</li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__green__ctx.html#_CPPv4NK4cuda12experimental3stf20exec_place_green_ctx9to_stringEv">cuda::experimental::stf::exec_place_green_ctx::to_string (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_gridE">cuda::experimental::stf::exec_place_grid (C++ class)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid8activateER19backend_ctx_untyped">cuda::experimental::stf::exec_place_grid::activate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid8activateEv">cuda::experimental::stf::exec_place_grid::activate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid17affine_data_placeEv">cuda::experimental::stf::exec_place_grid::affine_data_place (C++ function)</a>
 </li>
@@ -4092,7 +4106,7 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid16current_place_idEv">cuda::experimental::stf::exec_place_grid::current_place_id (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid10deactivateER19backend_ctx_untypedRK10exec_place">cuda::experimental::stf::exec_place_grid::deactivate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid10deactivateERK10exec_place">cuda::experimental::stf::exec_place_grid::deactivate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid6deviceEi">cuda::experimental::stf::exec_place_grid::device (C++ function)</a>
 </li>
@@ -4128,13 +4142,13 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid4implE">cuda::experimental::stf::exec_place_grid::impl (C++ class)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl8activateER19backend_ctx_untyped">cuda::experimental::stf::exec_place_grid::impl::activate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl8activateEv">cuda::experimental::stf::exec_place_grid::impl::activate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl17affine_data_placeEv">cuda::experimental::stf::exec_place_grid::impl::affine_data_place (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl16current_place_idEv">cuda::experimental::stf::exec_place_grid::impl::current_place_id (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl10deactivateER19backend_ctx_untypedRK10exec_place">cuda::experimental::stf::exec_place_grid::impl::deactivate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl10deactivateERK10exec_place">cuda::experimental::stf::exec_place_grid::impl::deactivate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid4impl17get_current_placeEv">cuda::experimental::stf::exec_place_grid::impl::get_current_place (C++ function)</a>
 </li>
@@ -4150,9 +4164,9 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl9getStreamER22async_resources_handleb">cuda::experimental::stf::exec_place_grid::impl::getStream (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl13grid_activateER19backend_ctx_untyped6size_t">cuda::experimental::stf::exec_place_grid::impl::grid_activate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl13grid_activateE6size_t">cuda::experimental::stf::exec_place_grid::impl::grid_activate (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl15grid_deactivateER19backend_ctx_untyped6size_t10exec_place">cuda::experimental::stf::exec_place_grid::impl::grid_deactivate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl15grid_deactivateE6size_t10exec_place">cuda::experimental::stf::exec_place_grid::impl::grid_deactivate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid4impl4implENSt6vectorI10exec_placeEE">cuda::experimental::stf::exec_place_grid::impl::impl (C++ function)</a>, <a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid4impl4implENSt6vectorI10exec_placeEERK4dim4">[1]</a>
 </li>
@@ -4166,13 +4180,13 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid4impl21set_affine_data_placeE10data_place">cuda::experimental::stf::exec_place_grid::impl::set_affine_data_place (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid4impl17set_current_placeER19backend_ctx_untyped4pos4">cuda::experimental::stf::exec_place_grid::impl::set_current_place (C++ function)</a>, <a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid4impl17set_current_placeER19backend_ctx_untyped6size_t">[1]</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid4impl17set_current_placeE4pos4">cuda::experimental::stf::exec_place_grid::impl::set_current_place (C++ function)</a>, <a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid4impl17set_current_placeE6size_t">[1]</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl4sizeEv">cuda::experimental::stf::exec_place_grid::impl::size (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4impl9to_stringEv">cuda::experimental::stf::exec_place_grid::impl::to_string (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid4impl19unset_current_placeER19backend_ctx_untyped">cuda::experimental::stf::exec_place_grid::impl::unset_current_place (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid4impl19unset_current_placeEv">cuda::experimental::stf::exec_place_grid::impl::unset_current_place (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid9is_deviceEv">cuda::experimental::stf::exec_place_grid::is_device (C++ function)</a>
 </li>
@@ -4192,21 +4206,27 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grideqERK10exec_place">cuda::experimental::stf::exec_place_grid::operator== (C++ function)</a>, <a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grideqERK15exec_place_grid">[1]</a>
 </li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid16pick_all_streamsER22async_resources_handleb">cuda::experimental::stf::exec_place_grid::pick_all_streams (C++ function)</a>
+</li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid11pick_streamER22async_resources_handleb">cuda::experimental::stf::exec_place_grid::pick_stream (C++ function)</a>
+</li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid6repeatERK10exec_place6size_t">cuda::experimental::stf::exec_place_grid::repeat (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid21set_affine_data_placeE10data_place">cuda::experimental::stf::exec_place_grid::set_affine_data_place (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid17set_current_placeER19backend_ctx_untyped4pos4">cuda::experimental::stf::exec_place_grid::set_current_place (C++ function)</a>, <a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid17set_current_placeER19backend_ctx_untyped6size_t">[1]</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid17set_current_placeE4pos4">cuda::experimental::stf::exec_place_grid::set_current_place (C++ function)</a>, <a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid17set_current_placeE6size_t">[1]</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid4sizeEv">cuda::experimental::stf::exec_place_grid::size (C++ function)</a>
 </li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid16stream_pool_sizeER22async_resources_handleb">cuda::experimental::stf::exec_place_grid::stream_pool_size (C++ function)</a>
+</li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4NK4cuda12experimental3stf15exec_place_grid9to_stringEv">cuda::experimental::stf::exec_place_grid::to_string (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid19unset_current_placeER19backend_ctx_untyped">cuda::experimental::stf::exec_place_grid::unset_current_place (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__grid.html#_CPPv4N4cuda12experimental3stf15exec_place_grid19unset_current_placeEv">cuda::experimental::stf::exec_place_grid::unset_current_place (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4N4cuda12experimental3stf15exec_place_hostE">cuda::experimental::stf::exec_place_host (C++ class)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host8activateER19backend_ctx_untyped">cuda::experimental::stf::exec_place_host::activate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host8activateEv">cuda::experimental::stf::exec_place_host::activate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host17affine_data_placeEv">cuda::experimental::stf::exec_place_host::affine_data_place (C++ function)</a>
 </li>
@@ -4220,7 +4240,7 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4N4cuda12experimental3stf15exec_place_host14current_deviceEv">cuda::experimental::stf::exec_place_host::current_device (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host10deactivateER19backend_ctx_untypedRK10exec_place">cuda::experimental::stf::exec_place_host::deactivate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host10deactivateERK10exec_place">cuda::experimental::stf::exec_place_host::deactivate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4N4cuda12experimental3stf15exec_place_host6deviceEi">cuda::experimental::stf::exec_place_host::device (C++ function)</a>
 </li>
@@ -4244,11 +4264,11 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4N4cuda12experimental3stf15exec_place_host4implE">cuda::experimental::stf::exec_place_host::impl (C++ class)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host4impl8activateER19backend_ctx_untyped">cuda::experimental::stf::exec_place_host::impl::activate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host4impl8activateEv">cuda::experimental::stf::exec_place_host::impl::activate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host4impl17affine_data_placeEv">cuda::experimental::stf::exec_place_host::impl::affine_data_place (C++ function)</a>
 </li>
-      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host4impl10deactivateER19backend_ctx_untypedRK10exec_place">cuda::experimental::stf::exec_place_host::impl::deactivate (C++ function)</a>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host4impl10deactivateERK10exec_place">cuda::experimental::stf::exec_place_host::impl::deactivate (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host4impl15get_stream_poolER22async_resources_handleb">cuda::experimental::stf::exec_place_host::impl::get_stream_pool (C++ function)</a>
 </li>
@@ -4288,11 +4308,17 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_hosteqERK10exec_place">cuda::experimental::stf::exec_place_host::operator== (C++ function)</a>
 </li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host16pick_all_streamsER22async_resources_handleb">cuda::experimental::stf::exec_place_host::pick_all_streams (C++ function)</a>
+</li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host11pick_streamER22async_resources_handleb">cuda::experimental::stf::exec_place_host::pick_stream (C++ function)</a>
+</li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4N4cuda12experimental3stf15exec_place_host6repeatERK10exec_place6size_t">cuda::experimental::stf::exec_place_host::repeat (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4N4cuda12experimental3stf15exec_place_host21set_affine_data_placeE10data_place">cuda::experimental::stf::exec_place_host::set_affine_data_place (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host4sizeEv">cuda::experimental::stf::exec_place_host::size (C++ function)</a>
+</li>
+      <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host16stream_pool_sizeER22async_resources_handleb">cuda::experimental::stf::exec_place_host::stream_pool_size (C++ function)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1exec__place__host.html#_CPPv4NK4cuda12experimental3stf15exec_place_host9to_stringEv">cuda::experimental::stf::exec_place_host::to_string (C++ function)</a>
 </li>
@@ -4488,6 +4514,8 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1graph__ctx.html#_CPPv4N4cuda12experimental3stf9graph_ctx12parallel_forE12exec_place_t1SDp4Deps">cuda::experimental::stf::graph_ctx::parallel_for (C++ function)</a>, <a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1graph__ctx.html#_CPPv4N4cuda12experimental3stf9graph_ctx12parallel_forE13partitioner_t12exec_place_t1SDp4Deps">[1]</a>, <a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1graph__ctx.html#_CPPv4N4cuda12experimental3stf9graph_ctx12parallel_forE15exec_place_grid1SDp4Deps">[2]</a>, <a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1graph__ctx.html#_CPPv4N4cuda12experimental3stf9graph_ctx12parallel_forE1SDp4Deps">[3]</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1graph__ctx.html#_CPPv4N4cuda12experimental3stf9graph_ctx5phaseE">cuda::experimental::stf::graph_ctx::phase (C++ enum)</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1graph__ctx.html#_CPPv4N4cuda12experimental3stf9graph_ctx5phase9finalizedE">cuda::experimental::stf::graph_ctx::phase::finalized (C++ enumerator)</a>
@@ -4504,8 +4532,6 @@
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1graph__ctx.html#_CPPv4N4cuda12experimental3stf9graph_ctx12print_to_dotERKNSt6stringE22cudaGraphDebugDotFlags">cuda::experimental::stf::graph_ctx::print_to_dot (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1graph__ctx.html#_CPPv4NK4cuda12experimental3stf9graph_ctx13push_affinityENSt10shared_ptrI10exec_placeEE">cuda::experimental::stf::graph_ctx::push_affinity (C++ function)</a>, <a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1graph__ctx.html#_CPPv4NK4cuda12experimental3stf9graph_ctx13push_affinityENSt6vectorINSt10shared_ptrI10exec_placeEEEE">[1]</a>
 </li>
       <li><a href="cudax/api/classcuda_1_1experimental_1_1stf_1_1graph__ctx.html#_CPPv4N4cuda12experimental3stf9graph_ctx17release_resourcesE12cudaStream_t">cuda::experimental::stf::graph_ctx::release_resources (C++ function)</a>
@@ -6760,6 +6786,10 @@
 </li>
       <li><a href="cub/api/namespacecub_1aafc45f51af4861d80b27569b7df319a4.html#_CPPv4N3cub19DeviceCountUncachedEv">DeviceCountUncached (C++ function)</a>
 </li>
+      <li><a href="cub/api/structcub_1_1DeviceFind.html#_CPPv4N3cub10DeviceFindE">DeviceFind (C++ struct)</a>
+</li>
+      <li><a href="cub/api/structcub_1_1DeviceFind.html#_CPPv4I0000EN3cub10DeviceFind6FindIfE11cudaError_tPvR6size_t14InputIteratorT15OutputIteratorT7ScanOpT9NumItemsT12cudaStream_t">DeviceFind::FindIf (C++ function)</a>
+</li>
       <li><a href="cub/api/structcub_1_1DeviceFor.html#_CPPv4N3cub9DeviceForE">DeviceFor (C++ struct)</a>
 </li>
       <li><a href="cub/api/structcub_1_1DeviceFor.html#_CPPv4I00EN3cub9DeviceFor4BulkE11cudaError_t6ShapeT3OpT12cudaStream_t">DeviceFor::Bulk (C++ function)</a>, <a href="cub/api/structcub_1_1DeviceFor.html#_CPPv4I00EN3cub9DeviceFor4BulkE11cudaError_tPvR6size_t6ShapeT3OpT12cudaStream_t">[1]</a>
@@ -7134,10 +7164,10 @@
 </li>
       <li><a href="cub/api/structcub_1_1DispatchRadixSort.html#_CPPv4N3cub17DispatchRadixSort7end_bitE">DispatchRadixSort::end_bit (C++ member)</a>
 </li>
-      <li><a href="cub/api/structcub_1_1DispatchRadixSort.html#_CPPv4I0EN3cub17DispatchRadixSort6InvokeE11cudaError_t13ActivePolicyT">DispatchRadixSort::Invoke (C++ function)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="cub/api/structcub_1_1DispatchRadixSort.html#_CPPv4I0EN3cub17DispatchRadixSort6InvokeE11cudaError_t13ActivePolicyT">DispatchRadixSort::Invoke (C++ function)</a>
+</li>
       <li><a href="cub/api/structcub_1_1DispatchRadixSort.html#_CPPv4N3cub17DispatchRadixSort10InvokeCopyEv">DispatchRadixSort::InvokeCopy (C++ function)</a>
 </li>
       <li><a href="cub/api/structcub_1_1DispatchRadixSort.html#_CPPv4I0EN3cub17DispatchRadixSort14InvokeOnesweepE11cudaError_t13ActivePolicyT">DispatchRadixSort::InvokeOnesweep (C++ function)</a>
@@ -7590,7 +7620,7 @@
 </li>
       <li><a href="cub/api/structcub_1_1DispatchUniqueByKey.html#_CPPv4N3cub19DispatchUniqueByKey18temp_storage_bytesE">DispatchUniqueByKey::temp_storage_bytes (C++ member)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.DIVIDES">DIVIDES (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.DIVIDES">DIVIDES (cuda.compute.op.OpKind attribute)</a>
 </li>
       <li><a href="python/compute_api.html#cuda.compute.algorithms.DoubleBuffer">DoubleBuffer (class in cuda.compute.algorithms)</a>
 </li>
@@ -7600,7 +7630,7 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.EQUAL_TO">EQUAL_TO (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.EQUAL_TO">EQUAL_TO (cuda.compute.op.OpKind attribute)</a>
 </li>
       <li><a href="libcudacxx/api/classevent.html#_CPPv45event">event (C++ class)</a>
 </li>
@@ -7692,9 +7722,9 @@
 </li>
       <li><a href="python/compute_api.html#cuda.compute.struct.gpu_struct">gpu_struct() (in module cuda.compute.struct)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.GREATER">GREATER (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.GREATER">GREATER (cuda.compute.op.OpKind attribute)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.GREATER_EQUAL">GREATER_EQUAL (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.GREATER_EQUAL">GREATER_EQUAL (cuda.compute.op.OpKind attribute)</a>
 </li>
       <li><a href="cub/api/structcub_1_1GridEvenShare.html#_CPPv4I0EN3cub13GridEvenShareE">GridEvenShare (C++ struct)</a>
 </li>
@@ -7760,7 +7790,7 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.IDENTITY">IDENTITY (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.IDENTITY">IDENTITY (cuda.compute.op.OpKind attribute)</a>
 </li>
       <li><a href="python/compute_api.html#cuda.compute.algorithms.inclusive_scan">inclusive_scan() (in module cuda.compute.algorithms)</a>
 
@@ -7816,19 +7846,19 @@
 </li>
       <li><a href="libcudacxx/api/classlegacy__pinned__memory__resource.html#_CPPv4NK29legacy_pinned_memory_resourceeqERK29legacy_pinned_memory_resource">legacy_pinned_memory_resource::operator== (C++ function)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.LESS">LESS (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.LESS">LESS (cuda.compute.op.OpKind attribute)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.LESS_EQUAL">LESS_EQUAL (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.LESS_EQUAL">LESS_EQUAL (cuda.compute.op.OpKind attribute)</a>
 </li>
       <li><a href="python/coop_api.html#cuda.coop.block.load">load() (in module cuda.coop.block)</a>
 </li>
       <li><a href="cub/api/namespacecub_1a7176fcab5c0799c88f17efd62971588e.html#_CPPv4I0_iEN3cub27LoadDirectBlockedVectorizedEviP1TRA14ItemsPerThread_1T">LoadDirectBlockedVectorized (C++ function)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.LOGICAL_AND">LOGICAL_AND (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.LOGICAL_AND">LOGICAL_AND (cuda.compute.op.OpKind attribute)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.LOGICAL_NOT">LOGICAL_NOT (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.LOGICAL_NOT">LOGICAL_NOT (cuda.compute.op.OpKind attribute)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.LOGICAL_OR">LOGICAL_OR (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.LOGICAL_OR">LOGICAL_OR (cuda.compute.op.OpKind attribute)</a>
 </li>
       <li><a href="cub/api/namespacecub_1a8dac1b15322b4ce6b75df7e1ef1a98ce.html#_CPPv4I000EN3cub10LowerBoundE7OffsetT14InputIteratorT7OffsetT1T">LowerBound (C++ function)</a>
 </li>
@@ -7892,7 +7922,7 @@
 </li>
       <li><a href="cub/api/namespacecub_1ad69972e79ff49330e9a69ef2cc916ea3.html#_CPPv4I_i_iEN3cub8MatchAnyEjj">MatchAny (C++ function)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.MAXIMUM">MAXIMUM (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.MAXIMUM">MAXIMUM (cuda.compute.op.OpKind attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -7936,9 +7966,9 @@
 </li>
       <li><a href="cub/api/namespacecub_1a19c9696ebd3b66c361dd9abcafae2f3a.html#_CPPv4I0EN3cub8MidPointE1T1T1T">MidPoint (C++ function)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.MINIMUM">MINIMUM (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.MINIMUM">MINIMUM (cuda.compute.op.OpKind attribute)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.MINUS">MINUS (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.MINUS">MINUS (cuda.compute.op.OpKind attribute)</a>
 </li>
       <li>
     module
@@ -7955,9 +7985,9 @@
         <li><a href="python/coop_api.html#module-cuda.coop.warp">cuda.coop.warp</a>
 </li>
       </ul></li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.MODULUS">MODULUS (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.MODULUS">MODULUS (cuda.compute.op.OpKind attribute)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.MULTIPLIES">MULTIPLIES (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.MULTIPLIES">MULTIPLIES (cuda.compute.op.OpKind attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -7965,7 +7995,7 @@
 <h2 id="N">N</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.NEGATE">NEGATE (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.NEGATE">NEGATE (cuda.compute.op.OpKind attribute)</a>
 </li>
       <li><a href="cub/api/namespacecub_1a92146627fb9025cf631ce6894da54068.html#_CPPv4I0EN3cub21Nominal4BItemsToItemsEii">Nominal4BItemsToItems (C++ function)</a>
 </li>
@@ -7975,7 +8005,15 @@
 </li>
       <li><a href="cub/api/namespacecub_1a0152e6fc2c5fb16bcc72078fc97dc4c2.html#_CPPv4I0EN3cub21Nominal8BItemsToItemsEii">Nominal8BItemsToItems (C++ function)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.NOT_EQUAL_TO">NOT_EQUAL_TO (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.NOT_EQUAL_TO">NOT_EQUAL_TO (cuda.compute.op.OpKind attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="O">O</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind">OpKind (class in cuda.compute.op)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -8057,7 +8095,7 @@
 </li>
       <li><a href="libcudacxx/api/classpinned__memory__pool__ref.html#_CPPv4N22pinned_memory_pool_ref22pinned_memory_pool_refE13cudaMemPool_t">pinned_memory_pool_ref::pinned_memory_pool_ref (C++ function)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.PLUS">PLUS (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.PLUS">PLUS (cuda.compute.op.OpKind attribute)</a>
 </li>
       <li><a href="libcudacxx/api/structproperties__list.html#_CPPv4IDpE15properties_list">properties_list (C++ struct)</a>
 </li>
@@ -8327,9 +8365,9 @@
 </li>
       <li><a href="cub/api/namespacecub_1a7fbefdee9a2b826e71ea84be34d81c95.html#_CPPv4I000_iEN3cub17StableOddEvenSortEvRA16ITEMS_PER_THREAD_4KeyTRA16ITEMS_PER_THREAD_6ValueT9CompareOp">StableOddEvenSort (C++ function)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.STATEFUL">STATEFUL (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.STATEFUL">STATEFUL (cuda.compute.op.OpKind attribute)</a>
 </li>
-      <li><a href="python/compute_api.html#cuda.compute.iterators.cuda.compute.op.OpKind.STATELESS">STATELESS (cuda.compute.iterators.cuda.compute.op.OpKind attribute)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.OpKind.STATELESS">STATELESS (cuda.compute.op.OpKind attribute)</a>
 </li>
       <li><a href="python/coop_api.html#cuda.coop.block.store">store() (in module cuda.coop.block)</a>
 </li>
@@ -9147,22 +9185,6 @@
 </li>
       <li><a href="thrust/api/group__type__traits_1ga2bdbeb4d76c1629f2b2e2323ce10a556.html#_CPPv4I0EN6thrust21is_execution_policy_vE">thrust::is_execution_policy_v (C++ member)</a>
 </li>
-      <li><a href="thrust/api/group__type__traits_1ga80899866447b02e95640aa86cb3b9d5b.html#_CPPv4I0EN6thrust35is_operator_greater_function_objectE">thrust::is_operator_greater_function_object (C++ type)</a>
-</li>
-      <li><a href="thrust/api/group__type__traits_1ga42415f71c7b50c51763edc7a3591a400.html#_CPPv4I0EN6thrust37is_operator_greater_function_object_vE">thrust::is_operator_greater_function_object_v (C++ member)</a>
-</li>
-      <li><a href="thrust/api/group__type__traits_1ga89fa2cd21cf618ac3f6742e015347bd4.html#_CPPv4I0EN6thrust32is_operator_less_function_objectE">thrust::is_operator_less_function_object (C++ type)</a>
-</li>
-      <li><a href="thrust/api/group__type__traits_1ga38d413b5daee16a97fa7d9da9f3c4b29.html#_CPPv4I0EN6thrust34is_operator_less_function_object_vE">thrust::is_operator_less_function_object_v (C++ member)</a>
-</li>
-      <li><a href="thrust/api/group__type__traits_1ga9e81f0f06e410e65fd4ae0ff3649aa8d.html#_CPPv4I0EN6thrust43is_operator_less_or_greater_function_objectE">thrust::is_operator_less_or_greater_function_object (C++ type)</a>
-</li>
-      <li><a href="thrust/api/group__type__traits_1gac4884b2dd3b4d114ebc739d254c9d505.html#_CPPv4I0EN6thrust45is_operator_less_or_greater_function_object_vE">thrust::is_operator_less_or_greater_function_object_v (C++ member)</a>
-</li>
-      <li><a href="thrust/api/group__type__traits_1ga4951501a3c7337be79222a966d1f9d73.html#_CPPv4I0EN6thrust32is_operator_plus_function_objectE">thrust::is_operator_plus_function_object (C++ type)</a>
-</li>
-      <li><a href="thrust/api/group__type__traits_1gad5d7207e2d28604f48cef2daccf1ed22.html#_CPPv4I0EN6thrust34is_operator_plus_function_object_vE">thrust::is_operator_plus_function_object_v (C++ member)</a>
-</li>
       <li><a href="thrust/api/group__predicates_1ga91da05b683fadd078eb90bf126de0e52.html#_CPPv4I000EN6thrust14is_partitionedEbRKN6thrust6detail21execution_policy_baseI13DerivedPolicyEE13InputIterator13InputIterator9Predicate">thrust::is_partitioned (C++ function)</a>, <a href="thrust/api/group__predicates_1ga91da05b683fadd078eb90bf126de0e52.html#_CPPv4I00EN6thrust14is_partitionedEb13InputIterator13InputIterator9Predicate">[1]</a>
 </li>
       <li><a href="thrust/api/group__predicates_1ga06a2b6225f76986d2861b435c2e1f7f9.html#_CPPv4I000EN6thrust9is_sortedEbRKN6thrust6detail21execution_policy_baseI13DerivedPolicyEE15ForwardIterator15ForwardIterator7Compare">thrust::is_sorted (C++ function)</a>, <a href="thrust/api/group__predicates_1ga06a2b6225f76986d2861b435c2e1f7f9.html#_CPPv4I00EN6thrust9is_sortedEb15ForwardIterator15ForwardIterator7Compare">[1]</a>, <a href="thrust/api/group__predicates_1ga06a2b6225f76986d2861b435c2e1f7f9.html#_CPPv4I00EN6thrust9is_sortedEbRKN6thrust6detail21execution_policy_baseI13DerivedPolicyEE15ForwardIterator15ForwardIterator">[2]</a>, <a href="thrust/api/group__predicates_1ga06a2b6225f76986d2861b435c2e1f7f9.html#_CPPv4I0EN6thrust9is_sortedEb15ForwardIterator15ForwardIterator">[3]</a>
@@ -9569,8 +9591,6 @@
 </li>
       <li><a href="thrust/api/classthrust_1_1mr_1_1new__delete__resource__base.html#_CPPv4N6thrust2mr24new_delete_resource_base10deallocateE7pointerNSt6size_tENSt6size_tE">thrust::mr::new_delete_resource_base::deallocate (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="thrust/api/classthrust_1_1mr_1_1new__delete__resource__base.html#_CPPv4N6thrust2mr24new_delete_resource_base11do_allocateENSt6size_tENSt6size_tE">thrust::mr::new_delete_resource_base::do_allocate (C++ function)</a>
 </li>
       <li><a href="thrust/api/classthrust_1_1mr_1_1new__delete__resource__base.html#_CPPv4N6thrust2mr24new_delete_resource_base13do_deallocateE7pointerNSt6size_tENSt6size_tE">thrust::mr::new_delete_resource_base::do_deallocate (C++ function)</a>, <a href="thrust/api/classthrust_1_1mr_1_1new__delete__resource__base.html#_CPPv4N6thrust2mr24new_delete_resource_base13do_deallocateEPvNSt6size_tENSt6size_tE">[1]</a>
@@ -9579,6 +9599,8 @@
 </li>
       <li><a href="thrust/api/classthrust_1_1mr_1_1new__delete__resource__base.html#_CPPv4NK6thrust2mr24new_delete_resource_base8is_equalERK15memory_resource">thrust::mr::new_delete_resource_base::is_equal (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="thrust/api/classthrust_1_1mr_1_1new__delete__resource__base.html#_CPPv4N6thrust2mr24new_delete_resource_base7pointerE">thrust::mr::new_delete_resource_base::pointer (C++ type)</a>
 </li>
       <li><a href="thrust/api/classthrust_1_1mr_1_1polymorphic__adaptor__resource.html#_CPPv4I0EN6thrust2mr28polymorphic_adaptor_resourceE">thrust::mr::polymorphic_adaptor_resource (C++ class)</a>
