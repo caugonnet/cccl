@@ -357,6 +357,7 @@
 <li class="toctree-l3 current active has-children"><a class="reference internal" href="index.html">API reference</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="classbasic__any__resource.html">basic_any_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="classbasic__resource__ref.html">basic_resource_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classbuffer.html">buffer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="classcompute__capability.html">compute_capability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="classconstant__iterator.html">constant_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="classcounting__iterator.html">counting_iterator</a></li>
@@ -365,6 +366,7 @@
 <li class="toctree-l4"><a class="reference internal" href="classdiscard__iterator.html">discard_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="classevent.html">event</a></li>
 <li class="toctree-l4"><a class="reference internal" href="classevent__ref.html">event_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classheterogeneous__iterator.html">heterogeneous_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="classlegacy__managed__memory__resource.html">legacy_managed_memory_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="classlegacy__pinned__memory__resource.html">legacy_pinned_memory_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="classmanaged__memory__pool__ref.html">managed_memory_pool_ref</a></li>
@@ -391,6 +393,7 @@
 <li class="toctree-l4"><a class="reference internal" href="structmanaged__memory__pool.html">managed_memory_pool</a></li>
 <li class="toctree-l4"><a class="reference internal" href="structmemory__pool__properties.html">memory_pool_properties</a></li>
 <li class="toctree-l4"><a class="reference internal" href="structpinned__memory__pool.html">pinned_memory_pool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structcuda_1_1std_1_1pointer__traits_3_1_1cuda_1_1heterogeneous__iterator_3_01__Tp_00_01__Properties_8_8_8_01_4_01_4.html">cuda::std::pointer_traits&lt;::cuda::heterogeneous_iterator&lt; _Tp, _Properties… &gt; &gt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="structproperties__list.html">properties_list</a></li>
 <li class="toctree-l4"><a class="reference internal" href="structshared__resource.html">shared_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="structstream.html">stream</a></li>
@@ -400,7 +403,10 @@
 <li class="toctree-l4"><a class="reference internal" href="group__iterators_1ga3a57fccd85438fe6ac517f59802807b5.html">zip_iterator::pointer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="group__iterators_1ga3d65c0bac93cd905b59b6b7cb0c04f08.html">zip_iterator::reference</a></li>
 <li class="toctree-l4"><a class="reference internal" href="group__iterators_1gaebe2d9c8478b11e187372e211ab26711.html">zip_iterator::value_type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="group__construction.html">Construction</a></li>
 <li class="toctree-l4 current active"><a class="reference internal" href="group__iterators.html">Iterators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="group__access.html">Access</a></li>
+<li class="toctree-l4"><a class="reference internal" href="group__size.html">Size</a></li>
 </ul>
 </details></li>
 </ul>
@@ -604,7 +610,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../cub/api/namespacecub_1a03d07a1e0e455128713337bc38992ec6.html">cub::StoreDirectWarpStriped</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../cub/api/namespacecub_1af987f4650f9ab899588513632a7a335c.html">cub::ThreadLoad</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../cub/api/namespacecub_1a553633b74da5b2b77992aa60c1f278f3.html">cub::ThreadStore</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../cub/api/namespacecub_1a2ed79a837d7d04fc62062a113f41819f.html">cub::operator&lt;&lt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../cub/api/namespacecub_1a1b6e2aaf857cfd72861cf2499bf9acb3.html">cub::MergePath</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../cub/api/namespacecub_1aed5ce3db2c0ebfafd33d5ef6a1eb71a8.html">cub::SerialMerge</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../cub/api/namespacecub_1a5bc54df3b7da4260d8c1d8579f63f0c0.html">cub::ThreadReduce</a></li>
@@ -1550,35 +1555,6 @@
 <dd><p>construct a <a class="reference internal" href="#classzip__function"><span class="std std-ref">zip_function</span></a> from a functor </p>
 </dd></dl>
 
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4I0_N4cudaSt11enable_if_tEENK12zip_functionclEDcRR6_Tuple">
-<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">_Tuple</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">cuda</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">enable_if_t</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">_Tuple</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classzip__function_1ab5be1feb682f7449df6f4a1e177a42bd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="k"><span class="pre">decltype</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">auto</span></span><span class="p"><span class="pre">)</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">()</span></span></span><span class="sig-paren">(</span>
-
-<dl>
-<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0_N4cudaSt11enable_if_tEENK12zip_functionclEDcRR6_Tuple" title="zip_function::operator()::_Tuple"><span class="n"><span class="pre">_Tuple</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">__tuple</span></span></em></dd>
-</dl>
-
-<span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">__is_nothrow_invocable</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0E12zip_function" title="zip_function::_Fn"><span class="n"><span class="pre">_Fn</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_N4cudaSt11enable_if_tEENK12zip_functionclEDcRR6_Tuple" title="zip_function::operator()::_Tuple"><span class="n"><span class="pre">_Tuple</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4I0_N4cudaSt11enable_if_tEENK12zip_functionclEDcRR6_Tuple" title="Link to this definition">#</a><br /></dt>
-<dd><p>Applies a tuple to the stored functor. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>__tuple</strong> – The tuple of arguments to be passed </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4I0_N4cudaSt11enable_if_tEEN12zip_functionclEDcRR6_Tuple">
-<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">_Tuple</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">cuda</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">enable_if_t</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">_Tuple</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classzip__function_1a2eca8b0d27db26fd720fa0e65680afe0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="k"><span class="pre">decltype</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">auto</span></span><span class="p"><span class="pre">)</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">()</span></span></span><span class="sig-paren">(</span>
-
-<dl>
-<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0_N4cudaSt11enable_if_tEEN12zip_functionclEDcRR6_Tuple" title="zip_function::operator()::_Tuple"><span class="n"><span class="pre">_Tuple</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">__tuple</span></span></em></dd>
-</dl>
-
-<span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">__is_nothrow_invocable</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0E12zip_function" title="zip_function::_Fn"><span class="n"><span class="pre">_Fn</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_N4cudaSt11enable_if_tEEN12zip_functionclEDcRR6_Tuple" title="zip_function::operator()::_Tuple"><span class="n"><span class="pre">_Tuple</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4I0_N4cudaSt11enable_if_tEEN12zip_functionclEDcRR6_Tuple" title="Link to this definition">#</a><br /></dt>
-<dd><p>Applies a tuple to the stored functor. </p>
-</dd></dl>
-
 </div>
 </dd></dl>
 
@@ -1637,8 +1613,6 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4I0_N4cudaSt11enable_if_tIN4cudaSt21default_initializableI4_Fn2EEiEEEN12zip_function12zip_functionEv"><code class="docutils literal notranslate"><span class="pre">zip_function()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4N12zip_function12zip_functionERK3_Fn"><code class="docutils literal notranslate"><span class="pre">zip_function()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4N12zip_function12zip_functionERR3_Fn"><code class="docutils literal notranslate"><span class="pre">zip_function()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4I0_N4cudaSt11enable_if_tEENK12zip_functionclEDcRR6_Tuple"><code class="docutils literal notranslate"><span class="pre">operator()()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4I0_N4cudaSt11enable_if_tEEN12zip_functionclEDcRR6_Tuple"><code class="docutils literal notranslate"><span class="pre">operator()()</span></code></a></li>
 </ul>
 </li>
 </ul>

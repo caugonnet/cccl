@@ -11,6 +11,7 @@ Classes
 
 * :doc:`basic_any_resource <classbasic__any__resource>`
 * :doc:`basic_resource_ref <classbasic__resource__ref>`
+* :doc:`buffer <classbuffer>`
 * :doc:`compute_capability <classcompute__capability>`
 * :doc:`constant_iterator <classconstant__iterator>`
 * :doc:`counting_iterator <classcounting__iterator>`
@@ -19,6 +20,7 @@ Classes
 * :doc:`discard_iterator <classdiscard__iterator>`
 * :doc:`event <classevent>`
 * :doc:`event_ref <classevent__ref>`
+* :doc:`heterogeneous_iterator <classheterogeneous__iterator>`
 * :doc:`legacy_managed_memory_resource <classlegacy__managed__memory__resource>`
 * :doc:`legacy_pinned_memory_resource <classlegacy__pinned__memory__resource>`
 * :doc:`managed_memory_pool_ref <classmanaged__memory__pool__ref>`
@@ -41,6 +43,7 @@ Structs
 
 * :doc:`arch_traits_t <structarch__traits__t>`
 * :doc:`copy_configuration <structcopy__configuration>`
+* :doc:`structcuda_1_1std_1_1pointer__traits_3_1_1cuda_1_1heterogeneous__iterator_3_01__Tp_00_01__Properties_8_8_8_01_4_01_4`
 * :doc:`device_accessible <structdevice__accessible>`
 * :doc:`device_attributes::compute_capability_t <structdevice__attributes_1_1compute__capability__t>`
 * :doc:`device_memory_pool <structdevice__memory__pool>`
@@ -69,6 +72,7 @@ Type Definitions
 
    classbasic__any__resource
    classbasic__resource__ref
+   classbuffer
    classcompute__capability
    classconstant__iterator
    classcounting__iterator
@@ -77,6 +81,7 @@ Type Definitions
    classdiscard__iterator
    classevent
    classevent__ref
+   classheterogeneous__iterator
    classlegacy__managed__memory__resource
    classlegacy__pinned__memory__resource
    classmanaged__memory__pool__ref
@@ -103,6 +108,7 @@ Type Definitions
    structmanaged__memory__pool
    structmemory__pool__properties
    structpinned__memory__pool
+   structcuda_1_1std_1_1pointer__traits_3_1_1cuda_1_1heterogeneous__iterator_3_01__Tp_00_01__Properties_8_8_8_01_4_01_4
    structproperties__list
    structshared__resource
    structstream
@@ -112,4 +118,7 @@ Type Definitions
    group__iterators_1ga3a57fccd85438fe6ac517f59802807b5
    group__iterators_1ga3d65c0bac93cd905b59b6b7cb0c04f08
    group__iterators_1gaebe2d9c8478b11e187372e211ab26711
+   group__construction
    group__iterators
+   group__access
+   group__size

@@ -357,6 +357,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../libcudacxx/api/index.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classbasic__any__resource.html">basic_any_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classbasic__resource__ref.html">basic_resource_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classbuffer.html">buffer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classcompute__capability.html">compute_capability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classconstant__iterator.html">constant_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classcounting__iterator.html">counting_iterator</a></li>
@@ -365,6 +366,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classdiscard__iterator.html">discard_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classevent.html">event</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classevent__ref.html">event_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classheterogeneous__iterator.html">heterogeneous_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classlegacy__managed__memory__resource.html">legacy_managed_memory_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classlegacy__pinned__memory__resource.html">legacy_pinned_memory_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classmanaged__memory__pool__ref.html">managed_memory_pool_ref</a></li>
@@ -391,6 +393,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structmanaged__memory__pool.html">managed_memory_pool</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structmemory__pool__properties.html">memory_pool_properties</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structpinned__memory__pool.html">pinned_memory_pool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structcuda_1_1std_1_1pointer__traits_3_1_1cuda_1_1heterogeneous__iterator_3_01__Tp_00_01__Properties_8_8_8_01_4_01_4.html">cuda::std::pointer_traits&lt;::cuda::heterogeneous_iterator&lt; _Tp, _Properties… &gt; &gt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structproperties__list.html">properties_list</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structshared__resource.html">shared_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structstream.html">stream</a></li>
@@ -400,7 +403,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__iterators_1ga3a57fccd85438fe6ac517f59802807b5.html">zip_iterator::pointer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__iterators_1ga3d65c0bac93cd905b59b6b7cb0c04f08.html">zip_iterator::reference</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__iterators_1gaebe2d9c8478b11e187372e211ab26711.html">zip_iterator::value_type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__construction.html">Construction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__iterators.html">Iterators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__access.html">Access</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__size.html">Size</a></li>
 </ul>
 </details></li>
 </ul>
@@ -604,7 +610,6 @@
 <li class="toctree-l4"><a class="reference internal" href="namespacecub_1a03d07a1e0e455128713337bc38992ec6.html">cub::StoreDirectWarpStriped</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namespacecub_1af987f4650f9ab899588513632a7a335c.html">cub::ThreadLoad</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namespacecub_1a553633b74da5b2b77992aa60c1f278f3.html">cub::ThreadStore</a></li>
-<li class="toctree-l4"><a class="reference internal" href="namespacecub_1a2ed79a837d7d04fc62062a113f41819f.html">cub::operator&lt;&lt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namespacecub_1a1b6e2aaf857cfd72861cf2499bf9acb3.html">cub::MergePath</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namespacecub_1aed5ce3db2c0ebfafd33d5ef6a1eb71a8.html">cub::SerialMerge</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namespacecub_1a5bc54df3b7da4260d8c1d8579f63f0c0.html">cub::ThreadReduce</a></li>
@@ -1566,9 +1571,8 @@ acknowledged by the user by passing <cite>cuda::execution::determinism::not_guar
 <span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0000000EN3cub10DeviceTopK8MaxPairsE11cudaError_tPvR6size_t17KeyInputIteratorT18KeyOutputIteratorT19ValueInputIteratorT20ValueOutputIteratorT9NumItemsT12NumOutItemsT4EnvT" title="Link to this definition">#</a><br /></dt>
 <dd><p><section id="id1">
 <h2>Overview<a class="headerlink" href="#id1" title="Link to this heading">#</a></h2>
+<p>Finds the largest K keys and their corresponding values from an unordered input sequence of key-value pairs.</p>
 <ul class="simple">
-<li><p>Finds the largest K keys and their corresponding values from an unordered input sequence of key-value pairs.</p></li>
-<li><p>Note that the behavior is undefined if the input and output ranges overlap in any way.</p></li>
 <li><p>When <code class="docutils literal notranslate"><span class="pre">d_temp_storage</span></code> is <code class="docutils literal notranslate"><span class="pre">nullptr</span></code>, no work is done and the required allocation size is returned in <code class="docutils literal notranslate"><span class="pre">temp_storage_bytes</span></code>. See <a class="reference internal" href="../api_docs/device_wide.html#device-temp-storage"><span class="std std-ref">Determining Temporary Storage Requirements</span></a> for usage guidance.</p></li>
 </ul>
 </section>
@@ -1621,6 +1625,10 @@ items:</p>
 </div>
 </section>
 </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The behavior is undefined if the input and output ranges overlap in any way.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1669,9 +1677,8 @@ items:</p>
 <span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0000000EN3cub10DeviceTopK8MinPairsE11cudaError_tPvR6size_t17KeyInputIteratorT18KeyOutputIteratorT19ValueInputIteratorT20ValueOutputIteratorT9NumItemsT12NumOutItemsT4EnvT" title="Link to this definition">#</a><br /></dt>
 <dd><p><section id="id2">
 <h2>Overview<a class="headerlink" href="#id2" title="Link to this heading">#</a></h2>
+<p>Finds the lowest K keys and their corresponding values from an unordered input sequence of key-value pairs.</p>
 <ul class="simple">
-<li><p>Finds the lowest K keys and their corresponding values from an unordered input sequence of key-value pairs.</p></li>
-<li><p>Note that the behavior is undefined if the input and output ranges overlap in any way.</p></li>
 <li><p>When <code class="docutils literal notranslate"><span class="pre">d_temp_storage</span></code> is <code class="docutils literal notranslate"><span class="pre">nullptr</span></code>, no work is done and the required allocation size is returned in <code class="docutils literal notranslate"><span class="pre">temp_storage_bytes</span></code>. See <a class="reference internal" href="../api_docs/device_wide.html#device-temp-storage"><span class="std std-ref">Determining Temporary Storage Requirements</span></a> for usage guidance.</p></li>
 </ul>
 </section>
@@ -1724,6 +1731,10 @@ items:</p>
 </div>
 </section>
 </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The behavior is undefined if the input and output ranges overlap in any way.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1770,9 +1781,8 @@ items:</p>
 <span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I00000EN3cub10DeviceTopK7MaxKeysE11cudaError_tPvR6size_t17KeyInputIteratorT18KeyOutputIteratorT9NumItemsT12NumOutItemsT4EnvT" title="Link to this definition">#</a><br /></dt>
 <dd><p><section id="id4">
 <h2>Overview<a class="headerlink" href="#id4" title="Link to this heading">#</a></h2>
+<p>Finds the largest K keys from an unordered input sequence of keys.</p>
 <ul class="simple">
-<li><p>Finds the largest K keys from an unordered input sequence of keys.</p></li>
-<li><p>Note that the behavior is undefined if the input and output ranges overlap in any way.</p></li>
 <li><p>When <code class="docutils literal notranslate"><span class="pre">d_temp_storage</span></code> is <code class="docutils literal notranslate"><span class="pre">nullptr</span></code>, no work is done and the required allocation size is returned in <code class="docutils literal notranslate"><span class="pre">temp_storage_bytes</span></code>. See <a class="reference internal" href="../api_docs/device_wide.html#device-temp-storage"><span class="std std-ref">Determining Temporary Storage Requirements</span></a> for usage guidance.</p></li>
 </ul>
 </section>
@@ -1819,6 +1829,10 @@ items:</p>
 </div>
 </section>
 </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The behavior is undefined if the input and output ranges overlap in any way.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1861,9 +1875,8 @@ items:</p>
 <span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I00000EN3cub10DeviceTopK7MinKeysE11cudaError_tPvR6size_t17KeyInputIteratorT18KeyOutputIteratorT9NumItemsT12NumOutItemsT4EnvT" title="Link to this definition">#</a><br /></dt>
 <dd><p><section id="id6">
 <h2>Overview<a class="headerlink" href="#id6" title="Link to this heading">#</a></h2>
+<p>Finds the lowest K keys from an unordered input sequence of keys.</p>
 <ul class="simple">
-<li><p>Finds the lowest K keys from an unordered input sequence of keys.</p></li>
-<li><p>Note that the behavior is undefined if the input and output ranges overlap in any way.</p></li>
 <li><p>When <code class="docutils literal notranslate"><span class="pre">d_temp_storage</span></code> is <code class="docutils literal notranslate"><span class="pre">nullptr</span></code>, no work is done and the required allocation size is returned in <code class="docutils literal notranslate"><span class="pre">temp_storage_bytes</span></code>. See <a class="reference internal" href="../api_docs/device_wide.html#device-temp-storage"><span class="std std-ref">Determining Temporary Storage Requirements</span></a> for usage guidance.</p></li>
 </ul>
 </section>
@@ -1910,6 +1923,10 @@ items:</p>
 </div>
 </section>
 </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The behavior is undefined if the input and output ranges overlap in any way.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

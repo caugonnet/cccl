@@ -58,6 +58,8 @@
 
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="LIBCUDACXX API Reference" href="../../api/index.html" />
+    <link rel="prev" title="PTX Pragmas" href="../pragmas.html" />
 
 
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -283,9 +285,9 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Table of Contents">
   <p class="bd-links__title" role="heading" aria-level="1">Table of Contents</p>
-  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../cpp.html">CUDA C++ Core Libraries</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../index.html">libcu++</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../../cpp.html">CUDA C++ Core Libraries</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../../index.html">libcu++</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="../../index.html">Overview</a></li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../setup.html">Setup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../setup/requirements.html">Requirements</a></li>
@@ -342,15 +344,16 @@
 <li class="toctree-l4"><a class="reference internal" href="../../runtime/device.html">Devices</a></li>
 </ul>
 </details></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../ptx_api.html">PTX API</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3 current active has-children"><a class="reference internal" href="../../ptx_api.html">PTX API</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="../examples.html">Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../instructions.html">PTX Instructions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../pragmas.html">PTX Pragmas</a></li>
+<li class="toctree-l4 current active"><a class="reference internal" href="../pragmas.html">PTX Pragmas</a></li>
 </ul>
 </details></li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../api/index.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/classbasic__any__resource.html">basic_any_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/classbasic__resource__ref.html">basic_resource_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/classbuffer.html">buffer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/classcompute__capability.html">compute_capability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/classconstant__iterator.html">constant_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/classcounting__iterator.html">counting_iterator</a></li>
@@ -359,6 +362,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/classdiscard__iterator.html">discard_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/classevent.html">event</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/classevent__ref.html">event_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/classheterogeneous__iterator.html">heterogeneous_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/classlegacy__managed__memory__resource.html">legacy_managed_memory_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/classlegacy__pinned__memory__resource.html">legacy_pinned_memory_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/classmanaged__memory__pool__ref.html">managed_memory_pool_ref</a></li>
@@ -385,6 +389,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/structmanaged__memory__pool.html">managed_memory_pool</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/structmemory__pool__properties.html">memory_pool_properties</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/structpinned__memory__pool.html">pinned_memory_pool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/structcuda_1_1std_1_1pointer__traits_3_1_1cuda_1_1heterogeneous__iterator_3_01__Tp_00_01__Properties_8_8_8_01_4_01_4.html">cuda::std::pointer_traits&lt;::cuda::heterogeneous_iterator&lt; _Tp, _Properties… &gt; &gt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/structproperties__list.html">properties_list</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/structshared__resource.html">shared_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/structstream.html">stream</a></li>
@@ -394,7 +399,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/group__iterators_1ga3a57fccd85438fe6ac517f59802807b5.html">zip_iterator::pointer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/group__iterators_1ga3d65c0bac93cd905b59b6b7cb0c04f08.html">zip_iterator::reference</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/group__iterators_1gaebe2d9c8478b11e187372e211ab26711.html">zip_iterator::value_type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/group__construction.html">Construction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/group__iterators.html">Iterators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/group__access.html">Access</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/group__size.html">Size</a></li>
 </ul>
 </details></li>
 </ul>
@@ -598,7 +606,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../cub/api/namespacecub_1a03d07a1e0e455128713337bc38992ec6.html">cub::StoreDirectWarpStriped</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../cub/api/namespacecub_1af987f4650f9ab899588513632a7a335c.html">cub::ThreadLoad</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../cub/api/namespacecub_1a553633b74da5b2b77992aa60c1f278f3.html">cub::ThreadStore</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../cub/api/namespacecub_1a2ed79a837d7d04fc62062a113f41819f.html">cub::operator&lt;&lt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../cub/api/namespacecub_1a1b6e2aaf857cfd72861cf2499bf9acb3.html">cub::MergePath</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../cub/api/namespacecub_1aed5ce3db2c0ebfafd33d5ef6a1eb71a8.html">cub::SerialMerge</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../cub/api/namespacecub_1a5bc54df3b7da4260d8c1d8579f63f0c0.html">cub::ThreadReduce</a></li>
@@ -1467,6 +1474,18 @@
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
+    
+    <li class="breadcrumb-item"><a href="../../../cpp.html" class="nav-link">CUDA C++ Core Libraries</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">libcu++</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../ptx_api.html" class="nav-link">PTX API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../pragmas.html" class="nav-link">PTX Pragmas</a></li>
+    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">.pragma “enable_smem_spilling”</span></li>
   </ul>
 </nav>
@@ -1513,6 +1532,24 @@
                 <footer class="prev-next-footer d-print-none">
                   
 <div class="prev-next-area">
+    <a class="left-prev"
+       href="../pragmas.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">PTX Pragmas</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../../api/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">LIBCUDACXX API Reference</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
 </div>
                 </footer>
               

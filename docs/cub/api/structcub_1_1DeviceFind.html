@@ -357,6 +357,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../libcudacxx/api/index.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classbasic__any__resource.html">basic_any_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classbasic__resource__ref.html">basic_resource_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classbuffer.html">buffer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classcompute__capability.html">compute_capability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classconstant__iterator.html">constant_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classcounting__iterator.html">counting_iterator</a></li>
@@ -365,6 +366,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classdiscard__iterator.html">discard_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classevent.html">event</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classevent__ref.html">event_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classheterogeneous__iterator.html">heterogeneous_iterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classlegacy__managed__memory__resource.html">legacy_managed_memory_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classlegacy__pinned__memory__resource.html">legacy_pinned_memory_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/classmanaged__memory__pool__ref.html">managed_memory_pool_ref</a></li>
@@ -391,6 +393,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structmanaged__memory__pool.html">managed_memory_pool</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structmemory__pool__properties.html">memory_pool_properties</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structpinned__memory__pool.html">pinned_memory_pool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structcuda_1_1std_1_1pointer__traits_3_1_1cuda_1_1heterogeneous__iterator_3_01__Tp_00_01__Properties_8_8_8_01_4_01_4.html">cuda::std::pointer_traits&lt;::cuda::heterogeneous_iterator&lt; _Tp, _Properties… &gt; &gt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structproperties__list.html">properties_list</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structshared__resource.html">shared_resource</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/structstream.html">stream</a></li>
@@ -400,7 +403,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__iterators_1ga3a57fccd85438fe6ac517f59802807b5.html">zip_iterator::pointer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__iterators_1ga3d65c0bac93cd905b59b6b7cb0c04f08.html">zip_iterator::reference</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__iterators_1gaebe2d9c8478b11e187372e211ab26711.html">zip_iterator::value_type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__construction.html">Construction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__iterators.html">Iterators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__access.html">Access</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../libcudacxx/api/group__size.html">Size</a></li>
 </ul>
 </details></li>
 </ul>
@@ -604,7 +610,6 @@
 <li class="toctree-l4"><a class="reference internal" href="namespacecub_1a03d07a1e0e455128713337bc38992ec6.html">cub::StoreDirectWarpStriped</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namespacecub_1af987f4650f9ab899588513632a7a335c.html">cub::ThreadLoad</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namespacecub_1a553633b74da5b2b77992aa60c1f278f3.html">cub::ThreadStore</a></li>
-<li class="toctree-l4"><a class="reference internal" href="namespacecub_1a2ed79a837d7d04fc62062a113f41819f.html">cub::operator&lt;&lt;</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namespacecub_1a1b6e2aaf857cfd72861cf2499bf9acb3.html">cub::MergePath</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namespacecub_1aed5ce3db2c0ebfafd33d5ef6a1eb71a8.html">cub::SerialMerge</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namespacecub_1a5bc54df3b7da4260d8c1d8579f63f0c0.html">cub::ThreadReduce</a></li>
@@ -1565,6 +1570,110 @@
 </dl>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0000EN3cub10DeviceFind10LowerBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">RangeIteratorT</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ValuesIteratorT</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">OutputIteratorT</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">CompareOpT</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structcub_1_1DeviceFind_1a9dd47a5377a65f73392e3dfb2aa454df"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">cudaError_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LowerBound</span></span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><em class="sig-param"><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">d_temp_storage</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">temp_storage_bytes</span></span></em>,</dd>
+<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0000EN3cub10DeviceFind10LowerBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="cub::DeviceFind::LowerBound::RangeIteratorT"><span class="n"><span class="pre">RangeIteratorT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">first</span></span></em>,</dd>
+<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0000EN3cub10DeviceFind10LowerBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="cub::DeviceFind::LowerBound::RangeIteratorT"><span class="n"><span class="pre">RangeIteratorT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">last</span></span></em>,</dd>
+<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0000EN3cub10DeviceFind10LowerBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="cub::DeviceFind::LowerBound::ValuesIteratorT"><span class="n"><span class="pre">ValuesIteratorT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">values_first</span></span></em>,</dd>
+<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0000EN3cub10DeviceFind10LowerBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="cub::DeviceFind::LowerBound::ValuesIteratorT"><span class="n"><span class="pre">ValuesIteratorT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">values_last</span></span></em>,</dd>
+<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0000EN3cub10DeviceFind10LowerBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="cub::DeviceFind::LowerBound::OutputIteratorT"><span class="n"><span class="pre">OutputIteratorT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output</span></span></em>,</dd>
+<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0000EN3cub10DeviceFind10LowerBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="cub::DeviceFind::LowerBound::CompareOpT"><span class="n"><span class="pre">CompareOpT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">comp</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">cudaStream_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stream</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span></em></dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0000EN3cub10DeviceFind10LowerBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="Link to this definition">#</a><br /></dt>
+<dd><p><section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">#</a></h2>
+<p>For each <code class="docutils literal notranslate"><span class="pre">value</span></code> in <code class="docutils literal notranslate"><span class="pre">[values_first,</span> <span class="pre">values_last)</span></code>, performs a binary search in the range <code class="docutils literal notranslate"><span class="pre">[first,</span> <span class="pre">last)</span></code>,
+using <code class="docutils literal notranslate"><span class="pre">comp</span></code> as the comparator to find the iterator to the element of said range which <strong>is not</strong> ordered
+<strong>before</strong> <code class="docutils literal notranslate"><span class="pre">value</span></code>.</p>
+<ul class="simple">
+<li><p>The range <code class="docutils literal notranslate"><span class="pre">[first,</span> <span class="pre">last)</span></code> must be sorted consistently with <code class="docutils literal notranslate"><span class="pre">comp</span></code>.</p></li>
+</ul>
+</section>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>RangeIteratorT</strong> – is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/iterator/random_access_iterator">Random Access Iterator</a>, whose value type forms a <a class="reference external" href="https://en.cppreference.com/w/cpp/concepts/relation">Relation</a> with the value type of <code class="docutils literal notranslate"><span class="pre">ValuesIteratorT</span></code> using <code class="docutils literal notranslate"><span class="pre">CompareOpT</span></code> as the predicate.</p></li>
+<li><p><strong>ValuesIteratorT</strong> – is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/iterator/random_access_iterator">Random Access Iterator</a>, whose value type forms a <a class="reference external" href="https://en.cppreference.com/w/cpp/concepts/relation">Relation</a> with the value type of <code class="docutils literal notranslate"><span class="pre">RangeIteratorT</span></code> using <code class="docutils literal notranslate"><span class="pre">CompareOpT</span></code> as the predicate.</p></li>
+<li><p><strong>OutputIteratorT</strong> – is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/iterator/random_access_iterator">Random Access Iterator</a>, whose value type is assignable from <code class="docutils literal notranslate"><span class="pre">RangeIteratorT</span></code>.</p></li>
+<li><p><strong>CompareOpT</strong> – is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/concepts/strict_weak_order">Strict Weak Ordering</a>, which forms a <a class="reference external" href="https://en.cppreference.com/w/cpp/concepts/relation">Relation</a> with the value types of <code class="docutils literal notranslate"><span class="pre">RangeIteratorT</span></code> and <code class="docutils literal notranslate"><span class="pre">ValuesIteratorT</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>d_temp_storage</strong> – <strong>[in]</strong> Device-accessible allocation of temporary storage. When <code class="docutils literal notranslate"><span class="pre">nullptr</span></code>, the required allocation size is written to <code class="docutils literal notranslate"><span class="pre">temp_storage_bytes</span></code> and no work is done.</p></li>
+<li><p><strong>temp_storage_bytes</strong> – <strong>[inout]</strong> Reference to size in bytes of <code class="docutils literal notranslate"><span class="pre">d_temp_storage</span></code> allocation</p></li>
+<li><p><strong>first</strong> – <strong>[in]</strong> Iterator to the beginning of the ordered range to be searched.</p></li>
+<li><p><strong>last</strong> – <strong>[in]</strong> Iterator denoting the one-past-the-end element of the ordered range to be searched.</p></li>
+<li><p><strong>values_first</strong> – <strong>[in]</strong> Iterator to the beginning of the range of values to be searched for.</p></li>
+<li><p><strong>values_last</strong> – <strong>[in]</strong> Iterator denoting the one-past-the-end element of the range of values to be searched for.</p></li>
+<li><p><strong>output</strong> – <strong>[out]</strong> Iterator to the beginning of the output range.</p></li>
+<li><p><strong>comp</strong> – <strong>[in]</strong> Comparison function object which returns true if its first argument is ordered before the second in the <a class="reference external" href="https://en.cppreference.com/w/cpp/concepts/strict_weak_order">Strict Weak Ordering</a> of the range to be searched.</p></li>
+<li><p><strong>stream</strong> – <strong>[in]</strong> <strong>[optional]</strong> CUDA stream to launch kernels within. Default is stream<sub>0</sub>. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0000EN3cub10DeviceFind10UpperBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">RangeIteratorT</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ValuesIteratorT</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">OutputIteratorT</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">CompareOpT</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structcub_1_1DeviceFind_1a0783fbb3b2f818370da8ba7763184ae9"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">cudaError_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UpperBound</span></span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><em class="sig-param"><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">d_temp_storage</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">temp_storage_bytes</span></span></em>,</dd>
+<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0000EN3cub10DeviceFind10UpperBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="cub::DeviceFind::UpperBound::RangeIteratorT"><span class="n"><span class="pre">RangeIteratorT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">first</span></span></em>,</dd>
+<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0000EN3cub10DeviceFind10UpperBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="cub::DeviceFind::UpperBound::RangeIteratorT"><span class="n"><span class="pre">RangeIteratorT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">last</span></span></em>,</dd>
+<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0000EN3cub10DeviceFind10UpperBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="cub::DeviceFind::UpperBound::ValuesIteratorT"><span class="n"><span class="pre">ValuesIteratorT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">values_first</span></span></em>,</dd>
+<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0000EN3cub10DeviceFind10UpperBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="cub::DeviceFind::UpperBound::ValuesIteratorT"><span class="n"><span class="pre">ValuesIteratorT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">values_last</span></span></em>,</dd>
+<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0000EN3cub10DeviceFind10UpperBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="cub::DeviceFind::UpperBound::OutputIteratorT"><span class="n"><span class="pre">OutputIteratorT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output</span></span></em>,</dd>
+<dd><em class="sig-param"><a class="reference internal" href="#_CPPv4I0000EN3cub10DeviceFind10UpperBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="cub::DeviceFind::UpperBound::CompareOpT"><span class="n"><span class="pre">CompareOpT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">comp</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">cudaStream_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stream</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span></em></dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0000EN3cub10DeviceFind10UpperBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t" title="Link to this definition">#</a><br /></dt>
+<dd><p><section id="id1">
+<h2>Overview<a class="headerlink" href="#id1" title="Link to this heading">#</a></h2>
+<p>For each <code class="docutils literal notranslate"><span class="pre">value</span></code> in <code class="docutils literal notranslate"><span class="pre">[values_first,</span> <span class="pre">values_last)</span></code>, performs a binary search in the range <code class="docutils literal notranslate"><span class="pre">[first,</span> <span class="pre">last)</span></code>,
+using <code class="docutils literal notranslate"><span class="pre">comp</span></code> as the comparator to find the iterator to the element of said range which <strong>is</strong> ordered
+<strong>after</strong> <code class="docutils literal notranslate"><span class="pre">value</span></code>.</p>
+<ul class="simple">
+<li><p>The range <code class="docutils literal notranslate"><span class="pre">[first,</span> <span class="pre">last)</span></code> must be sorted consistently with <code class="docutils literal notranslate"><span class="pre">comp</span></code>.</p></li>
+</ul>
+</section>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>RangeIteratorT</strong> – is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/iterator/random_access_iterator">Random Access Iterator</a>, whose value type forms a <a class="reference external" href="https://en.cppreference.com/w/cpp/concepts/relation">Relation</a> with the value type of <code class="docutils literal notranslate"><span class="pre">ValuesIteratorT</span></code> using <code class="docutils literal notranslate"><span class="pre">CompareOpT</span></code> as the predicate.</p></li>
+<li><p><strong>ValuesIteratorT</strong> – is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/iterator/random_access_iterator">Random Access Iterator</a>, whose value type forms a <a class="reference external" href="https://en.cppreference.com/w/cpp/concepts/relation">Relation</a> with the value type of <code class="docutils literal notranslate"><span class="pre">RangeIteratorT</span></code> using <code class="docutils literal notranslate"><span class="pre">CompareOpT</span></code> as the predicate.</p></li>
+<li><p><strong>OutputIteratorT</strong> – is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/iterator/random_access_iterator">Random Access Iterator</a>, whose value type is assignable from <code class="docutils literal notranslate"><span class="pre">RangeIteratorT</span></code>.</p></li>
+<li><p><strong>CompareOpT</strong> – is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/concepts/strict_weak_order">Strict Weak Ordering</a>, which forms a <a class="reference external" href="https://en.cppreference.com/w/cpp/concepts/relation">Relation</a> with the value types of <code class="docutils literal notranslate"><span class="pre">RangeIteratorT</span></code> and <code class="docutils literal notranslate"><span class="pre">ValuesIteratorT</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>d_temp_storage</strong> – <strong>[in]</strong> Device-accessible allocation of temporary storage. When <code class="docutils literal notranslate"><span class="pre">nullptr</span></code>, the required allocation size is written to <code class="docutils literal notranslate"><span class="pre">temp_storage_bytes</span></code> and no work is done.</p></li>
+<li><p><strong>temp_storage_bytes</strong> – <strong>[inout]</strong> Reference to size in bytes of <code class="docutils literal notranslate"><span class="pre">d_temp_storage</span></code> allocation</p></li>
+<li><p><strong>first</strong> – <strong>[in]</strong> Iterator to the beginning of the ordered range to be searched.</p></li>
+<li><p><strong>last</strong> – <strong>[in]</strong> Iterator denoting the one-past-the-end element of the ordered range to be searched.</p></li>
+<li><p><strong>values_first</strong> – <strong>[in]</strong> Iterator to the beginning of the range of values to be searched for.</p></li>
+<li><p><strong>values_last</strong> – <strong>[in]</strong> Iterator denoting the one-past-the-end element of the range of values to be searched for.</p></li>
+<li><p><strong>output</strong> – <strong>[out]</strong> Iterator to the beginning of the output range.</p></li>
+<li><p><strong>comp</strong> – <strong>[in]</strong> Comparison function object which returns true if its first argument is ordered before the second in the <a class="reference external" href="https://en.cppreference.com/w/cpp/concepts/strict_weak_order">Strict Weak Ordering</a> of the range to be searched.</p></li>
+<li><p><strong>stream</strong> – <strong>[in]</strong> <strong>[optional]</strong> CUDA stream to launch kernels within. Default is stream<sub>0</sub>. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 </dd></dl>
 
@@ -1621,6 +1730,8 @@
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4N3cub10DeviceFindE"><code class="docutils literal notranslate"><span class="pre">cub::DeviceFind</span></code></a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4I0000EN3cub10DeviceFind6FindIfE11cudaError_tPvR6size_t14InputIteratorT15OutputIteratorT7ScanOpT9NumItemsT12cudaStream_t"><code class="docutils literal notranslate"><span class="pre">FindIf()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4I0000EN3cub10DeviceFind10LowerBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t"><code class="docutils literal notranslate"><span class="pre">LowerBound()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4I0000EN3cub10DeviceFind10UpperBoundE11cudaError_tPvR6size_t14RangeIteratorT14RangeIteratorT15ValuesIteratorT15ValuesIteratorT15OutputIteratorT10CompareOpT12cudaStream_t"><code class="docutils literal notranslate"><span class="pre">UpperBound()</span></code></a></li>
 </ul>
 </li>
 </ul>
