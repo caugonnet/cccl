@@ -46,8 +46,8 @@
 
 
     <script src="../../_static/documentation_options.js?v=26f62d79"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=5ceeb459"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
@@ -1509,7 +1509,25 @@
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4I_i_i_i0_iEN3cub29AgentRadixSortHistogramPolicyE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">BlockThreads</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ItemsPerThread</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">NOMINAL_4B_NUM_PARTS</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ComputeT</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">RadixBits</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structcub_1_1AgentRadixSortHistogramPolicy"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AgentRadixSortHistogramPolicy</span></span></span><a class="headerlink" href="#_CPPv4I_i_i_i0_iEN3cub29AgentRadixSortHistogramPolicyE" title="Link to this definition">#</a><br /></dt>
-<dd><div class="breathe-sectiondef docutils container">
+<dd><dl class="field-list simple">
+<dt class="field-odd">Param ComputeT<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If void, use NOMINAL_4B_NUM_PARTS directly for NUM_PARTS. Otherwise, perform scaling. </p>
+</dd>
+</dl>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN3cub29AgentRadixSortHistogramPolicy16num_parts_helperEiv">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ComputeType</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_i_i_i0_iEN3cub29AgentRadixSortHistogramPolicyE" title="cub::AgentRadixSortHistogramPolicy::ComputeT"><span class="n"><span class="pre">ComputeT</span></span></a><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structcub_1_1AgentRadixSortHistogramPolicy_1a0141588fcb6dcc2d3e88aa75a5aa768e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_parts_helper</span></span></span><span class="sig-paren">(</span>
+
+<dl>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN3cub29AgentRadixSortHistogramPolicy16num_parts_helperEiv" title="Link to this definition">#</a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N3cub29AgentRadixSortHistogramPolicy13BLOCK_THREADSE">
@@ -1523,7 +1541,7 @@
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N3cub29AgentRadixSortHistogramPolicy9NUM_PARTSE">
-<span class="target" id="structcub_1_1AgentRadixSortHistogramPolicy_1a9004bb6b990e2551d3a661336349e395"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NUM_PARTS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">cuda</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_i_i_i0_iEN3cub29AgentRadixSortHistogramPolicyE" title="cub::AgentRadixSortHistogramPolicy::NOMINAL_4B_NUM_PARTS"><span class="n"><span class="pre">NOMINAL_4B_NUM_PARTS</span></span></a><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="w"> </span><span class="o"><span class="pre">/</span></span><span class="w"> </span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">cuda</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">sizeof</span></span><span class="p"><span class="pre">(</span></span><a class="reference internal" href="#_CPPv4I_i_i_i0_iEN3cub29AgentRadixSortHistogramPolicyE" title="cub::AgentRadixSortHistogramPolicy::ComputeT"><span class="n"><span class="pre">ComputeT</span></span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">}</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N3cub29AgentRadixSortHistogramPolicy9NUM_PARTSE" title="Link to this definition">#</a><br /></dt>
+<span class="target" id="structcub_1_1AgentRadixSortHistogramPolicy_1a9004bb6b990e2551d3a661336349e395"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NUM_PARTS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN3cub29AgentRadixSortHistogramPolicy16num_parts_helperEiv" title="cub::AgentRadixSortHistogramPolicy::num_parts_helper"><span class="n"><span class="pre">num_parts_helper</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_i_i_i0_iEN3cub29AgentRadixSortHistogramPolicyE" title="cub::AgentRadixSortHistogramPolicy::ComputeT"><span class="n"><span class="pre">ComputeT</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N3cub29AgentRadixSortHistogramPolicy9NUM_PARTSE" title="Link to this definition">#</a><br /></dt>
 <dd><p>NUM_PARTS is the number of private histograms (parts) each histogram is split into. </p>
 <p>Each warp lane is assigned to a specific part based on the lane ID. However, lanes with the same ID in different warp use the same private histogram. This arrangement helps reduce the degree of conflicts in atomic operations. </p>
 </dd></dl>
@@ -1588,6 +1606,7 @@
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4I_i_i_i0_iEN3cub29AgentRadixSortHistogramPolicyE"><code class="docutils literal notranslate"><span class="pre">cub::AgentRadixSortHistogramPolicy</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4I0EN3cub29AgentRadixSortHistogramPolicy16num_parts_helperEiv"><code class="docutils literal notranslate"><span class="pre">num_parts_helper()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4N3cub29AgentRadixSortHistogramPolicy13BLOCK_THREADSE"><code class="docutils literal notranslate"><span class="pre">BLOCK_THREADS</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4N3cub29AgentRadixSortHistogramPolicy16ITEMS_PER_THREADE"><code class="docutils literal notranslate"><span class="pre">ITEMS_PER_THREAD</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#_CPPv4N3cub29AgentRadixSortHistogramPolicy9NUM_PARTSE"><code class="docutils literal notranslate"><span class="pre">NUM_PARTS</span></code></a></li>
@@ -1643,7 +1662,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
     <br/>
   </p>
 </div>

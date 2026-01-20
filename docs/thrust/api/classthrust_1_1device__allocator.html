@@ -46,8 +46,8 @@
 
 
     <script src="../../_static/documentation_options.js?v=26f62d79"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=5ceeb459"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
@@ -1519,7 +1519,11 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust16device_allocatorE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classthrust_1_1device__allocator"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_allocator</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">thrust</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">mr</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="classthrust_1_1mr_1_1stateless__resource__allocator.html#_CPPv4I00EN6thrust2mr28stateless_resource_allocatorE" title="thrust::mr::stateless_resource_allocator"><span class="n"><span class="pre">stateless_resource_allocator</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust16device_allocatorE" title="thrust::device_allocator::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="classthrust_1_1device__ptr__memory__resource.html#_CPPv4I0EN6thrust26device_ptr_memory_resourceE" title="thrust::device_ptr_memory_resource"><span class="n"><span class="pre">device_ptr_memory_resource</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="namespacethrust_1a80adc98b03906ca2beb5e8f1cc154f7e.html#_CPPv4N6thrust22device_memory_resourceE" title="thrust::device_memory_resource"><span class="n"><span class="pre">device_memory_resource</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I0EN6thrust16device_allocatorE" title="Link to this definition">#</a><br /></dt>
 <dd><p>An allocator which creates new elements in memory accessible by devices. </p>
-<p><div class="admonition seealso">
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference external" href="https://en.cppreference.com/w/cpp/named_req/Allocator">https://en.cppreference.com/w/cpp/named_req/Allocator</a></p>
 </div>
@@ -1685,9 +1689,14 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust16device_allocator6rebindE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1device__allocator_1_1rebind"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rebind</span></span></span><a class="headerlink" href="#_CPPv4I0EN6thrust16device_allocator6rebindE" title="Link to this definition">#</a><br /></dt>
 <dd><p>The <code class="docutils literal notranslate"><span class="pre">rebind</span></code> metafunction provides the type of a <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__allocator"><span class="std std-ref"><span class="pre">device_allocator</span></span></a></code> instantiated with another type.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>U</strong> – the other type to use for instantiation. </p>
+<dd class="field-odd"><p><strong>U</strong> – the other type to use for instantiation.</p>
 </dd>
 </dl>
 <div class="breathe-sectiondef docutils container">
@@ -1695,7 +1704,11 @@
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust16device_allocator6rebind5otherE">
 <span class="target" id="structthrust_1_1device__allocator_1_1rebind_1abc0e9134878c2ac76c7736ddc78ce237"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">other</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust16device_allocatorE" title="thrust::device_allocator"><span class="n"><span class="pre">device_allocator</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust16device_allocator6rebindE" title="thrust::device_allocator::rebind::U"><span class="n"><span class="pre">U</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N6thrust16device_allocator6rebind5otherE" title="Link to this definition">#</a><br /></dt>
-<dd><p>The alias <code class="docutils literal notranslate"><span class="pre">other</span></code> gives the type of the rebound <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__allocator"><span class="std std-ref"><span class="pre">device_allocator</span></span></a></code>. </p>
+<dd><p>The alias <code class="docutils literal notranslate"><span class="pre">other</span></code> gives the type of the rebound <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__allocator"><span class="std std-ref"><span class="pre">device_allocator</span></span></a></code>.</p>
+<p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
 </dd></dl>
 
 </div>
@@ -1830,7 +1843,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
     <br/>
   </p>
 </div>

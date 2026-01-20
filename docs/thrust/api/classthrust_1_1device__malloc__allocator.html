@@ -46,8 +46,8 @@
 
 
     <script src="../../_static/documentation_options.js?v=26f62d79"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=5ceeb459"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
@@ -1520,7 +1520,11 @@
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classthrust_1_1device__malloc__allocator"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_malloc_allocator</span></span></span><a class="headerlink" href="#_CPPv4I0EN6thrust23device_malloc_allocatorE" title="Link to this definition">#</a><br /></dt>
 <dd><p><code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__malloc__allocator"><span class="std std-ref"><span class="pre">device_malloc_allocator</span></span></a></code> is a device memory allocator that employs the <code class="docutils literal notranslate"><span class="pre">device_malloc</span></code> function for allocation.</p>
 <p><code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__malloc__allocator"><span class="std std-ref"><span class="pre">device_malloc_allocator</span></span></a></code> is deprecated in favor of <code class="docutils literal notranslate"><span class="pre">thrust::mr</span></code> memory resource-based allocators.</p>
-<p><div class="admonition seealso">
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="group__memory__management_1ga45b46200ffdb02a4ef9191103e6f12b9.html#group__memory__management_1ga45b46200ffdb02a4ef9191103e6f12b9"><span class="std std-ref">device_malloc</span></a></p>
 </div>
@@ -1628,10 +1632,14 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust23device_malloc_allocator7addressE9reference">
 <span class="target" id="classthrust_1_1device__malloc__allocator_1a86ca300b172b9ebb53c55ff7ce171be7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N6thrust23device_malloc_allocator7pointerE" title="thrust::device_malloc_allocator::pointer"><span class="n"><span class="pre">pointer</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="sig-paren">(</span><em class="sig-param"><a class="reference internal" href="#_CPPv4N6thrust23device_malloc_allocator9referenceE" title="thrust::device_malloc_allocator::reference"><span class="n"><span class="pre">reference</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust23device_malloc_allocator7addressE9reference" title="Link to this definition">#</a><br /></dt>
-<dd><p>Returns the address of an allocated object. </p>
+<dd><p>Returns the address of an allocated object. <p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">&amp;r</span></code>. </p>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">&amp;r</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1639,10 +1647,14 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust23device_malloc_allocator7addressE15const_reference">
 <span class="target" id="classthrust_1_1device__malloc__allocator_1a8caae552613408e5ef973bb014acb74b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N6thrust23device_malloc_allocator13const_pointerE" title="thrust::device_malloc_allocator::const_pointer"><span class="n"><span class="pre">const_pointer</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="sig-paren">(</span><em class="sig-param"><a class="reference internal" href="#_CPPv4N6thrust23device_malloc_allocator15const_referenceE" title="thrust::device_malloc_allocator::const_reference"><span class="n"><span class="pre">const_reference</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust23device_malloc_allocator7addressE15const_reference" title="Link to this definition">#</a><br /></dt>
-<dd><p>Returns the address an allocated object. </p>
+<dd><p>Returns the address an allocated object. <p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">&amp;r</span></code>. </p>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">&amp;r</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1657,10 +1669,14 @@
 </dl>
 
 <span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust23device_malloc_allocator8allocateE9size_type13const_pointer" title="Link to this definition">#</a><br /></dt>
-<dd><p>Allocates storage for <code class="docutils literal notranslate"><span class="pre">cnt</span></code> objects. </p>
+<dd><p>Allocates storage for <code class="docutils literal notranslate"><span class="pre">cnt</span></code> objects. <p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Memory allocated by this function must be deallocated with <code class="docutils literal notranslate"><span class="pre">deallocate</span></code>. </p>
+<p>Memory allocated by this function must be deallocated with <code class="docutils literal notranslate"><span class="pre">deallocate</span></code>.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1675,10 +1691,14 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust23device_malloc_allocator10deallocateE7pointer9size_type">
 <span class="target" id="classthrust_1_1device__malloc__allocator_1a73a8bf641d4fd7e568cfe86d69ebd623"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deallocate</span></span></span><span class="sig-paren">(</span><em class="sig-param"><a class="reference internal" href="#_CPPv4N6thrust23device_malloc_allocator7pointerE" title="thrust::device_malloc_allocator::pointer"><span class="n"><span class="pre">pointer</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">p</span></span></em>, <em class="sig-param"><a class="reference internal" href="#_CPPv4N6thrust23device_malloc_allocator9size_typeE" title="thrust::device_malloc_allocator::size_type"><span class="n"><span class="pre">size_type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">cnt</span></span></em><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N6thrust23device_malloc_allocator10deallocateE7pointer9size_type" title="Link to this definition">#</a><br /></dt>
-<dd><p>Deallocates storage for objects allocated with <code class="docutils literal notranslate"><span class="pre">allocate</span></code>. </p>
+<dd><p>Deallocates storage for objects allocated with <code class="docutils literal notranslate"><span class="pre">allocate</span></code>. <p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Memory deallocated by this function must previously have been allocated with <code class="docutils literal notranslate"><span class="pre">allocate</span></code>. </p>
+<p>Memory deallocated by this function must previously have been allocated with <code class="docutils literal notranslate"><span class="pre">allocate</span></code>.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1704,7 +1724,11 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK6thrust23device_malloc_allocatoreqERK23device_malloc_allocator">
 <span class="target" id="classthrust_1_1device__malloc__allocator_1abe4966e5ee2e6a11a0d4034998d905f9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><em class="sig-param"><a class="reference internal" href="#_CPPv4I0EN6thrust23device_malloc_allocatorE" title="thrust::device_malloc_allocator"><span class="n"><span class="pre">device_malloc_allocator</span></span></a><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="p"><span class="pre">&amp;</span></span></em><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK6thrust23device_malloc_allocatoreqERK23device_malloc_allocator" title="Link to this definition">#</a><br /></dt>
-<dd><p>Compares against another <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__malloc__allocator"><span class="std std-ref"><span class="pre">device_malloc_allocator</span></span></a></code> for equality. </p>
+<dd><p>Compares against another <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__malloc__allocator"><span class="std std-ref"><span class="pre">device_malloc_allocator</span></span></a></code> for equality. <p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p>
@@ -1715,7 +1739,11 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK6thrust23device_malloc_allocatorneERK23device_malloc_allocator">
 <span class="target" id="classthrust_1_1device__malloc__allocator_1a8016ed2ad6673be5d2b3089ab5395f11"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">!=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><a class="reference internal" href="#_CPPv4I0EN6thrust23device_malloc_allocatorE" title="thrust::device_malloc_allocator"><span class="n"><span class="pre">device_malloc_allocator</span></span></a><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">a</span></span></em><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK6thrust23device_malloc_allocatorneERK23device_malloc_allocator" title="Link to this definition">#</a><br /></dt>
-<dd><p>Compares against another <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__malloc__allocator"><span class="std std-ref"><span class="pre">device_malloc_allocator</span></span></a></code> for inequality. </p>
+<dd><p>Compares against another <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__malloc__allocator"><span class="std std-ref"><span class="pre">device_malloc_allocator</span></span></a></code> for inequality. <p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p>
@@ -1728,9 +1756,14 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust23device_malloc_allocator6rebindE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1device__malloc__allocator_1_1rebind"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rebind</span></span></span><a class="headerlink" href="#_CPPv4I0EN6thrust23device_malloc_allocator6rebindE" title="Link to this definition">#</a><br /></dt>
 <dd><p>The <code class="docutils literal notranslate"><span class="pre">rebind</span></code> metafunction provides the type of a <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__malloc__allocator"><span class="std std-ref"><span class="pre">device_malloc_allocator</span></span></a></code> instantiated with another type.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>U</strong> – The other type to use for instantiation. </p>
+<dd class="field-odd"><p><strong>U</strong> – The other type to use for instantiation.</p>
 </dd>
 </dl>
 <div class="breathe-sectiondef docutils container">
@@ -1738,7 +1771,11 @@
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust23device_malloc_allocator6rebind5otherE">
 <span class="target" id="structthrust_1_1device__malloc__allocator_1_1rebind_1a97b73cf52d8b301a88ffc10d347a9612"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">other</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust23device_malloc_allocatorE" title="thrust::device_malloc_allocator"><span class="n"><span class="pre">device_malloc_allocator</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust23device_malloc_allocator6rebindE" title="thrust::device_malloc_allocator::rebind::U"><span class="n"><span class="pre">U</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N6thrust23device_malloc_allocator6rebind5otherE" title="Link to this definition">#</a><br /></dt>
-<dd><p>The alias <code class="docutils literal notranslate"><span class="pre">other</span></code> gives the type of the rebound <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__malloc__allocator"><span class="std std-ref"><span class="pre">device_malloc_allocator</span></span></a></code>. </p>
+<dd><p>The alias <code class="docutils literal notranslate"><span class="pre">other</span></code> gives the type of the rebound <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__malloc__allocator"><span class="std std-ref"><span class="pre">device_malloc_allocator</span></span></a></code>.</p>
+<p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
 </dd></dl>
 
 </div>
@@ -1872,7 +1909,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
     <br/>
   </p>
 </div>

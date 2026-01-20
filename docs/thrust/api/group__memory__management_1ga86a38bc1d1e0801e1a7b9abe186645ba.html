@@ -46,8 +46,8 @@
 
 
     <script src="../../_static/documentation_options.js?v=26f62d79"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=5ceeb459"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
@@ -1527,7 +1527,11 @@
 
 <span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust10device_newE10device_ptrI1TE10device_ptrIvEK6size_t" title="Link to this definition">#</a><br /></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">device_new</span></code> implements the placement <code class="docutils literal notranslate"><span class="pre">new</span></code> operator for types resident in device memory. <code class="docutils literal notranslate"><span class="pre">device_new</span></code> calls <code class="docutils literal notranslate"><span class="pre">T</span></code>’s null constructor on a array of objects in device memory. No memory is allocated by this function.</p>
-<p><div class="admonition seealso">
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref">device_ptr</span></a></p>
 </div>
@@ -1560,7 +1564,11 @@
 
 <span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust10device_newE10device_ptrI1TE10device_ptrIvERK1TK6size_t" title="Link to this definition">#</a><br /></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">device_new</span></code> implements the placement new operator for types resident in device memory. <code class="docutils literal notranslate"><span class="pre">device_new</span></code> calls <code class="docutils literal notranslate"><span class="pre">T</span></code>’s copy constructor on a array of objects in device memory. No memory is allocated by this function.</p>
-<p><div class="admonition seealso">
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref">device_ptr</span></a></p>
 </div>
@@ -1596,12 +1604,17 @@
 
 <span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust10device_newE10device_ptrI1TEK6size_t" title="Link to this definition">#</a><br /></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">device_new</span></code> implements the new operator for types resident in device memory. It allocates device memory large enough to hold <code class="docutils literal notranslate"><span class="pre">n</span></code> new objects of type <code class="docutils literal notranslate"><span class="pre">T</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>n</strong> – The number of objects to allocate. Defaults to <code class="docutils literal notranslate"><span class="pre">1</span></code>. </p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref"><span class="pre">device_ptr</span></span></a></code> to the newly allocated region of device memory. </p>
+<dd class="field-even"><p>A <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref"><span class="pre">device_ptr</span></span></a></code> to the newly allocated region of device memory.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1723,7 +1736,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
     <br/>
   </p>
 </div>

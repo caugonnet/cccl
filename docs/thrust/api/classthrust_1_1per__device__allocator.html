@@ -46,8 +46,8 @@
 
 
     <script src="../../_static/documentation_options.js?v=26f62d79"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=5ceeb459"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
@@ -1510,12 +1510,17 @@
 <dt class="sig sig-object cpp" id="_CPPv4I000EN6thrust20per_device_allocatorE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">Upstream</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ExecutionPolicy</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classthrust_1_1per__device__allocator"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">per_device_allocator</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">thrust</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">mr</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="classthrust_1_1mr_1_1allocator.html#_CPPv4I00EN6thrust2mr9allocatorE" title="thrust::mr::allocator"><span class="n"><span class="pre">allocator</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I000EN6thrust20per_device_allocatorE" title="thrust::per_device_allocator::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN6thrust20per_device_allocatorE" title="thrust::per_device_allocator::Upstream"><span class="n"><span class="pre">Upstream</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I000EN6thrust20per_device_allocatorE" title="Link to this definition">#</a><br /></dt>
 <dd><p>A helper allocator class that uses global per device instances of a given upstream memory resource. Requires the memory resource to be default constructible.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>T</strong> – the type that will be allocated by this allocator. </p></li>
 <li><p><strong>MR</strong> – the upstream memory resource to use for memory allocation. Must derive from <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1mr_1_1memory__resource.html#classthrust_1_1mr_1_1memory__resource"><span class="std std-ref"><span class="pre">thrust::mr::memory_resource</span></span></a></code> and must be <code class="docutils literal notranslate"><span class="pre">final</span></code>. </p></li>
-<li><p><strong>ExecutionPolicy</strong> – the execution policy of the system to be used to retrieve the resource for the current device. </p></li>
+<li><p><strong>ExecutionPolicy</strong> – the execution policy of the system to be used to retrieve the resource for the current device.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1593,7 +1598,11 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust20per_device_allocator20per_device_allocatorEv">
 <span class="target" id="classthrust_1_1per__device__allocator_1af0dfb5f41639b85a8b21eb4e3d6a6122"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">per_device_allocator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust20per_device_allocator20per_device_allocatorEv" title="Link to this definition">#</a><br /></dt>
-<dd><p>Default constructor. Uses <code class="docutils literal notranslate"><span class="pre">get_global_resource</span></code> to get the global instance of <code class="docutils literal notranslate"><span class="pre">Upstream</span></code> and initializes the <code class="docutils literal notranslate"><span class="pre">allocator</span></code> base subobject with that resource. </p>
+<dd><p>Default constructor. Uses <code class="docutils literal notranslate"><span class="pre">get_global_resource</span></code> to get the global instance of <code class="docutils literal notranslate"><span class="pre">Upstream</span></code> and initializes the <code class="docutils literal notranslate"><span class="pre">allocator</span></code> base subobject with that resource.</p>
+<p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -1675,9 +1684,14 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust20per_device_allocator6rebindE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1per__device__allocator_1_1rebind"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rebind</span></span></span><a class="headerlink" href="#_CPPv4I0EN6thrust20per_device_allocator6rebindE" title="Link to this definition">#</a><br /></dt>
 <dd><p>The <code class="docutils literal notranslate"><span class="pre">rebind</span></code> metafunction provides the type of an <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1per__device__allocator"><span class="std std-ref"><span class="pre">per_device_allocator</span></span></a></code> instantiated with another type.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>U</strong> – the other type to use for instantiation. </p>
+<dd class="field-odd"><p><strong>U</strong> – the other type to use for instantiation.</p>
 </dd>
 </dl>
 <div class="breathe-sectiondef docutils container">
@@ -1819,7 +1833,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
     <br/>
   </p>
 </div>

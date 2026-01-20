@@ -46,8 +46,8 @@
 
 
     <script src="../../_static/documentation_options.js?v=26f62d79"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=5ceeb459"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
@@ -1518,7 +1518,11 @@
 <dd><p><code class="docutils literal notranslate"><span class="pre">complex</span></code> is the Thrust equivalent to <code class="docutils literal notranslate"><span class="pre">std::complex</span></code>. It is functionally identical to it, but can also be used in device code which <code class="docutils literal notranslate"><span class="pre">std::complex</span></code> currently cannot.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>T</strong> – The type used to hold the real and imaginary parts. Should be <code class="docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">double</span></code>. Others types are not supported. </p>
+<dd class="field-odd"><p><strong>T</strong> – The type used to hold the real and imaginary parts. Should be <code class="docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">double</span></code>. Others types are not supported. <p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+</p>
 </dd>
 </dl>
 <div class="breathe-sectiondef docutils container">
@@ -1536,9 +1540,14 @@
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust7complex7complexERK1T">
 <span class="target" id="structthrust_1_1complex_1a38923fc0435da6046545f78f656ffb73"></span><span class="sig-name descname"><span class="n"><span class="pre">complex</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">re</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust7complex7complexERK1T" title="Link to this definition">#</a><br /></dt>
 <dd><p>Construct a complex number with an imaginary part of 0.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>re</strong> – The real part of the number. </p>
+<dd class="field-odd"><p><strong>re</strong> – The real part of the number.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1547,11 +1556,16 @@
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust7complex7complexERK1TRK1T">
 <span class="target" id="structthrust_1_1complex_1a0f9ece170bd5cf93bba58254c0f1b994"></span><span class="sig-name descname"><span class="n"><span class="pre">complex</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">re</span></span></em>, <em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">im</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust7complex7complexERK1TRK1T" title="Link to this definition">#</a><br /></dt>
 <dd><p>Construct a complex number from its real and imaginary parts.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>re</strong> – The real part of the number. </p></li>
-<li><p><strong>im</strong> – The imaginary part of the number. </p></li>
+<li><p><strong>im</strong> – The imaginary part of the number.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1578,12 +1592,17 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust7complex7complexERK7complexI1UE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1complex_1ab726eaf3d7adf5e9ea0f23cd20433acc"></span><span class="sig-name descname"><span class="n"><span class="pre">complex</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complex7complexERK7complexI1UE" title="thrust::complex::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complex7complexERK7complexI1UE" title="thrust::complex::complex::U"><span class="n"><span class="pre">U</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust7complex7complexERK7complexI1UE" title="Link to this definition">#</a><br /></dt>
 <dd><p>This converting copy constructor copies from a <code class="docutils literal notranslate"><span class="pre">complex</span></code> with a type that is convertible to this <code class="docutils literal notranslate"><span class="pre">complex's</span></code> <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to copy from.</p>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>. </p>
+<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1592,9 +1611,14 @@
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust7complex7complexERKNSt7complexI1TEE">
 <span class="target" id="structthrust_1_1complex_1ab8f951b72c05bc2d5555ab8c6684589b"></span><span class="sig-name descname"><span class="n"><span class="pre">complex</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust7complex7complexERKNSt7complexI1TEE" title="Link to this definition">#</a><br /></dt>
 <dd><p>This converting copy constructor copies from a <code class="docutils literal notranslate"><span class="pre">std::complex</span></code> with a type that is convertible to this <code class="docutils literal notranslate"><span class="pre">complex's</span></code> <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to copy from. </p>
+<dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to copy from.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1603,12 +1627,17 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust7complex7complexERKNSt7complexI1UEE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1complex_1ad6c1ed2cfa8c9077152fff5a16c8229b"></span><span class="sig-name descname"><span class="n"><span class="pre">complex</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complex7complexERKNSt7complexI1UEE" title="thrust::complex::complex::U"><span class="n"><span class="pre">U</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust7complex7complexERKNSt7complexI1UEE" title="Link to this definition">#</a><br /></dt>
 <dd><p>This converting copy constructor copies from a <code class="docutils literal notranslate"><span class="pre">std::complex</span></code> with a type that is convertible to this <code class="docutils literal notranslate"><span class="pre">complex's</span></code> <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to copy from.</p>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>. </p>
+<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1617,9 +1646,14 @@
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust7complexaSERK1T">
 <span class="target" id="structthrust_1_1complex_1aefa67c939328c037b4e84cd1703cea3a"></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">re</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust7complexaSERK1T" title="Link to this definition">#</a><br /></dt>
 <dd><p>Assign <code class="docutils literal notranslate"><span class="pre">re</span></code> to the real part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code> and set the imaginary part to 0.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>re</strong> – The real part of the number. </p>
+<dd class="field-odd"><p><strong>re</strong> – The real part of the number.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1639,12 +1673,17 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust7complexaSER7complexRK7complexI1UE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1complex_1ac1c3336ab5103e87fc13bc58ab44c989"></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexaSER7complexRK7complexI1UE" title="thrust::complex::operator=::U"><span class="n"><span class="pre">U</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust7complexaSER7complexRK7complexI1UE" title="Link to this definition">#</a><br /></dt>
 <dd><p>Assign <code class="docutils literal notranslate"><span class="pre">z.real()</span></code> and <code class="docutils literal notranslate"><span class="pre">z.imag()</span></code> to the real and imaginary parts of this <code class="docutils literal notranslate"><span class="pre">complex</span></code> respectively.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to copy from.</p>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>. </p>
+<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1653,9 +1692,14 @@
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust7complexaSERKNSt7complexI1TEE">
 <span class="target" id="structthrust_1_1complex_1a909d9508d70084b196472aefb529ef5f"></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust7complexaSERKNSt7complexI1TEE" title="Link to this definition">#</a><br /></dt>
 <dd><p>Assign <code class="docutils literal notranslate"><span class="pre">z.real()</span></code> and <code class="docutils literal notranslate"><span class="pre">z.imag()</span></code> to the real and imaginary parts of this <code class="docutils literal notranslate"><span class="pre">complex</span></code> respectively.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to copy from. </p>
+<dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to copy from.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1670,12 +1714,17 @@
 
 <span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust7complexaSER7complexRKNSt7complexI1UEE" title="Link to this definition">#</a><br /></dt>
 <dd><p>Assign <code class="docutils literal notranslate"><span class="pre">z.real()</span></code> and <code class="docutils literal notranslate"><span class="pre">z.imag()</span></code> to the real and imaginary parts of this <code class="docutils literal notranslate"><span class="pre">complex</span></code> respectively.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to copy from.</p>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>. </p>
+<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1684,12 +1733,17 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust7complexpLER7complexI1TERK7complexI1UE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1complex_1ad7f1335d9ae06385e92807c8a4391ef4"></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexpLER7complexI1TERK7complexI1UE" title="thrust::complex::operator+=::U"><span class="n"><span class="pre">U</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust7complexpLER7complexI1TERK7complexI1UE" title="Link to this definition">#</a><br /></dt>
 <dd><p>Adds a <code class="docutils literal notranslate"><span class="pre">complex</span></code> to this <code class="docutils literal notranslate"><span class="pre">complex</span></code> and assigns the result to this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to be added.</p>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>. </p>
+<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1698,12 +1752,17 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust7complexmIER7complexI1TERK7complexI1UE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1complex_1a15d48de04044460ba371147cad708aca"></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexmIER7complexI1TERK7complexI1UE" title="thrust::complex::operator-=::U"><span class="n"><span class="pre">U</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust7complexmIER7complexI1TERK7complexI1UE" title="Link to this definition">#</a><br /></dt>
 <dd><p>Subtracts a <code class="docutils literal notranslate"><span class="pre">complex</span></code> from this <code class="docutils literal notranslate"><span class="pre">complex</span></code> and assigns the result to this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to be subtracted.</p>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>. </p>
+<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1712,12 +1771,17 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust7complexmLER7complexI1TERK7complexI1UE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1complex_1a19fc779bc428133d154abdb0ad5288aa"></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexmLER7complexI1TERK7complexI1UE" title="thrust::complex::operator*=::U"><span class="n"><span class="pre">U</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust7complexmLER7complexI1TERK7complexI1UE" title="Link to this definition">#</a><br /></dt>
 <dd><p>Multiplies this <code class="docutils literal notranslate"><span class="pre">complex</span></code> by another <code class="docutils literal notranslate"><span class="pre">complex</span></code> and assigns the result to this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to be multiplied.</p>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>. </p>
+<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1726,12 +1790,17 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust7complexdVER7complexI1TERK7complexI1UE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1complex_1a4b1e27f70bd59dad58ee99f73455e702"></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexdVER7complexI1TERK7complexI1UE" title="thrust::complex::operator/=::U"><span class="n"><span class="pre">U</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust7complexdVER7complexI1TERK7complexI1UE" title="Link to this definition">#</a><br /></dt>
 <dd><p>Divides this <code class="docutils literal notranslate"><span class="pre">complex</span></code> by another <code class="docutils literal notranslate"><span class="pre">complex</span></code> and assigns the result to this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to be divided.</p>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>. </p>
+<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1740,12 +1809,17 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust7complexpLER7complexI1TERK1U">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1complex_1a235ed2364ca947591d764ed6d1ecbf2c"></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexpLER7complexI1TERK1U" title="thrust::complex::operator+=::U"><span class="n"><span class="pre">U</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust7complexpLER7complexI1TERK1U" title="Link to this definition">#</a><br /></dt>
 <dd><p>Adds a scalar to this <code class="docutils literal notranslate"><span class="pre">complex</span></code> and assigns the result to this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>z</strong> – The <code class="docutils literal notranslate"><span class="pre">complex</span></code> to be added.</p>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>. </p>
+<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1754,12 +1828,17 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust7complexmIER7complexI1TERK1U">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1complex_1a13c470e39405fed4256c02640852c45d"></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexmIER7complexI1TERK1U" title="thrust::complex::operator-=::U"><span class="n"><span class="pre">U</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust7complexmIER7complexI1TERK1U" title="Link to this definition">#</a><br /></dt>
 <dd><p>Subtracts a scalar from this <code class="docutils literal notranslate"><span class="pre">complex</span></code> and assigns the result to this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>z</strong> – The scalar to be subtracted.</p>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>. </p>
+<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1768,12 +1847,17 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust7complexmLER7complexI1TERK1U">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1complex_1a60cb05af3069039a29b5c0f8ae25dc2a"></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexmLER7complexI1TERK1U" title="thrust::complex::operator*=::U"><span class="n"><span class="pre">U</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust7complexmLER7complexI1TERK1U" title="Link to this definition">#</a><br /></dt>
 <dd><p>Multiplies this <code class="docutils literal notranslate"><span class="pre">complex</span></code> by a scalar and assigns the result to this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>z</strong> – The scalar to be multiplied.</p>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>. </p>
+<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1782,12 +1866,17 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust7complexdVER7complexI1TERK1U">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structthrust_1_1complex_1ac43526fd84d967697b7045aa7ca36100"></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexdVER7complexI1TERK1U" title="thrust::complex::operator/=::U"><span class="n"><span class="pre">U</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust7complexdVER7complexI1TERK1U" title="Link to this definition">#</a><br /></dt>
 <dd><p>Divides this <code class="docutils literal notranslate"><span class="pre">complex</span></code> by a scalar and assigns the result to this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>z</strong> – The scalar to be divided.</p>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>. </p>
+<dd class="field-even"><p><strong>U</strong> – is convertible to <code class="docutils literal notranslate"><span class="pre">value_type</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1795,34 +1884,55 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NVK6thrust7complex4realEv">
 <span class="target" id="structthrust_1_1complex_1a1146a14581439b1a7bb2847197533d2d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">real</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">volatile</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NVK6thrust7complex4realEv" title="Link to this definition">#</a><br /></dt>
-<dd><p>Returns the real part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>. </p>
+<dd><p>Returns the real part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NVK6thrust7complex4imagEv">
 <span class="target" id="structthrust_1_1complex_1a10d67dce612fa50ab070e9c06030572f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">imag</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">volatile</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NVK6thrust7complex4imagEv" title="Link to this definition">#</a><br /></dt>
-<dd><p>Returns the imaginary part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>. </p>
+<dd><p>Returns the imaginary part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK6thrust7complex4realEv">
 <span class="target" id="structthrust_1_1complex_1a9114dbad9a7fd47afb09d83a1d6ef883"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">real</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK6thrust7complex4realEv" title="Link to this definition">#</a><br /></dt>
-<dd><p>Returns the real part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>. </p>
+<dd><p>Returns the real part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK6thrust7complex4imagEv">
 <span class="target" id="structthrust_1_1complex_1a424a3db0b5deffac4c3fdd21f40c3083"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">imag</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK6thrust7complex4imagEv" title="Link to this definition">#</a><br /></dt>
-<dd><p>Returns the imaginary part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>. </p>
+<dd><p>Returns the imaginary part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NV6thrust7complex4realE1T">
 <span class="target" id="structthrust_1_1complex_1a5435738bb18a556147917d9cee799257"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">real</span></span></span><span class="sig-paren">(</span><em class="sig-param"><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">re</span></span></em><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">volatile</span></span><a class="headerlink" href="#_CPPv4NV6thrust7complex4realE1T" title="Link to this definition">#</a><br /></dt>
 <dd><p>Sets the real part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>re</strong> – The new real part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>. </p>
+<dd class="field-odd"><p><strong>re</strong> – The new real part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1831,6 +1941,11 @@
 <dt class="sig sig-object cpp" id="_CPPv4NV6thrust7complex4imagE1T">
 <span class="target" id="structthrust_1_1complex_1a0fe93d65d973b0c50605a258813555f9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">imag</span></span></span><span class="sig-paren">(</span><em class="sig-param"><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">im</span></span></em><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">volatile</span></span><a class="headerlink" href="#_CPPv4NV6thrust7complex4imagE1T" title="Link to this definition">#</a><br /></dt>
 <dd><p>Sets the imaginary part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>im</strong> – The new imaginary part of this <code class="docutils literal notranslate"><span class="pre">complex.e</span></code></p>
@@ -1842,9 +1957,14 @@
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust7complex4realE1T">
 <span class="target" id="structthrust_1_1complex_1a83d35c9dd85b97a114ef03dcf1718a92"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">real</span></span></span><span class="sig-paren">(</span><em class="sig-param"><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">re</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust7complex4realE1T" title="Link to this definition">#</a><br /></dt>
 <dd><p>Sets the real part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>re</strong> – The new real part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>. </p>
+<dd class="field-odd"><p><strong>re</strong> – The new real part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1853,9 +1973,14 @@
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust7complex4imagE1T">
 <span class="target" id="structthrust_1_1complex_1a81e6dfc9a0efb966b088a2b686a60620"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">imag</span></span></span><span class="sig-paren">(</span><em class="sig-param"><a class="reference internal" href="#_CPPv4I0EN6thrust7complexE" title="thrust::complex::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">im</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust7complex4imagE1T" title="Link to this definition">#</a><br /></dt>
 <dd><p>Sets the imaginary part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>im</strong> – The new imaginary part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>. </p>
+<dd class="field-odd"><p><strong>im</strong> – The new imaginary part of this <code class="docutils literal notranslate"><span class="pre">complex</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1863,7 +1988,11 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK6thrust7complexcvNSt7complexEEv">
 <span class="target" id="structthrust_1_1complex_1a3356354a2d3bd8363035eddb9a77ceab"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK6thrust7complexcvNSt7complexEEv" title="Link to this definition">#</a><br /></dt>
-<dd><p>Casts this <code class="docutils literal notranslate"><span class="pre">complex</span></code> to a <code class="docutils literal notranslate"><span class="pre">std::complex</span></code> of the same type. </p>
+<dd><p>Casts this <code class="docutils literal notranslate"><span class="pre">complex</span></code> to a <code class="docutils literal notranslate"><span class="pre">std::complex</span></code> of the same type.</p>
+<p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
 </dd></dl>
 
 </div>
@@ -2002,7 +2131,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
     <br/>
   </p>
 </div>

@@ -46,8 +46,8 @@
 
 
     <script src="../../_static/documentation_options.js?v=26f62d79"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=5ceeb459"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
@@ -1630,7 +1630,11 @@
 <span class="p">}</span>
 </pre></div>
 </div>
-<p><div class="admonition seealso">
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref">device_ptr</span></a></p>
 </div>
@@ -1691,9 +1695,14 @@ The following code snippet demonstrates the semantics of this copy constructor.<
 <span class="k">assert</span><span class="p">(</span><span class="n">ref</span> <span class="o">==</span> <span class="mi">13</span><span class="p">);</span>
 </pre></div>
 </div>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This constructor is templated primarily to allow initialization of <code class="docutils literal notranslate"><span class="pre">device_reference&lt;const</span> <span class="pre">T&gt;</span></code> from <code class="docutils literal notranslate"><span class="pre">device_reference&lt;T&gt;</span></code>. </p>
+<p>This constructor is templated primarily to allow initialization of <code class="docutils literal notranslate"><span class="pre">device_reference&lt;const</span> <span class="pre">T&gt;</span></code> from <code class="docutils literal notranslate"><span class="pre">device_reference&lt;T&gt;</span></code>.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1726,6 +1735,10 @@ The following code snippet demonstrates the semantic of this copy constructor.</
 <span class="k">assert</span><span class="p">(</span><span class="n">ref</span> <span class="o">==</span> <span class="mi">13</span><span class="p">);</span>
 </pre></div>
 </div>
+<p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>ptr</strong> – A <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref"><span class="pre">device_ptr</span></span></a></code> to copy from.</p>
@@ -1754,6 +1767,11 @@ The following code snippet demonstrates the semantic of this copy constructor.</
 
 <span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK6thrust16device_referenceaSERK16device_referenceRK16device_referenceI6OtherTE" title="Link to this definition">#</a><br /></dt>
 <dd><p>This assignment operator assigns the value of the object referenced by the given <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code> to the object referenced by this <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>other</strong> – The <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code> to assign from. </p>
@@ -1768,6 +1786,11 @@ The following code snippet demonstrates the semantic of this copy constructor.</
 <dt class="sig sig-object cpp" id="_CPPv4NK6thrust16device_referenceaSERK10value_type">
 <span class="target" id="classthrust_1_1device__reference_1a73db0277cb3048bce89e9d25394e3282"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN6thrust16device_referenceE" title="thrust::device_reference"><span class="n"><span class="pre">device_reference</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N6thrust16device_reference10value_typeE" title="thrust::device_reference::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">x</span></span></em><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK6thrust16device_referenceaSERK10value_type" title="Link to this definition">#</a><br /></dt>
 <dd><p>Assignment operator assigns the value of the given value to the value referenced by this <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>x</strong> – The value to assign from. </p>
@@ -1782,9 +1805,14 @@ The following code snippet demonstrates the semantic of this copy constructor.</
 <dt class="sig sig-object cpp" id="_CPPv4NK6thrust16device_referenceanEv">
 <span class="target" id="classthrust_1_1device__reference_1a9d24b0d84f58e51cc2d1aa899949daf4"></span><a class="reference internal" href="#_CPPv4N6thrust16device_reference7pointerE" title="thrust::device_reference::pointer"><span class="n"><span class="pre">pointer</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&amp;</span></span></span><span class="sig-paren">(</span><em class="sig-param"><span class="kt"><span class="pre">void</span></span></em><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK6thrust16device_referenceanEv" title="Link to this definition">#</a><br /></dt>
 <dd><p>Address-of operator returns a <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref"><span class="pre">device_ptr</span></span></a></code> pointing to the object referenced by this <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code>. It does not return the address of this <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref"><span class="pre">device_ptr</span></span></a></code> pointing to the object this <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code> references. </p>
+<dd class="field-odd"><p>A <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref"><span class="pre">device_ptr</span></span></a></code> pointing to the object this <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code> references.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1793,9 +1821,14 @@ The following code snippet demonstrates the semantic of this copy constructor.</
 <dt class="sig sig-object cpp" id="_CPPv4NK6thrust16device_referencecv10value_typeEv">
 <span class="target" id="classthrust_1_1device__reference_1a66c16f5ba123a6245dbf95419148ad81"></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N6thrust16device_reference10value_typeE" title="thrust::device_reference::value_type"><span class="n"><span class="pre">value_type</span></span></a></span><span class="sig-paren">(</span><em class="sig-param"><span class="kt"><span class="pre">void</span></span></em><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK6thrust16device_referencecv10value_typeEv" title="Link to this definition">#</a><br /></dt>
 <dd><p>Conversion operator converts this <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code> to T by returning a copy of the object referenced by this <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code>.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A copy of the object referenced by this <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code>. </p>
+<dd class="field-odd"><p>A copy of the object referenced by this <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1803,7 +1836,11 @@ The following code snippet demonstrates the semantic of this copy constructor.</
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust16device_reference4swapE16device_reference">
 <span class="target" id="classthrust_1_1device__reference_1a2f45e975c7cecdb0746a557ada508afe"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">swap</span></span></span><span class="sig-paren">(</span><em class="sig-param"><a class="reference internal" href="#_CPPv4I0EN6thrust16device_referenceE" title="thrust::device_reference"><span class="n"><span class="pre">device_reference</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust16device_reference4swapE16device_reference" title="Link to this definition">#</a><br /></dt>
-<dd><p>swaps the value this <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code> references with another. <code class="docutils literal notranslate"><span class="pre">other</span></code> The other <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code> with which to swap. </p>
+<dd><p>swaps the value this <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code> references with another. <code class="docutils literal notranslate"><span class="pre">other</span></code> The other <code class="docutils literal notranslate"><a class="reference internal" href="#classthrust_1_1device__reference"><span class="std std-ref"><span class="pre">device_reference</span></span></a></code> with which to swap.</p>
+<p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -2617,7 +2654,7 @@ The following code snippet demonstrates the semantics of <code class="docutils l
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
     <br/>
   </p>
 </div>

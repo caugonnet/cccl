@@ -46,8 +46,8 @@
 
 
     <script src="../../_static/documentation_options.js?v=26f62d79"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=5ceeb459"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
@@ -1518,7 +1518,11 @@
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4I0EN6thrust26device_ptr_memory_resourceE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">Upstream</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classthrust_1_1device__ptr__memory__resource"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_ptr_memory_resource</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">thrust</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">mr</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="classthrust_1_1mr_1_1memory__resource.html#_CPPv4I0EN6thrust2mr15memory_resourceE" title="thrust::mr::memory_resource"><span class="n"><span class="pre">memory_resource</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="classthrust_1_1device__ptr.html#_CPPv4I0EN6thrust10device_ptrE" title="thrust::device_ptr"><span class="n"><span class="pre">device_ptr</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I0EN6thrust26device_ptr_memory_resourceE" title="Link to this definition">#</a><br /></dt>
-<dd><p>Memory resource adaptor that turns any memory resource that returns a fancy with the same tag as <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref"><span class="pre">device_ptr</span></span></a></code>, and adapts it to a resource that returns a <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref"><span class="pre">device_ptr</span></span></a></code>. </p>
+<dd><p>Memory resource adaptor that turns any memory resource that returns a fancy with the same tag as <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref"><span class="pre">device_ptr</span></span></a></code>, and adapts it to a resource that returns a <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__ptr.html#classthrust_1_1device__ptr"><span class="std std-ref"><span class="pre">device_ptr</span></span></a></code>.</p>
+<p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp type">
@@ -1533,16 +1537,25 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust26device_ptr_memory_resource26device_ptr_memory_resourceEv">
 <span class="target" id="classthrust_1_1device__ptr__memory__resource_1aec271f082eb2704d2f4bd9c77d708f8b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_ptr_memory_resource</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust26device_ptr_memory_resource26device_ptr_memory_resourceEv" title="Link to this definition">#</a><br /></dt>
-<dd><p>Initialize the adaptor with the global instance of the upstream resource. Obtains the global instance by calling <code class="docutils literal notranslate"><span class="pre">get_global_resource</span></code>. </p>
+<dd><p>Initialize the adaptor with the global instance of the upstream resource. Obtains the global instance by calling <code class="docutils literal notranslate"><span class="pre">get_global_resource</span></code>.</p>
+<p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N6thrust26device_ptr_memory_resource26device_ptr_memory_resourceEP8Upstream">
 <span class="target" id="classthrust_1_1device__ptr__memory__resource_1a25a3b2345616af11251d9561064f4d4a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_ptr_memory_resource</span></span></span><span class="sig-paren">(</span><em class="sig-param"><a class="reference internal" href="#_CPPv4I0EN6thrust26device_ptr_memory_resourceE" title="thrust::device_ptr_memory_resource::Upstream"><span class="n"><span class="pre">Upstream</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">upstream</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6thrust26device_ptr_memory_resource26device_ptr_memory_resourceEP8Upstream" title="Link to this definition">#</a><br /></dt>
 <dd><p>Initialize the adaptor with an upstream resource.</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>upstream</strong> – the upstream memory resource to adapt. </p>
+<dd class="field-odd"><p><strong>upstream</strong> – the upstream memory resource to adapt.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1796,7 +1809,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
     <br/>
   </p>
 </div>

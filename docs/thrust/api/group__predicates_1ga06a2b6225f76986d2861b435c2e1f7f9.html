@@ -46,8 +46,8 @@
 
 
     <script src="../../_static/documentation_options.js?v=26f62d79"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=5ceeb459"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
@@ -1536,9 +1536,7 @@
 <dd><p><code class="docutils literal notranslate"><span class="pre">is_sorted</span></code> returns <code class="docutils literal notranslate"><span class="pre">true</span></code> if the range <code class="docutils literal notranslate"><span class="pre">[first,</span> <span class="pre">last)</span></code> is sorted in ascending order, and <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise.</p>
 <p>Specifically, this version of <code class="docutils literal notranslate"><span class="pre">is_sorted</span></code> returns <code class="docutils literal notranslate"><span class="pre">false</span></code> if for some iterator <code class="docutils literal notranslate"><span class="pre">i</span></code> in the range <code class="docutils literal notranslate"><span class="pre">[first,</span> <span class="pre">last</span> <span class="pre">-</span> <span class="pre">1)</span></code> the expression <code class="docutils literal notranslate"><span class="pre">*(i</span> <span class="pre">+</span> <span class="pre">1)</span> <span class="pre">&lt;</span> <span class="pre">*i</span></code> is <code class="docutils literal notranslate"><span class="pre">true</span></code>.</p>
 <p>The algorithm’s execution is parallelized as determined by <code class="docutils literal notranslate"><span class="pre">exec</span></code>.</p>
-<p>
-The following code demonstrates how to use <code class="docutils literal notranslate"><span class="pre">is_sorted</span></code> to test whether the contents of a <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__vector.html#classthrust_1_1device__vector"><span class="std std-ref"><span class="pre">device_vector</span></span></a></code> are stored in ascending order using the <code class="docutils literal notranslate"><a class="reference internal" href="group__execution__policies_1ga61bff7f6dead1da5c85eaafa9f9f5ded.html#group__execution__policies_1ga61bff7f6dead1da5c85eaafa9f9f5ded"><span class="std std-ref"><span class="pre">thrust::device</span></span></a></code> execution policy for parallelization:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &lt;thrust/sort.h&gt;</span>
+<p><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &lt;thrust/sort.h&gt;</span>
 <span class="c1">#include &lt;thrust/device_vector.h&gt;</span>
 <span class="c1">#include &lt;thrust/sort.h&gt;</span>
 <span class="c1">#include &lt;thrust/execution_policy.h&gt;</span>
@@ -1561,7 +1559,12 @@ The following code demonstrates how to use <code class="docutils literal notrans
 <span class="o">//</span> <span class="n">result</span> <span class="o">==</span> <span class="n">true</span>
 </pre></div>
 </div>
-<p><div class="admonition seealso">
+</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference external" href="https://en.cppreference.com/w/cpp/algorithm/is_sorted">https://en.cppreference.com/w/cpp/algorithm/is_sorted</a></p>
 </div>
@@ -1593,7 +1596,7 @@ The following code demonstrates how to use <code class="docutils literal notrans
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
 <li><p><strong>DerivedPolicy</strong> – The name of the derived execution policy. </p></li>
-<li><p><strong>ForwardIterator</strong> – is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/iterator/forward_iterator">Forward Iterator</a>, <code class="docutils literal notranslate"><span class="pre">ForwardIterator's</span></code> <code class="docutils literal notranslate"><span class="pre">value_type</span></code> is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/named_req/LessThanComparable">LessThan Comparable</a>, and the ordering on objects of <code class="docutils literal notranslate"><span class="pre">ForwardIterator's</span></code> <code class="docutils literal notranslate"><span class="pre">value_type</span></code> is a <em>strict weak ordering</em>, as defined in the <a class="reference external" href="https://en.cppreference.com/w/cpp/named_req/LessThanComparable">LessThan Comparable</a> requirements.</p></li>
+<li><p><strong>ForwardIterator</strong> – is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/iterator/forward_iterator">Forward Iterator</a>, <code class="docutils literal notranslate"><span class="pre">ForwardIterator's</span></code> <code class="docutils literal notranslate"><span class="pre">value_type</span></code> is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/named_req/LessThanComparable">LessThan Comparable</a>, and the ordering on objects of <code class="docutils literal notranslate"><span class="pre">ForwardIterator's</span></code> <code class="docutils literal notranslate"><span class="pre">value_type</span></code> is a <em>strict weak ordering</em>, as defined in the <a class="reference external" href="https://en.cppreference.com/w/cpp/named_req/LessThanComparable">LessThan Comparable</a> requirements. The following code demonstrates how to use <code class="docutils literal notranslate"><span class="pre">is_sorted</span></code> to test whether the contents of a <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__vector.html#classthrust_1_1device__vector"><span class="std std-ref"><span class="pre">device_vector</span></span></a></code> are stored in ascending order using the <code class="docutils literal notranslate"><a class="reference internal" href="group__execution__policies_1ga61bff7f6dead1da5c85eaafa9f9f5ded.html#group__execution__policies_1ga61bff7f6dead1da5c85eaafa9f9f5ded"><span class="std std-ref"><span class="pre">thrust::device</span></span></a></code> execution policy for parallelization:</p></li>
 </ul>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -1617,9 +1620,7 @@ The following code demonstrates how to use <code class="docutils literal notrans
 <span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN6thrust9is_sortedEb15ForwardIterator15ForwardIterator" title="Link to this definition">#</a><br /></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">is_sorted</span></code> returns <code class="docutils literal notranslate"><span class="pre">true</span></code> if the range <code class="docutils literal notranslate"><span class="pre">[first,</span> <span class="pre">last)</span></code> is sorted in ascending order, and <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise.</p>
 <p>Specifically, this version of <code class="docutils literal notranslate"><span class="pre">is_sorted</span></code> returns <code class="docutils literal notranslate"><span class="pre">false</span></code> if for some iterator <code class="docutils literal notranslate"><span class="pre">i</span></code> in the range <code class="docutils literal notranslate"><span class="pre">[first,</span> <span class="pre">last</span> <span class="pre">-</span> <span class="pre">1)</span></code> the expression <code class="docutils literal notranslate"><span class="pre">*(i</span> <span class="pre">+</span> <span class="pre">1)</span> <span class="pre">&lt;</span> <span class="pre">*i</span></code> is <code class="docutils literal notranslate"><span class="pre">true</span></code>.</p>
-<p>
-The following code demonstrates how to use <code class="docutils literal notranslate"><span class="pre">is_sorted</span></code> to test whether the contents of a <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__vector.html#classthrust_1_1device__vector"><span class="std std-ref"><span class="pre">device_vector</span></span></a></code> are stored in ascending order.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &lt;thrust/sort.h&gt;</span>
+<p><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &lt;thrust/sort.h&gt;</span>
 <span class="c1">#include &lt;thrust/device_vector.h&gt;</span>
 <span class="c1">#include &lt;thrust/sort.h&gt;</span>
 <span class="o">...</span>
@@ -1641,7 +1642,12 @@ The following code demonstrates how to use <code class="docutils literal notrans
 <span class="o">//</span> <span class="n">result</span> <span class="o">==</span> <span class="n">true</span>
 </pre></div>
 </div>
-<p><div class="admonition seealso">
+</p>
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference external" href="https://en.cppreference.com/w/cpp/algorithm/is_sorted">https://en.cppreference.com/w/cpp/algorithm/is_sorted</a></p>
 </div>
@@ -1670,7 +1676,7 @@ The following code demonstrates how to use <code class="docutils literal notrans
 </ul>
 </dd>
 <dt class="field-even">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ForwardIterator</strong> – is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/iterator/forward_iterator">Forward Iterator</a>, <code class="docutils literal notranslate"><span class="pre">ForwardIterator's</span></code> <code class="docutils literal notranslate"><span class="pre">value_type</span></code> is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/named_req/LessThanComparable">LessThan Comparable</a>, and the ordering on objects of <code class="docutils literal notranslate"><span class="pre">ForwardIterator's</span></code> <code class="docutils literal notranslate"><span class="pre">value_type</span></code> is a <em>strict weak ordering</em>, as defined in the <a class="reference external" href="https://en.cppreference.com/w/cpp/named_req/LessThanComparable">LessThan Comparable</a> requirements.</p>
+<dd class="field-even"><p><strong>ForwardIterator</strong> – is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/iterator/forward_iterator">Forward Iterator</a>, <code class="docutils literal notranslate"><span class="pre">ForwardIterator's</span></code> <code class="docutils literal notranslate"><span class="pre">value_type</span></code> is a model of <a class="reference external" href="https://en.cppreference.com/w/cpp/named_req/LessThanComparable">LessThan Comparable</a>, and the ordering on objects of <code class="docutils literal notranslate"><span class="pre">ForwardIterator's</span></code> <code class="docutils literal notranslate"><span class="pre">value_type</span></code> is a <em>strict weak ordering</em>, as defined in the <a class="reference external" href="https://en.cppreference.com/w/cpp/named_req/LessThanComparable">LessThan Comparable</a> requirements. The following code demonstrates how to use <code class="docutils literal notranslate"><span class="pre">is_sorted</span></code> to test whether the contents of a <code class="docutils literal notranslate"><a class="reference internal" href="classthrust_1_1device__vector.html#classthrust_1_1device__vector"><span class="std std-ref"><span class="pre">device_vector</span></span></a></code> are stored in ascending order.</p>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">true</span></code>, if the sequence is sorted; <code class="docutils literal notranslate"><span class="pre">false</span></code>, otherwise.</p>
@@ -1722,7 +1728,11 @@ The following code snippet demonstrates how to use <code class="docutils literal
 <span class="o">//</span> <span class="n">result</span> <span class="o">==</span> <span class="n">true</span>
 </pre></div>
 </div>
-<p><div class="admonition seealso">
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference external" href="https://en.cppreference.com/w/cpp/algorithm/is_sorted">https://en.cppreference.com/w/cpp/algorithm/is_sorted</a></p>
 </div>
@@ -1802,7 +1812,11 @@ The following code snippet demonstrates how to use <code class="docutils literal
 <span class="o">//</span> <span class="n">result</span> <span class="o">==</span> <span class="n">true</span>
 </pre></div>
 </div>
-<p><div class="admonition seealso">
+<p><p><div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.2.0.</span></p>
+</div>
+</p>
+ <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference external" href="https://en.cppreference.com/w/cpp/algorithm/is_sorted">https://en.cppreference.com/w/cpp/algorithm/is_sorted</a></p>
 </div>
@@ -1960,7 +1974,7 @@ The following code snippet demonstrates how to use <code class="docutils literal
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
     <br/>
   </p>
 </div>
