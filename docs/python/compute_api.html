@@ -45,7 +45,7 @@
 
 
 
-    <script src="../_static/documentation_options.js?v=26f62d79"></script>
+    <script src="../_static/documentation_options.js?v=ed7fbdb4"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="3.3" />
+  <meta name="docsearch:version" content="3.4" />
 
 
   </head>
@@ -1564,8 +1564,8 @@ The API is subject to change without notice.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array to store the result of the reduction</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array to store the result of the reduction</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Binary reduction operator</p></li>
 <li><p><strong>num_items</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items to reduce</p></li>
 <li><p><strong>h_init</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a><em> | </em><em>_Struct</em>) – Initial value for the reduction</p></li>
@@ -1623,8 +1623,8 @@ The API is subject to change without notice.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array (of size 1) that will store the result of the reduction</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array (of size 1) that will store the result of the reduction</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the binary operator to apply</p></li>
 <li><p><strong>init</strong> – Numpy array storing initial value of the reduction</p></li>
 <li><p><strong>h_init</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a><em> | </em><em>_Struct</em>)</p></li>
@@ -1678,7 +1678,7 @@ The API is subject to change without notice.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>d_data</strong> (<em>DeviceArrayLike</em>) – Device array containing the sorted input range.</p></li>
-<li><p><strong>d_values</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the search values.</p></li>
+<li><p><strong>d_values</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the search values.</p></li>
 <li><p><strong>d_out</strong> (<em>DeviceArrayLike</em>) – Device array to store the index results.</p></li>
 <li><p><strong>num_items</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items in <code class="docutils literal notranslate"><span class="pre">d_data</span></code>.</p></li>
 <li><p><strong>num_values</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items in <code class="docutils literal notranslate"><span class="pre">d_values</span></code>.</p></li>
@@ -1719,7 +1719,7 @@ The API is subject to change without notice.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>d_data</strong> (<em>DeviceArrayLike</em>) – Device array containing the sorted input range.</p></li>
-<li><p><strong>d_values</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the search values.</p></li>
+<li><p><strong>d_values</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the search values.</p></li>
 <li><p><strong>d_out</strong> (<em>DeviceArrayLike</em>) – Device array to store the index results.</p></li>
 <li><p><strong>comp</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em><em> | </em><em>None</em>) – Optional comparison operator (default: <code class="docutils literal notranslate"><span class="pre">OpKind.LESS</span></code>).</p></li>
 </ul>
@@ -1776,7 +1776,7 @@ The API is subject to change without notice.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>d_data</strong> (<em>DeviceArrayLike</em>) – Device array containing the sorted input range.</p></li>
-<li><p><strong>d_values</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the search values.</p></li>
+<li><p><strong>d_values</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the search values.</p></li>
 <li><p><strong>d_out</strong> (<em>DeviceArrayLike</em>) – Device array to store the index results.</p></li>
 <li><p><strong>num_items</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items in <code class="docutils literal notranslate"><span class="pre">d_data</span></code>.</p></li>
 <li><p><strong>num_values</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items in <code class="docutils literal notranslate"><span class="pre">d_values</span></code>.</p></li>
@@ -1817,7 +1817,7 @@ The API is subject to change without notice.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>d_data</strong> (<em>DeviceArrayLike</em>) – Device array containing the sorted input range.</p></li>
-<li><p><strong>d_values</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the search values.</p></li>
+<li><p><strong>d_values</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the search values.</p></li>
 <li><p><strong>d_out</strong> (<em>DeviceArrayLike</em>) – Device array to store the index results.</p></li>
 <li><p><strong>comp</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em><em> | </em><em>None</em>) – Optional comparison operator (default: <code class="docutils literal notranslate"><span class="pre">OpKind.LESS</span></code>).</p></li>
 </ul>
@@ -1873,8 +1873,8 @@ The API is subject to change without notice.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the result of the scan</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the result of the scan</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Binary scan operator</p></li>
 <li><p><strong>init_value</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a><em> | </em><em>DeviceArrayLike</em><em> | </em><em>_Struct</em><em> | </em><em>None</em>) – Initial value for the scan</p></li>
 <li><p><strong>num_items</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items to scan</p></li>
@@ -1927,8 +1927,8 @@ The API is subject to change without notice.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array that will store the result of the scan</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array that will store the result of the scan</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the binary operator to apply</p></li>
 <li><p><strong>init_value</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a><em> | </em><em>DeviceArrayLike</em><em> | </em><em>_Struct</em><em> | </em><em>None</em>) – Numpy array, device array, or GPU struct storing initial value of the scan, or None for no initial value</p></li>
 </ul>
@@ -1981,8 +1981,8 @@ The API is subject to change without notice.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the result of the scan</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the result of the scan</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Binary scan operator</p></li>
 <li><p><strong>init_value</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a><em> | </em><em>DeviceArrayLike</em><em> | </em><em>_Struct</em><em> | </em><em>None</em>) – Initial value for the scan</p></li>
 <li><p><strong>num_items</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items to scan</p></li>
@@ -2035,8 +2035,8 @@ The API is subject to change without notice.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array that will store the result of the scan</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array that will store the result of the scan</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the binary operator to apply</p></li>
 <li><p><strong>init_value</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a><em> | </em><em>DeviceArrayLike</em><em> | </em><em>_Struct</em><em> | </em><em>None</em>) – Numpy array, device array, or GPU struct storing initial value of the scan, or None for no initial value</p></li>
 </ul>
@@ -2147,8 +2147,8 @@ to help with type inference. See the binary transform struct example for referen
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items.</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the result of the transformation.</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items.</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the result of the transformation.</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the unary operation to apply to each element of the input.
 Can reference device arrays as globals/closures - they will be automatically captured.</p></li>
 <li><p><strong>num_items</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items to transform.</p></li>
@@ -2203,8 +2203,8 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items.</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the result of the transformation.</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items.</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the result of the transformation.</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the unary operation to apply to each element of the input.</p></li>
 </ul>
 </dd>
@@ -2311,9 +2311,9 @@ to help with type inference. See the following example:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in1</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the first input sequence of data items.</p></li>
-<li><p><strong>d_in2</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the second input sequence of data items.</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the result of the transformation.</p></li>
+<li><p><strong>d_in1</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the first input sequence of data items.</p></li>
+<li><p><strong>d_in2</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the second input sequence of data items.</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the result of the transformation.</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the binary operation to apply to each pair of items from the input sequences.
 Can reference device arrays as globals/closures - they will be automatically captured.</p></li>
 <li><p><strong>num_items</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items to transform.</p></li>
@@ -2369,9 +2369,9 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in1</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the first input sequence of data items.</p></li>
-<li><p><strong>d_in2</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the second input sequence of data items.</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the result of the transformation.</p></li>
+<li><p><strong>d_in1</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the first input sequence of data items.</p></li>
+<li><p><strong>d_in2</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the second input sequence of data items.</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the result of the transformation.</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the binary operation to apply to each pair of items from the input sequences.</p></li>
 </ul>
 </dd>
@@ -2447,7 +2447,7 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_samples</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data samples</p></li>
+<li><p><strong>d_samples</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data samples</p></li>
 <li><p><strong>d_histogram</strong> (<em>DeviceArrayLike</em>) – Device array to store the computed histogram</p></li>
 <li><p><strong>num_output_levels</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of histogram bin levels (num_bins = num_output_levels - 1)</p></li>
 <li><p><strong>lower_level</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.floating" title="(in NumPy v2.4)"><em>floating</em></a><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.integer" title="(in NumPy v2.4)"><em>integer</em></a>) – Lower sample value bound (inclusive)</p></li>
@@ -2547,7 +2547,7 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_samples</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input samples to be histogrammed</p></li>
+<li><p><strong>d_samples</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input samples to be histogrammed</p></li>
 <li><p><strong>d_histogram</strong> (<em>DeviceArrayLike</em>) – Device array to store the histogram</p></li>
 <li><p><strong>h_num_output_levels</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a>) – Host array containing the number of output levels</p></li>
 <li><p><strong>h_lower_level</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a>) – Host array containing the lower level</p></li>
@@ -2627,8 +2627,8 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in_keys</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of keys</p></li>
-<li><p><strong>d_in_items</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em><em> | </em><em>None</em>) – Device array or iterator containing the input sequence of items (optional)</p></li>
+<li><p><strong>d_in_keys</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of keys</p></li>
+<li><p><strong>d_in_items</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em> | </em><em>None</em>) – Device array or iterator containing the input sequence of items (optional)</p></li>
 <li><p><strong>d_out_keys</strong> (<em>DeviceArrayLike</em>) – Device array to store the sorted keys</p></li>
 <li><p><strong>d_out_items</strong> (<em>DeviceArrayLike</em><em> | </em><em>None</em>) – Device array to store the sorted items (optional)</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Comparison operator for sorting</p></li>
@@ -2713,8 +2713,8 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in_keys</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input keys to be sorted</p></li>
-<li><p><strong>d_in_items</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em><em> | </em><em>None</em>) – Optional device array or iterator that contains each key’s corresponding item</p></li>
+<li><p><strong>d_in_keys</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input keys to be sorted</p></li>
+<li><p><strong>d_in_items</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em> | </em><em>None</em>) – Optional device array or iterator that contains each key’s corresponding item</p></li>
 <li><p><strong>d_out_keys</strong> (<em>DeviceArrayLike</em>) – Device array to store the sorted keys</p></li>
 <li><p><strong>d_out_items</strong> (<em>DeviceArrayLike</em><em> | </em><em>None</em>) – Device array to store the sorted items</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the comparison operator</p></li>
@@ -3031,10 +3031,10 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array to store the result of the reduction for each segment</p></li>
-<li><p><strong>start_offsets_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the sequence of beginning offsets</p></li>
-<li><p><strong>end_offsets_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the sequence of ending offsets</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array to store the result of the reduction for each segment</p></li>
+<li><p><strong>start_offsets_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the sequence of beginning offsets</p></li>
+<li><p><strong>end_offsets_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the sequence of ending offsets</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Binary reduction operator</p></li>
 <li><p><strong>h_init</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a><em> | </em><em>_Struct</em>) – Initial value for the reduction</p></li>
 <li><p><strong>num_segments</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of segments to reduce</p></li>
@@ -3118,10 +3118,10 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array that will store the result of the reduction</p></li>
-<li><p><strong>start_offsets_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing offsets to start of segments</p></li>
-<li><p><strong>end_offsets_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing offsets to end of segments</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array that will store the result of the reduction</p></li>
+<li><p><strong>start_offsets_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing offsets to start of segments</p></li>
+<li><p><strong>end_offsets_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing offsets to end of segments</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the binary operator to apply</p></li>
 <li><p><strong>init</strong> – Numpy array storing initial value of the reduction</p></li>
 <li><p><strong>h_init</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a><em> | </em><em>_Struct</em>)</p></li>
@@ -3205,10 +3205,10 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in_keys</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of keys</p></li>
-<li><p><strong>d_in_items</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator that contains each key’s corresponding item</p></li>
-<li><p><strong>d_out_keys</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the outputted keys</p></li>
-<li><p><strong>d_out_items</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store each outputted key’s item</p></li>
+<li><p><strong>d_in_keys</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of keys</p></li>
+<li><p><strong>d_in_items</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator that contains each key’s corresponding item</p></li>
+<li><p><strong>d_out_keys</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the outputted keys</p></li>
+<li><p><strong>d_out_items</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store each outputted key’s item</p></li>
 <li><p><strong>d_out_num_selected</strong> (<em>DeviceArrayLike</em>) – Device array to store how many items were selected</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the equality operator</p></li>
 <li><p><strong>num_items</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items to process</p></li>
@@ -3308,10 +3308,10 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in_keys</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of keys</p></li>
-<li><p><strong>d_in_items</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator that contains each key’s corresponding item</p></li>
-<li><p><strong>d_out_keys</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the outputted keys</p></li>
-<li><p><strong>d_out_items</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store each outputted key’s item</p></li>
+<li><p><strong>d_in_keys</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of keys</p></li>
+<li><p><strong>d_in_items</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator that contains each key’s corresponding item</p></li>
+<li><p><strong>d_out_keys</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the outputted keys</p></li>
+<li><p><strong>d_out_items</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store each outputted key’s item</p></li>
 <li><p><strong>d_out_num_selected</strong> (<em>DeviceArrayLike</em>) – Device array to store how many items were selected</p></li>
 <li><p><strong>op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>cuda.compute._bindings.OpKind</em>) – Callable or OpKind representing the equality operator</p></li>
 </ul>
@@ -3673,11 +3673,11 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items</p></li>
-<li><p><strong>d_first_part_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the first part of the output</p></li>
-<li><p><strong>d_second_part_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the second part of the output</p></li>
-<li><p><strong>d_unselected_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the unselected items</p></li>
-<li><p><strong>d_num_selected_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array to store the number of items selected. The total number of items selected by <code class="docutils literal notranslate"><span class="pre">select_first_part_op</span></code> and <code class="docutils literal notranslate"><span class="pre">select_second_part_op</span></code> is stored in <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[0]</span></code> and <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[1]</span></code>, respectively.</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items</p></li>
+<li><p><strong>d_first_part_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the first part of the output</p></li>
+<li><p><strong>d_second_part_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the second part of the output</p></li>
+<li><p><strong>d_unselected_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the unselected items</p></li>
+<li><p><strong>d_num_selected_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array to store the number of items selected. The total number of items selected by <code class="docutils literal notranslate"><span class="pre">select_first_part_op</span></code> and <code class="docutils literal notranslate"><span class="pre">select_second_part_op</span></code> is stored in <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[0]</span></code> and <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[1]</span></code>, respectively.</p></li>
 <li><p><strong>select_first_part_op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>) – Callable representing the unary operator to select the first part</p></li>
 <li><p><strong>select_second_part_op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>) – Callable representing the unary operator to select the second part</p></li>
 <li><p><strong>num_items</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of items to partition</p></li>
@@ -3796,11 +3796,11 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items</p></li>
-<li><p><strong>d_first_part_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the first part of the output</p></li>
-<li><p><strong>d_second_part_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the second part of the output</p></li>
-<li><p><strong>d_unselected_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the unselected items</p></li>
-<li><p><strong>d_num_selected_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array to store the number of items selected. The total number of items selected by <code class="docutils literal notranslate"><span class="pre">select_first_part_op</span></code> and <code class="docutils literal notranslate"><span class="pre">select_second_part_op</span></code> is stored in <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[0]</span></code> and <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[1]</span></code>, respectively.</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items</p></li>
+<li><p><strong>d_first_part_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the first part of the output</p></li>
+<li><p><strong>d_second_part_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the second part of the output</p></li>
+<li><p><strong>d_unselected_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the unselected items</p></li>
+<li><p><strong>d_num_selected_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array to store the number of items selected. The total number of items selected by <code class="docutils literal notranslate"><span class="pre">select_first_part_op</span></code> and <code class="docutils literal notranslate"><span class="pre">select_second_part_op</span></code> is stored in <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[0]</span></code> and <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[1]</span></code>, respectively.</p></li>
 <li><p><strong>select_first_part_op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>_OpAdapter</em>) – Callable representing the unary operator to select the first part.
 Can reference device arrays as globals/closures - they will be automatically captured.</p></li>
 <li><p><strong>select_second_part_op</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em> | </em><em>_OpAdapter</em>) – Callable representing the unary operator to select the second part.
@@ -3896,8 +3896,8 @@ be automatically captured as state arrays, enabling stateful operations like cou
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items.</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the selected output items.</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items.</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the selected output items.</p></li>
 <li><p><strong>d_num_selected_out</strong> (<em>DeviceArrayLike</em>) – Device array to store the number of items that passed the selection.
 The count is stored in <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[0]</span></code>.</p></li>
 <li><p><strong>cond</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>) – Callable representing the selection condition (predicate). Should return a
@@ -3971,8 +3971,8 @@ storage allocation. For simpler usage, consider using <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator containing the input sequence of data items.</p></li>
-<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><em>IteratorBase</em>) – Device array or iterator to store the selected output items.</p></li>
+<li><p><strong>d_in</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator containing the input sequence of data items.</p></li>
+<li><p><strong>d_out</strong> (<em>DeviceArrayLike</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Device array or iterator to store the selected output items.</p></li>
 <li><p><strong>d_num_selected_out</strong> (<em>DeviceArrayLike</em>) – Device array to store the number of items that passed the selection.
 The count is stored in <code class="docutils literal notranslate"><span class="pre">d_num_selected_out[0]</span></code>.</p></li>
 <li><p><strong>cond</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>) – Callable representing the selection condition (predicate). Should return a
@@ -4039,67 +4039,62 @@ boolean-like value (typically uint8) where non-zero means the item passes the se
 </section>
 <section id="module-cuda.compute.iterators">
 <span id="iterators"></span><h2>Iterators<a class="headerlink" href="#module-cuda.compute.iterators" title="Link to this heading">#</a></h2>
-<dl class="py function">
+<dl class="py class">
 <dt class="sig sig-object py" id="cuda.compute.iterators.CacheModifiedInputIterator">
-<span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">CacheModifiedInputIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modifier</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.CacheModifiedInputIterator" title="Link to this definition">#</a></dt>
-<dd><p>Random Access Cache Modified Iterator that wraps a native device pointer.</p>
-<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cub/api/classcub_1_1CacheModifiedInputIterator.html">https://nvidia.github.io/cccl/cub/api/classcub_1_1CacheModifiedInputIterator.html</a></p>
-<p>Currently the only supported modifier is “stream” (LOAD_CS).</p>
-<p class="rubric">Example</p>
-<p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">CacheModifiedInputIterator</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Example showing how to use cache_modified_iterator.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cuda.compute</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cuda.compute</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">CacheModifiedInputIterator</span><span class="p">,</span>
-    <span class="n">OpKind</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="c1"># Prepare the input array.</span>
-<span class="n">h_input</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<span class="n">d_input</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h_input</span><span class="p">)</span>
-
-<span class="c1"># Create the cache modified iterator.</span>
-<span class="n">cache_it</span> <span class="o">=</span> <span class="n">CacheModifiedInputIterator</span><span class="p">(</span><span class="n">d_input</span><span class="p">,</span> <span class="s2">&quot;stream&quot;</span><span class="p">)</span>
-
-<span class="c1"># Prepare the initial value for the reduction.</span>
-<span class="n">h_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-<span class="c1"># Prepare the output array.</span>
-<span class="n">d_output</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-<span class="c1"># Perform the reduction.</span>
-<span class="n">cuda</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">reduce_into</span><span class="p">(</span><span class="n">cache_it</span><span class="p">,</span> <span class="n">d_output</span><span class="p">,</span> <span class="n">OpKind</span><span class="o">.</span><span class="n">PLUS</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">d_input</span><span class="p">),</span> <span class="n">h_init</span><span class="p">)</span>
-
-<span class="c1"># Verify the result.</span>
-<span class="n">expected_output</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">h_input</span><span class="p">)</span>  <span class="c1"># 1 + 2 + 3 + 4 + 5 = 15</span>
-<span class="k">assert</span> <span class="p">(</span><span class="n">d_output</span> <span class="o">==</span> <span class="n">expected_output</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cache modified iterator result: </span><span class="si">{</span><span class="n">d_output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> (expected: </span><span class="si">{</span><span class="n">expected_output</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">CacheModifiedInputIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modifier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stream'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.CacheModifiedInputIterator" title="Link to this definition">#</a></dt>
+<dd><p>Iterator that wraps a device pointer with cache-modified loads.</p>
+<p>This iterator uses PTX cache modifiers to control how data is loaded:
+- “stream”: Uses streaming loads (ld.global.cs) - hints that data will not be reused
+- “global”: Uses global cache loads (ld.global.cg) - caches only at L2
+- “volatile”: Uses volatile loads (ld.global.cv) - always fetches from memory</p>
+<p>Supports element types of size 1, 2, 4, 8, or 16 bytes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>modifier</strong> (<em>Literal</em><em>[</em><em>'stream'</em><em>, </em><em>'global'</em><em>, </em><em>'volatile'</em><em>]</em>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.CacheModifiedInputIterator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modifier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stream'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.CacheModifiedInputIterator.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Create a cache-modified input iterator.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>device_array</strong> – Array storing the input sequence of data items</p></li>
-<li><p><strong>modifier</strong> – The PTX cache load modifier</p></li>
+<li><p><strong>array</strong> – Device array to wrap (must support __cuda_array_interface__)</p></li>
+<li><p><strong>modifier</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.14)"><em>Literal</em></a><em>[</em><em>'stream'</em><em>, </em><em>'global'</em><em>, </em><em>'volatile'</em><em>]</em>) – Cache modifier - “stream”, “global”, or “volatile”</p></li>
 </ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">CacheModifiedInputIterator</span></code> object initialized with <code class="docutils literal notranslate"><span class="pre">device_array</span></code></p>
 </dd>
 </dl>
 </dd></dl>
 
-<dl class="py function">
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.CacheModifiedInputIterator.__add__">
+<span class="sig-name descname"><span class="pre">__add__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offset</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.CacheModifiedInputIterator.__add__" title="Link to this definition">#</a></dt>
+<dd><p>Advance the iterator by offset elements.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>offset</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cuda.compute.iterators.CacheModifiedInputIterator" title="cuda.compute.iterators._cache_modified.CacheModifiedInputIterator"><em>CacheModifiedInputIterator</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cuda.compute.iterators.CacheModifiedInputIterator.kind">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">kind</span></span><a class="headerlink" href="#cuda.compute.iterators.CacheModifiedInputIterator.kind" title="Link to this definition">#</a></dt>
+<dd><p>Return a hashable kind for caching purposes.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="cuda.compute.iterators.ConstantIterator">
-<span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">ConstantIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ConstantIterator" title="Link to this definition">#</a></dt>
-<dd><p>Returns an Iterator representing a sequence of constant values.</p>
-<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/thrust/api/classthrust_1_1constant__iterator.html">https://nvidia.github.io/cccl/thrust/api/classthrust_1_1constant__iterator.html</a></p>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">ConstantIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ConstantIterator" title="Link to this definition">#</a></dt>
+<dd><p>Iterator representing a sequence of constant values.</p>
+<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/thrust/api/classthrust_1_1constant__iterator.html">thrust::constant_iterator</a>.</p>
+<p>Every dereference returns the same constant value.</p>
 <p class="rubric">Example</p>
 <p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">ConstantIterator</span></code>
 representing a sequence of constant values:</p>
@@ -4140,19 +4135,42 @@ representing a sequence of constant values:</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>value</strong> – The value of every item in the sequence</p>
+<dd class="field-odd"><p><strong>value</strong> (<em>np.number</em>) – The value of every item in the sequence</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">ConstantIterator</span></code> object initialized to <code class="docutils literal notranslate"><span class="pre">value</span></code></p>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.ConstantIterator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ConstantIterator.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Create a constant iterator with the given value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.number" title="(in NumPy v2.4)"><em>number</em></a>) – The constant value (must be a numpy scalar)</p>
 </dd>
 </dl>
 </dd></dl>
 
-<dl class="py function">
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.ConstantIterator.__add__">
+<span class="sig-name descname"><span class="pre">__add__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offset</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ConstantIterator.__add__" title="Link to this definition">#</a></dt>
+<dd><p>Return a new ConstantIterator (value doesn’t change with position).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>offset</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cuda.compute.iterators.ConstantIterator" title="cuda.compute.iterators._constant.ConstantIterator"><em>ConstantIterator</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="cuda.compute.iterators.CountingIterator">
-<span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">CountingIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offset</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.CountingIterator" title="Link to this definition">#</a></dt>
-<dd><p>Returns an Iterator representing a sequence of incrementing values.</p>
-<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/thrust/api/classthrust_1_1counting__iterator.html">https://nvidia.github.io/cccl/thrust/api/classthrust_1_1counting__iterator.html</a></p>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">CountingIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.CountingIterator" title="Link to this definition">#</a></dt>
+<dd><p>Iterator representing a sequence of incrementing values.</p>
+<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/thrust/api/classthrust_1_1counting__iterator.html">thrust::counting_iterator</a>.</p>
+<p>The iterator starts at <cite>start</cite> and increments by 1 for each advance.</p>
 <p class="rubric">Example</p>
 <p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">CountingIterator</span></code>
 representing the sequence <code class="docutils literal notranslate"><span class="pre">[10,</span> <span class="pre">11,</span> <span class="pre">12]</span></code>:</p>
@@ -4197,234 +4215,152 @@ representing the sequence <code class="docutils literal notranslate"><span class
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>offset</strong> – The initial value of the sequence</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">CountingIterator</span></code> object initialized to <code class="docutils literal notranslate"><span class="pre">offset</span></code></p>
+<dd class="field-odd"><p><strong>start</strong> (<em>np.number</em>) – The initial value of the sequence</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="cuda.compute.iterators.DiscardIterator">
-<span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">DiscardIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reference_iterator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.DiscardIterator" title="Link to this definition">#</a></dt>
-<dd><p>Returns an Input or Output Iterator that discards all values written to it.</p>
-<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/thrust/api/classthrust_1_1discard__iterator.html">https://nvidia.github.io/cccl/thrust/api/classthrust_1_1discard__iterator.html</a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.CountingIterator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.CountingIterator.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Create a counting iterator starting at <cite>start</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>reference_iterator</strong> – Optional iterator to use as a reference for value_type and state_type.
-If not provided, defaults to uint8.</p>
-</dd>
-</dl>
-<p class="rubric">Example</p>
-<p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">DiscardIterator</span></code> to discard items in a unique by key operation:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Example showing how to use DiscardIterator.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cuda.compute</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cuda.compute</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">DiscardIterator</span><span class="p">,</span>
-    <span class="n">OpKind</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="c1"># Prepare the input and output arrays.</span>
-<span class="n">h_in_keys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span>
-<span class="n">d_in_keys</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h_in_keys</span><span class="p">)</span>
-<span class="n">d_out_keys</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">d_in_keys</span><span class="p">)</span>
-<span class="n">d_out_num_selected</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-<span class="c1"># Prepare the discard iterator for values.</span>
-<span class="n">d_in_values</span> <span class="o">=</span> <span class="n">DiscardIterator</span><span class="p">()</span>
-<span class="n">d_out_values</span> <span class="o">=</span> <span class="n">DiscardIterator</span><span class="p">()</span>
-
-<span class="c1"># Perform the unique by key operation.</span>
-<span class="n">cuda</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">unique_by_key</span><span class="p">(</span>
-    <span class="n">d_in_keys</span><span class="p">,</span>
-    <span class="n">d_in_values</span><span class="p">,</span>
-    <span class="n">d_out_keys</span><span class="p">,</span>
-    <span class="n">d_out_values</span><span class="p">,</span>
-    <span class="n">d_out_num_selected</span><span class="p">,</span>
-    <span class="n">OpKind</span><span class="o">.</span><span class="n">EQUAL_TO</span><span class="p">,</span>
-    <span class="n">d_in_keys</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="c1"># Verify the result.</span>
-<span class="n">num_selected</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">d_out_num_selected</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-<span class="n">h_out_keys</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">d_out_keys</span><span class="p">)[:</span><span class="n">num_selected</span><span class="p">]</span>
-
-<span class="n">expected_keys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">])</span>
-
-<span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">h_out_keys</span><span class="p">,</span> <span class="n">expected_keys</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Discard iterator result - keys: </span><span class="si">{</span><span class="n">h_out_keys</span><span class="si">}</span><span class="s2">, count: </span><span class="si">{</span><span class="n">num_selected</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A <code class="docutils literal notranslate"><span class="pre">DiscardIterator</span></code> object</p>
+<dd class="field-odd"><p><strong>start</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.number" title="(in NumPy v2.4)"><em>number</em></a>) – The initial value (must be a numpy scalar)</p>
 </dd>
 </dl>
 </dd></dl>
 
-<dl class="py function">
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.CountingIterator.__add__">
+<span class="sig-name descname"><span class="pre">__add__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offset</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.CountingIterator.__add__" title="Link to this definition">#</a></dt>
+<dd><p>Return a new CountingIterator advanced by offset elements.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>offset</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cuda.compute.iterators.CountingIterator" title="cuda.compute.iterators._counting.CountingIterator"><em>CountingIterator</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cuda.compute.iterators.DiscardIterator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">DiscardIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reference_iterator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.DiscardIterator" title="Link to this definition">#</a></dt>
+<dd><p>Iterator that discards all reads and writes.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.DiscardIterator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reference_iterator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.DiscardIterator.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Create a discard iterator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>reference_iterator</strong> – Optional iterator or device array used to infer
+value_type/state_type. Defaults to a temporary byte buffer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="cuda.compute.iterators.PermutationIterator">
-<span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">PermutationIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.PermutationIterator" title="Link to this definition">#</a></dt>
-<dd><p>Returns an Iterator that accesses values through an index mapping.</p>
-<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/thrust/api/classthrust_1_1permutation__iterator.html">https://nvidia.github.io/cccl/thrust/api/classthrust_1_1permutation__iterator.html</a></p>
-<p>The permutation iterator accesses elements from the values collection using indices
-from the indices collection, effectively computing values[indices[i]] at position i.
-This is useful for gather/scatter operations and indirect array access patterns.</p>
-<p class="rubric">Example</p>
-<p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">PermutationIterator</span></code>
-to access values in a permuted order:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Demonstrate reduction with permutation iterator as input.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cuda.compute</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cuda.compute</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">OpKind</span><span class="p">,</span>
-    <span class="n">PermutationIterator</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="c1"># Create a permutation iterator which selects values at the given indices:</span>
-<span class="n">d_values</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<span class="n">d_indices</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>  <span class="c1"># permutation indices</span>
-<span class="n">perm_it</span> <span class="o">=</span> <span class="n">PermutationIterator</span><span class="p">(</span><span class="n">d_values</span><span class="p">,</span> <span class="n">d_indices</span><span class="p">)</span>
-
-<span class="c1"># Prepare the initial value and output for the reduction.</span>
-<span class="n">h_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<span class="n">d_output</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-<span class="c1"># Perform the reduction on the permuted values.</span>
-<span class="n">num_items</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">d_indices</span><span class="p">)</span>
-<span class="n">cuda</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">reduce_into</span><span class="p">(</span><span class="n">perm_it</span><span class="p">,</span> <span class="n">d_output</span><span class="p">,</span> <span class="n">OpKind</span><span class="o">.</span><span class="n">PLUS</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="n">h_init</span><span class="p">)</span>
-
-<span class="c1"># Verify the result:</span>
-<span class="n">expected_output</span> <span class="o">=</span> <span class="n">d_values</span><span class="p">[</span><span class="n">d_indices</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-<span class="k">assert</span> <span class="n">d_output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">expected_output</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Permutation iterator result: </span><span class="si">{</span><span class="n">d_output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> (expected: </span><span class="si">{</span><span class="n">expected_output</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">PermutationIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.PermutationIterator" title="Link to this definition">#</a></dt>
+<dd><p>Iterator that accesses values through an index mapping.</p>
+<p>At position i, yields values[indices[i]]. The indices iterator is advanced
+normally, and the values iterator is accessed via random access using the
+index value.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.PermutationIterator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.PermutationIterator.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Create a permutation iterator.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>values</strong> – The values array or iterator to be permuted</p></li>
-<li><p><strong>indices</strong> – An iterator or device array providing the indices for permutation</p></li>
+<li><p><strong>values</strong> – Iterator or array providing the values to be permuted</p></li>
+<li><p><strong>indices</strong> – Iterator or array providing the indices for permutation</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">PermutationIterator</span></code> object that yields values[indices[i]] at position i</p>
-</dd>
 </dl>
 </dd></dl>
 
-<dl class="py function">
-<dt class="sig sig-object py" id="cuda.compute.iterators.ReverseIterator">
-<span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">ReverseIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sequence</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ReverseIterator" title="Link to this definition">#</a></dt>
-<dd><p>Returns an Iterator over an array or another iterator in reverse.</p>
-<p>Similar to [std::reverse_iterator](https://en.cppreference.com/w/cpp/iterator/reverse_iterator).</p>
-<p class="rubric">Examples</p>
-<p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">ReverseIterator</span></code> as an input iterator:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Example showing how to use reverse_input_iterator.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<dl class="py property">
+<dt class="sig sig-object py" id="cuda.compute.iterators.PermutationIterator.children">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">children</span></span><a class="headerlink" href="#cuda.compute.iterators.PermutationIterator.children" title="Link to this definition">#</a></dt>
+<dd><p>Return child iterators for automatic dependency tracking. Override in subclasses.</p>
+</dd></dl>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cuda.compute</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cuda.compute</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">OpKind</span><span class="p">,</span>
-    <span class="n">ReverseIterator</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="c1"># Prepare the input and output arrays.</span>
-<span class="n">h_input</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<span class="n">d_input</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h_input</span><span class="p">)</span>
-
-<span class="c1"># Create the reverse input iterator.</span>
-<span class="n">reverse_it</span> <span class="o">=</span> <span class="n">ReverseIterator</span><span class="p">(</span><span class="n">d_input</span><span class="p">)</span>
-<span class="n">d_output</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">d_input</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-<span class="c1"># Prepare the initial value for the reduction.</span>
-<span class="n">h_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-<span class="c1"># Perform the reduction.</span>
-<span class="n">cuda</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">inclusive_scan</span><span class="p">(</span><span class="n">reverse_it</span><span class="p">,</span> <span class="n">d_output</span><span class="p">,</span> <span class="n">OpKind</span><span class="o">.</span><span class="n">PLUS</span><span class="p">,</span> <span class="n">h_init</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">d_input</span><span class="p">))</span>
-
-<span class="c1"># Verify the result.</span>
-<span class="n">expected_output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">5</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">15</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">d_output</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-
-<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">expected_output</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Original input: </span><span class="si">{</span><span class="n">h_input</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reverse scan result: </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected result: </span><span class="si">{</span><span class="n">expected_output</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">ReverseIterator</span></code> as an output iterator:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Example showing how to use reverse_output_iterator.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cuda.compute</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cuda.compute</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">OpKind</span><span class="p">,</span>
-    <span class="n">ReverseIterator</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="c1"># Prepare the input and output arrays.</span>
-<span class="n">h_input</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<span class="n">d_input</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h_input</span><span class="p">)</span>
-
-<span class="c1"># Prepare the output array.</span>
-<span class="n">d_output</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">d_input</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<span class="n">h_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-<span class="c1"># Create the reverse output iterator.</span>
-<span class="n">reverse_out_it</span> <span class="o">=</span> <span class="n">ReverseIterator</span><span class="p">(</span><span class="n">d_output</span><span class="p">)</span>
-
-<span class="c1"># Perform the reduction.</span>
-<span class="n">cuda</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">inclusive_scan</span><span class="p">(</span><span class="n">d_input</span><span class="p">,</span> <span class="n">reverse_out_it</span><span class="p">,</span> <span class="n">OpKind</span><span class="o">.</span><span class="n">PLUS</span><span class="p">,</span> <span class="n">h_init</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">d_input</span><span class="p">))</span>
-
-<span class="c1"># Verify the result.</span>
-<span class="n">expected_output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">15</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">d_output</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-
-<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">expected_output</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Original input: </span><span class="si">{</span><span class="n">h_input</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reverse output result: </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected result: </span><span class="si">{</span><span class="n">expected_output</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.PermutationIterator.__add__">
+<span class="sig-name descname"><span class="pre">__add__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offset</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.PermutationIterator.__add__" title="Link to this definition">#</a></dt>
+<dd><p>Advance the indices iterator by offset, keeping values at base.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>sequence</strong> – The iterator or array to be reversed</p>
+<dd class="field-odd"><p><strong>offset</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">ReverseIterator</span></code> object</p>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cuda.compute.iterators.PermutationIterator" title="cuda.compute.iterators._permutation.PermutationIterator"><em>PermutationIterator</em></a></p>
 </dd>
 </dl>
 </dd></dl>
 
-<dl class="py function">
+<dl class="py property">
+<dt class="sig sig-object py" id="cuda.compute.iterators.PermutationIterator.kind">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">kind</span></span><a class="headerlink" href="#cuda.compute.iterators.PermutationIterator.kind" title="Link to this definition">#</a></dt>
+<dd><p>Return a hashable kind for caching purposes.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cuda.compute.iterators.ReverseIterator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">ReverseIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">underlying</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ReverseIterator" title="Link to this definition">#</a></dt>
+<dd><p>Iterator that reverses the direction of an underlying iterator.</p>
+<p>Advance with positive offset moves backward in the underlying iterator.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.ReverseIterator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">underlying</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ReverseIterator.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Create a reverse iterator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>underlying</strong> – The underlying iterator or array to reverse</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cuda.compute.iterators.ReverseIterator.children">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">children</span></span><a class="headerlink" href="#cuda.compute.iterators.ReverseIterator.children" title="Link to this definition">#</a></dt>
+<dd><p>Return child iterators for automatic dependency tracking. Override in subclasses.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cuda.compute.iterators.ReverseIterator.kind">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">kind</span></span><a class="headerlink" href="#cuda.compute.iterators.ReverseIterator.kind" title="Link to this definition">#</a></dt>
+<dd><p>Return a hashable kind for caching purposes.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="cuda.compute.iterators.TransformIterator">
-<span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">TransformIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">it</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.TransformIterator" title="Link to this definition">#</a></dt>
-<dd><p>An iterator that applies a user-defined unary function to the elements of an underlying iterator as they are read.</p>
-<p>Similar to [thrust::transform_iterator](https://nvidia.github.io/cccl/thrust/api/classthrust_1_1transform__iterator.html)</p>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">TransformIterator</span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">underlying</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">transform_op</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">value_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">is_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>,</dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.TransformIterator" title="Link to this definition">#</a></dt>
+<dd><p>An iterator that applies a unary function to elements as they are read from an underlying iterator.</p>
+<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/thrust/api/classthrust_1_1transform__iterator.html">thrust::transform_iterator</a>.</p>
+<p>For input iteration (default): reads from underlying, applies transform, returns result.
+For output iteration: applies transform to input values, writes to underlying.</p>
 <p class="rubric">Example</p>
 <p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">TransformIterator</span></code> composed with a <code class="docutils literal notranslate"><span class="pre">CountingIterator</span></code>
-to transform the input before performing a reduction.</p>
+to transform the input before performing a reduction:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Using ``reduce_into`` with a ``TransformIterator`` to compute the</span>
 <span class="sd">sum of squares of a sequence of numbers.</span>
@@ -4459,24 +4395,86 @@ to transform the input before performing a reduction.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>it</strong> – The underlying iterator</p></li>
-<li><p><strong>op</strong> – The unary operation to be applied to values as they are read from <code class="docutils literal notranslate"><span class="pre">it</span></code></p></li>
+<li><p><strong>underlying</strong> – The underlying iterator or device array</p></li>
+<li><p><strong>transform_op</strong> – The unary operation to apply</p></li>
+<li><p><strong>output_value_type</strong> – TypeDescriptor for the output type (optional, will be inferred if not provided)</p></li>
+<li><p><strong>is_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – True for input iterator (default), False for output iterator</p></li>
+<li><p><strong>value_type</strong> (<em>TypeDescriptor</em><em> | </em><em>None</em>)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">TransformIterator</span></code> object to transform the items in <code class="docutils literal notranslate"><span class="pre">it</span></code> using <code class="docutils literal notranslate"><span class="pre">op</span></code></p>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.TransformIterator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">underlying</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">transform_op</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">value_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">is_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>,</dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.TransformIterator.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Create a transform iterator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>underlying</strong> – The underlying iterator or device array to transform</p></li>
+<li><p><strong>transform_op</strong> – The unary transform operation (callable or OpKind)</p></li>
+<li><p><strong>value_type</strong> (<em>TypeDescriptor</em><em> | </em><em>None</em>) – TypeDescriptor for the transformed value type.
+For input iterators: inferred if None.
+For output iterators: must be provided or have annotations.</p></li>
+<li><p><strong>is_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – True for input iterator, False for output iterator</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
-<dl class="py function">
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.TransformIterator.advance">
+<span class="sig-name descname"><span class="pre">advance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offset</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.TransformIterator.advance" title="Link to this definition">#</a></dt>
+<dd><p>Return a new iterator advanced by offset elements.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>offset</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cuda.compute.iterators.TransformIterator" title="cuda.compute.iterators._transform.TransformIterator"><em>TransformIterator</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cuda.compute.iterators.TransformIterator.children">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">children</span></span><a class="headerlink" href="#cuda.compute.iterators.TransformIterator.children" title="Link to this definition">#</a></dt>
+<dd><p>Return child iterators for automatic dependency tracking. Override in subclasses.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cuda.compute.iterators.TransformIterator.kind">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">kind</span></span><a class="headerlink" href="#cuda.compute.iterators.TransformIterator.kind" title="Link to this definition">#</a></dt>
+<dd><p>Return a hashable kind for caching purposes.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="cuda.compute.iterators.TransformOutputIterator">
-<span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">TransformOutputIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">it</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.TransformOutputIterator" title="Link to this definition">#</a></dt>
-<dd><p>An iterator that applies a user-defined unary function to values before writing them to an underlying iterator.</p>
-<p>Similar to [thrust::transform_output_iterator](https://nvidia.github.io/cccl/thrust/api/classthrust_1_1transform__output__iterator.html).</p>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">TransformOutputIterator</span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">underlying</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">transform_op</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">output_value_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.TransformOutputIterator" title="Link to this definition">#</a></dt>
+<dd><p>An iterator that applies a unary function to values before writing them to an underlying iterator.</p>
+<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/thrust/api/classthrust_1_1transform__output__iterator.html">thrust::transform_output_iterator</a>.</p>
+<p>This is a convenience subclass of TransformIterator configured for output mode.</p>
 <p class="rubric">Example</p>
 <p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">TransformOutputIterator</span></code> to transform the output
-of a reduction before writing to an output array.</p>
+of a reduction before writing to an output array:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">TransformOutputIterator example demonstrating reduction with transform output iterator.</span>
 <span class="sd">&quot;&quot;&quot;</span>
@@ -4497,6 +4495,7 @@ of a reduction before writing to an output array.</p>
 
 <span class="c1"># Define the transform operation to be applied</span>
 <span class="c1"># to the result of the sum reduction.</span>
+<span class="c1"># TransformOutputIterator requires type annotations:</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">sqrt</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">x</span><span class="o">**</span><span class="mf">0.5</span>
 
@@ -4520,174 +4519,84 @@ of a reduction before writing to an output array.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>it</strong> – The underlying iterator</p></li>
-<li><p><strong>op</strong> – The operation to be applied to values before they are written to <code class="docutils literal notranslate"><span class="pre">it</span></code></p></li>
+<li><p><strong>underlying</strong> – The underlying iterator or device array</p></li>
+<li><p><strong>transform_op</strong> – The operation to be applied to values before they are written</p></li>
+<li><p><strong>output_value_type</strong> – TypeDescriptor for the input value type (optional, will be extracted from annotations if not provided)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">TransformOutputIterator</span></code> object that applies <code class="docutils literal notranslate"><span class="pre">op</span></code> to transform values before writing them to <code class="docutils literal notranslate"><span class="pre">it</span></code></p>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.TransformOutputIterator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">underlying</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">transform_op</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">output_value_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.TransformOutputIterator.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Create a transform iterator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>underlying</strong> – The underlying iterator or device array to transform</p></li>
+<li><p><strong>transform_op</strong> – The unary transform operation (callable or OpKind)</p></li>
+<li><p><strong>value_type</strong> – TypeDescriptor for the transformed value type.
+For input iterators: inferred if None.
+For output iterators: must be provided or have annotations.</p></li>
+<li><p><strong>is_input</strong> – True for input iterator, False for output iterator</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
-<dl class="py function">
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="cuda.compute.iterators.ZipIterator">
-<span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">ZipIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">iterators</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ZipIterator" title="Link to this definition">#</a></dt>
-<dd><p>Returns an Iterator representing a zipped sequence of values from N iterators.</p>
-<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/thrust/api/classthrust_1_1zip__iterator.html">https://nvidia.github.io/cccl/thrust/api/classthrust_1_1zip__iterator.html</a></p>
-<p>The resulting iterator yields gpu_struct objects with fields corresponding to each input iterator.
-For 2 iterators, fields are named ‘first’ and ‘second’. For N iterators, fields are indexed
-as field_0, field_1, …, field_N-1.</p>
-<p class="rubric">Example</p>
-<p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">ZipIterator</span></code>
-combining two device arrays:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Example showing how to use zip_iterator to perform elementwise sum of two arrays.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cuda.compute</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cuda.compute</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">ZipIterator</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="c1"># Prepare the input arrays.</span>
-<span class="n">d_input1</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<span class="n">d_input2</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-<span class="c1"># Create the zip iterator.</span>
-<span class="n">zip_it</span> <span class="o">=</span> <span class="n">ZipIterator</span><span class="p">(</span><span class="n">d_input1</span><span class="p">,</span> <span class="n">d_input2</span><span class="p">)</span>
-
-<span class="c1"># Prepare the output array.</span>
-<span class="n">num_items</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">d_input1</span><span class="p">)</span>
-<span class="n">d_output</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">num_items</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">sum_paired_values</span><span class="p">(</span><span class="n">pair</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract values from the zip iterator pair and sum them.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-
-
-<span class="c1"># Perform the unary transform.</span>
-<span class="n">cuda</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">unary_transform</span><span class="p">(</span><span class="n">zip_it</span><span class="p">,</span> <span class="n">d_output</span><span class="p">,</span> <span class="n">sum_paired_values</span><span class="p">,</span> <span class="n">num_items</span><span class="p">)</span>
-
-<span class="c1"># Calculate the expected results.</span>
-<span class="n">expected</span> <span class="o">=</span> <span class="n">d_input1</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">+</span> <span class="n">d_input2</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">d_output</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-
-<span class="c1"># Verify the result.</span>
-<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input array 1: </span><span class="si">{</span><span class="n">d_input1</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input array 2: </span><span class="si">{</span><span class="n">d_input2</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elementwise sum result: </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected result: </span><span class="si">{</span><span class="n">expected</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>ZipIterator can also be used with nested gpu_struct types:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Example showing ZipIterator with nested gpu_struct types.</span>
-
-<span class="sd">This example demonstrates combining separate arrays of nested structs using</span>
-<span class="sd">ZipIterator, then performing a reduction that operates on the combined data.</span>
-<span class="sd">This is useful when you have related data stored in separate arrays that need</span>
-<span class="sd">to be processed together.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cuda.compute</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cuda.compute</span><span class="w"> </span><span class="kn">import</span> <span class="n">ZipIterator</span><span class="p">,</span> <span class="n">gpu_struct</span>
-
-
-<span class="c1"># Define nested structs for geometric and color data</span>
-<span class="nd">@gpu_struct</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">Point</span><span class="p">:</span>
-    <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
-    <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
-
-
-<span class="nd">@gpu_struct</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">Color</span><span class="p">:</span>
-    <span class="n">r</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span>
-    <span class="n">g</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span>
-    <span class="n">b</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span>
-
-
-<span class="nd">@gpu_struct</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">Pixel</span><span class="p">:</span>
-    <span class="n">position</span><span class="p">:</span> <span class="n">Point</span>
-    <span class="n">color</span><span class="p">:</span> <span class="n">Color</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">sum_pixels</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reduction operation that sums all fields of two pixels.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">Pixel</span><span class="p">(</span>
-        <span class="n">Point</span><span class="p">(</span><span class="n">p1</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">p2</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">p1</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">+</span> <span class="n">p2</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span><span class="p">),</span>
-        <span class="n">Color</span><span class="p">(</span>
-            <span class="n">p1</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">r</span> <span class="o">+</span> <span class="n">p2</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">r</span><span class="p">,</span> <span class="n">p1</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">g</span> <span class="o">+</span> <span class="n">p2</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">p1</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">b</span> <span class="o">+</span> <span class="n">p2</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">b</span>
-        <span class="p">),</span>
-    <span class="p">)</span>
-
-
-<span class="c1"># Prepare separate arrays for points and colors</span>
-<span class="n">num_items</span> <span class="o">=</span> <span class="mi">100</span>
-
-<span class="n">h_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_items</span><span class="p">)],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">Point</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-<span class="n">h_colors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-    <span class="p">[(</span><span class="n">i</span> <span class="o">%</span> <span class="mi">256</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="mi">256</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)</span> <span class="o">%</span> <span class="mi">256</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_items</span><span class="p">)],</span>
-    <span class="n">dtype</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="n">d_points</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">num_items</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">Point</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-<span class="n">d_points</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">h_points</span><span class="p">)</span>
-
-<span class="n">d_colors</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">num_items</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-<span class="n">d_colors</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">h_colors</span><span class="p">)</span>
-
-<span class="c1"># Create a zip iterator to combine the points and colors</span>
-<span class="n">zip_it</span> <span class="o">=</span> <span class="n">ZipIterator</span><span class="p">(</span><span class="n">d_points</span><span class="p">,</span> <span class="n">d_colors</span><span class="p">)</span>
-
-<span class="c1"># Prepare output and initial value</span>
-<span class="n">d_output</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">Pixel</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-<span class="n">h_init</span> <span class="o">=</span> <span class="n">Pixel</span><span class="p">(</span><span class="n">Point</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">Color</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
-
-<span class="c1"># Perform the reduction on the zipped data</span>
-<span class="n">cuda</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">reduce_into</span><span class="p">(</span><span class="n">zip_it</span><span class="p">,</span> <span class="n">d_output</span><span class="p">,</span> <span class="n">sum_pixels</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="n">h_init</span><span class="p">)</span>
-
-<span class="c1"># Verify the result</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">d_output</span><span class="o">.</span><span class="n">get</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-<span class="n">expected_x</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_items</span><span class="p">))</span>
-<span class="n">expected_y</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_items</span><span class="p">))</span>
-<span class="n">expected_r</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">i</span> <span class="o">%</span> <span class="mi">256</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_items</span><span class="p">))</span> <span class="o">%</span> <span class="mi">256</span>
-<span class="n">expected_g</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">((</span><span class="n">i</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="mi">256</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_items</span><span class="p">))</span> <span class="o">%</span> <span class="mi">256</span>
-<span class="n">expected_b</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">((</span><span class="n">i</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)</span> <span class="o">%</span> <span class="mi">256</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_items</span><span class="p">))</span> <span class="o">%</span> <span class="mi">256</span>
-
-<span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;position&quot;</span><span class="p">][</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">expected_x</span>
-<span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;position&quot;</span><span class="p">][</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">expected_y</span>
-<span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">][</span><span class="s2">&quot;r&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">expected_r</span>
-<span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">][</span><span class="s2">&quot;g&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">expected_g</span>
-<span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">][</span><span class="s2">&quot;b&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">expected_b</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Nested struct with ZipIterator result:&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  position.x: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;position&#39;</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (expected: </span><span class="si">{</span><span class="n">expected_x</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  position.y: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;position&#39;</span><span class="p">][</span><span class="s1">&#39;y&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (expected: </span><span class="si">{</span><span class="n">expected_y</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  color.r: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">][</span><span class="s1">&#39;r&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (expected: </span><span class="si">{</span><span class="n">expected_r</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  color.g: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">][</span><span class="s1">&#39;g&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (expected: </span><span class="si">{</span><span class="n">expected_g</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  color.b: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">][</span><span class="s1">&#39;b&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (expected: </span><span class="si">{</span><span class="n">expected_b</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">ZipIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ZipIterator" title="Link to this definition">#</a></dt>
+<dd><p>Iterator that zips multiple iterators together.</p>
+<p>At each position, yields a tuple/struct of values from all underlying iterators.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.ZipIterator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ZipIterator.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Create a zip iterator.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>*iterators</strong> – Variable number of iterators to zip (at least 1)</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">ZipIterator</span></code> object that yields combined values from all input iterators</p>
+<dd class="field-odd"><p><strong>*args</strong> – Iterators or arrays to zip together. Can be:
+- Multiple iterators/arrays: ZipIterator(it1, it2, it3)
+- A single sequence of iterators: ZipIterator([it1, it2, it3])</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cuda.compute.iterators.ZipIterator.children">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">children</span></span><a class="headerlink" href="#cuda.compute.iterators.ZipIterator.children" title="Link to this definition">#</a></dt>
+<dd><p>Return child iterators for automatic dependency tracking. Override in subclasses.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.iterators.ZipIterator.__add__">
+<span class="sig-name descname"><span class="pre">__add__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offset</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ZipIterator.__add__" title="Link to this definition">#</a></dt>
+<dd><p>Advance all child iterators by offset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>offset</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cuda.compute.iterators.ZipIterator" title="cuda.compute.iterators._zip.ZipIterator"><em>ZipIterator</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cuda.compute.iterators.ZipIterator.kind">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">kind</span></span><a class="headerlink" href="#cuda.compute.iterators.ZipIterator.kind" title="Link to this definition">#</a></dt>
+<dd><p>Return a hashable kind for caching purposes.</p>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -4940,15 +4849,57 @@ mapping of field names to data types.</p></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-cuda.compute.iterators">Iterators</a><ul class="visible nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.CacheModifiedInputIterator"><code class="docutils literal notranslate"><span class="pre">CacheModifiedInputIterator()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ConstantIterator"><code class="docutils literal notranslate"><span class="pre">ConstantIterator()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.CountingIterator"><code class="docutils literal notranslate"><span class="pre">CountingIterator()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.DiscardIterator"><code class="docutils literal notranslate"><span class="pre">DiscardIterator()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.PermutationIterator"><code class="docutils literal notranslate"><span class="pre">PermutationIterator()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ReverseIterator"><code class="docutils literal notranslate"><span class="pre">ReverseIterator()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.TransformIterator"><code class="docutils literal notranslate"><span class="pre">TransformIterator()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.TransformOutputIterator"><code class="docutils literal notranslate"><span class="pre">TransformOutputIterator()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ZipIterator"><code class="docutils literal notranslate"><span class="pre">ZipIterator()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.CacheModifiedInputIterator"><code class="docutils literal notranslate"><span class="pre">CacheModifiedInputIterator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.CacheModifiedInputIterator.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.CacheModifiedInputIterator.__add__"><code class="docutils literal notranslate"><span class="pre">__add__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.CacheModifiedInputIterator.kind"><code class="docutils literal notranslate"><span class="pre">kind</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ConstantIterator"><code class="docutils literal notranslate"><span class="pre">ConstantIterator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ConstantIterator.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ConstantIterator.__add__"><code class="docutils literal notranslate"><span class="pre">__add__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.CountingIterator"><code class="docutils literal notranslate"><span class="pre">CountingIterator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.CountingIterator.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.CountingIterator.__add__"><code class="docutils literal notranslate"><span class="pre">__add__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.DiscardIterator"><code class="docutils literal notranslate"><span class="pre">DiscardIterator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.DiscardIterator.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.PermutationIterator"><code class="docutils literal notranslate"><span class="pre">PermutationIterator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.PermutationIterator.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.PermutationIterator.children"><code class="docutils literal notranslate"><span class="pre">children</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.PermutationIterator.__add__"><code class="docutils literal notranslate"><span class="pre">__add__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.PermutationIterator.kind"><code class="docutils literal notranslate"><span class="pre">kind</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ReverseIterator"><code class="docutils literal notranslate"><span class="pre">ReverseIterator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ReverseIterator.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ReverseIterator.children"><code class="docutils literal notranslate"><span class="pre">children</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ReverseIterator.kind"><code class="docutils literal notranslate"><span class="pre">kind</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.TransformIterator"><code class="docutils literal notranslate"><span class="pre">TransformIterator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.TransformIterator.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.TransformIterator.advance"><code class="docutils literal notranslate"><span class="pre">advance()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.TransformIterator.children"><code class="docutils literal notranslate"><span class="pre">children</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.TransformIterator.kind"><code class="docutils literal notranslate"><span class="pre">kind</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.TransformOutputIterator"><code class="docutils literal notranslate"><span class="pre">TransformOutputIterator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.TransformOutputIterator.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ZipIterator"><code class="docutils literal notranslate"><span class="pre">ZipIterator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ZipIterator.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ZipIterator.children"><code class="docutils literal notranslate"><span class="pre">children</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ZipIterator.__add__"><code class="docutils literal notranslate"><span class="pre">__add__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.iterators.ZipIterator.kind"><code class="docutils literal notranslate"><span class="pre">kind</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#operators">Operators</a><ul class="visible nav section-nav flex-column">
