@@ -514,7 +514,6 @@
 <li class="toctree-l4"><a class="reference internal" href="cub/api/classcub_1_1CacheModifiedOutputIterator.html">cub::CacheModifiedOutputIterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/classcub_1_1GridQueue.html">cub::GridQueue</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/classcub_1_1SwizzleScanOp.html">cub::SwizzleScanOp</a></li>
-<li class="toctree-l4"><a class="reference internal" href="cub/api/classcub_1_1TexObjInputIterator.html">cub::TexObjInputIterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/classcub_1_1WarpExchange.html">cub::WarpExchange</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/classcub_1_1WarpLoad.html">cub::WarpLoad</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/classcub_1_1WarpMergeSort.html">cub::WarpMergeSort</a></li>
@@ -643,6 +642,7 @@
 <li class="toctree-l4"><a class="reference internal" href="cub/api/namespacecub_1a896be0f0cb8ed423fb9e413143cf8e91.html">cub::ShuffleIndex</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/namespacecub_1ad69972e79ff49330e9a69ef2cc916ea3.html">cub::MatchAny</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/namespacecub_1ae27130dceefcdc47f0d92a1a34d89c4d.html">cub::DispatchTransformReduce</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cub/api/namespacecub_1a70b7d70856624fb3e76bb7775deca303.html">cub::TexObjInputIterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/namespacecub_1a845ca81ef9b346ef7429a35d4fdc80d2.html">cub::BlockHistogramAlgorithm</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/namespacecub_1a4026d26205ac783e686edc635e92ea3e.html">cub::BlockHistogramMemoryPreference</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cub/api/namespacecub_1a9d7e37497fdd99864c57adecda710401.html">cub::BlockLoadAlgorithm</a></li>
@@ -1423,6 +1423,7 @@
 </details></li>
 </ul>
 </details></li>
+<li class="toctree-l2"><a class="reference internal" href="cccl/tma.html">Tensor Memory Accelerator (TMA)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cccl/3.0_migration_guide.html">CCCL 2.x ‐ CCCL 3.0 migration guide</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="cccl/development/index.html">CCCL Development Guide</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="cccl/development/macro.html">CCCL Internal Macros</a></li>
@@ -1548,6 +1549,8 @@
         <li><a href="python/compute_api.html#cuda.compute.iterators.TransformOutputIterator.__init__">(cuda.compute.iterators.TransformOutputIterator method)</a>
 </li>
         <li><a href="python/compute_api.html#cuda.compute.iterators.ZipIterator.__init__">(cuda.compute.iterators.ZipIterator method)</a>
+</li>
+        <li><a href="python/compute_api.html#cuda.compute.op.RawOp.__init__">(cuda.compute.op.RawOp method)</a>
 </li>
         <li><a href="python/compute_api.html#cuda.compute.typing.DeviceArrayLike.__init__">(cuda.compute.typing.DeviceArrayLike method)</a>
 </li>
@@ -2596,6 +2599,8 @@
         <li><a href="python/compute_api.html#cuda.compute.iterators.ZipIterator.children">(cuda.compute.iterators.ZipIterator property)</a>
 </li>
       </ul></li>
+      <li><a href="python/compute_api.html#cuda.compute.op.RawOp.compile">compile() (cuda.compute.op.RawOp method)</a>
+</li>
       <li><a href="libcudacxx/api/classcompute__capability.html#_CPPv418compute_capability">compute_capability (C++ class)</a>
 </li>
       <li><a href="libcudacxx/api/classcompute__capability.html#_CPPv4N18compute_capability18compute_capabilityE7arch_id">compute_capability::compute_capability (C++ function)</a>, <a href="libcudacxx/api/classcompute__capability.html#_CPPv4N18compute_capability18compute_capabilityERK18compute_capability">[1]</a>, <a href="libcudacxx/api/classcompute__capability.html#_CPPv4N18compute_capability18compute_capabilityEi">[2]</a>, <a href="libcudacxx/api/classcompute__capability.html#_CPPv4N18compute_capability18compute_capabilityEii">[3]</a>, <a href="libcudacxx/api/classcompute__capability.html#_CPPv4N18compute_capability18compute_capabilityEv">[4]</a>
@@ -8066,6 +8071,8 @@
 </li>
       <li><a href="python/compute_api.html#cuda.compute.iterators.IteratorBase.get_output_deref_op">get_output_deref_op() (cuda.compute.iterators.IteratorBase method)</a>
 </li>
+      <li><a href="python/compute_api.html#cuda.compute.op.RawOp.get_state">get_state() (cuda.compute.op.RawOp method)</a>
+</li>
       <li><a href="libcudacxx/api/structget__stream__t.html#_CPPv412get_stream_t">get_stream_t (C++ struct)</a>
 </li>
       <li><a href="libcudacxx/api/structget__stream__t.html#_CPPv4I0_N4cudaSt11enable_if_tI19__has_member_streamI3_TpEiEEENK12get_stream_tclEN4cuda10stream_refERK3_Tp">get_stream_t::operator() (C++ function)</a>, <a href="libcudacxx/api/structget__stream__t.html#_CPPv4I0_N4cudaSt11enable_if_tI22__has_query_get_streamI4_EnvEiEEENK12get_stream_tclEN4cuda10stream_refERK4_Env">[1]</a>, <a href="libcudacxx/api/structget__stream__t.html#_CPPv4I0_N4cudaSt11enable_if_tI23__has_member_get_streamI3_TpEiEEENK12get_stream_tclEN4cuda10stream_refERK3_Tp">[2]</a>, <a href="libcudacxx/api/structget__stream__t.html#_CPPv4I0_N4cudaSt11enable_if_tI27__convertible_to_stream_refI3_TpEiEEENK12get_stream_tclEN4cuda10stream_refERK3_Tp">[3]</a>, <a href="libcudacxx/api/structget__stream__t.html#_CPPv4NK12get_stream_tclE12cudaStream_t">[4]</a>
@@ -8563,12 +8570,14 @@
 </li>
       <li><a href="cub/api/structcub_1_1RadixSortTwiddle.html#_CPPv4I0EN3cub16RadixSortTwiddle3OutE16bit_ordered_type16bit_ordered_type11DecomposerT">RadixSortTwiddle::Out (C++ function)</a>
 </li>
-      <li><a href="cub/api/namespacecub_1abb27bd14e08948ee1505e33d2f5dbc91.html#_CPPv4N3cub10ReadOptionE">ReadOption (C++ enum)</a>
+      <li><a href="python/compute_api.html#cuda.compute.op.RawOp">RawOp (class in cuda.compute.op)</a>
 </li>
-      <li><a href="cub/api/namespacecub_1abb27bd14e08948ee1505e33d2f5dbc91.html#_CPPv4N3cub10ReadOption4LeftE">ReadOption::Left (C++ enumerator)</a>
+      <li><a href="cub/api/namespacecub_1abb27bd14e08948ee1505e33d2f5dbc91.html#_CPPv4N3cub10ReadOptionE">ReadOption (C++ enum)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="cub/api/namespacecub_1abb27bd14e08948ee1505e33d2f5dbc91.html#_CPPv4N3cub10ReadOption4LeftE">ReadOption::Left (C++ enumerator)</a>
+</li>
       <li><a href="cub/api/namespacecub_1abb27bd14e08948ee1505e33d2f5dbc91.html#_CPPv4N3cub10ReadOption5RightE">ReadOption::Right (C++ enumerator)</a>
 </li>
       <li><a href="python/coop_api.html#cuda.coop.block.reduce">reduce() (in module cuda.coop.block)</a>
@@ -9001,47 +9010,7 @@
 </li>
       <li><a href="libcudacxx/api/classtabulate__output__iterator.html#_CPPv4N24tabulate_output_iterator10value_typeE">tabulate_output_iterator::value_type (C++ type)</a>
 </li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4I00EN3cub19TexObjInputIteratorE">TexObjInputIterator (C++ class)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4I0EN3cub19TexObjInputIterator11BindTextureE11cudaError_tP10QualifiedT6size_t6size_t">TexObjInputIterator::BindTexture (C++ function)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4N3cub19TexObjInputIterator15difference_typeE">TexObjInputIterator::difference_type (C++ type)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4N3cub19TexObjInputIterator17iterator_categoryE">TexObjInputIterator::iterator_category (C++ type)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4NK3cub19TexObjInputIteratorneERK9self_type">TexObjInputIterator::operator!= (C++ function)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4NK3cub19TexObjInputIteratormlEv">TexObjInputIterator::operator* (C++ function)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4I0ENK3cub19TexObjInputIteratorplE9self_type8Distance">TexObjInputIterator::operator+ (C++ function)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4N3cub19TexObjInputIteratorppEi">TexObjInputIterator::operator++ (C++ function)</a>, <a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4N3cub19TexObjInputIteratorppEv">[1]</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4I0EN3cub19TexObjInputIteratorpLER9self_type8Distance">TexObjInputIterator::operator+= (C++ function)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4I0ENK3cub19TexObjInputIteratormiE9self_type8Distance">TexObjInputIterator::operator- (C++ function)</a>, <a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4NK3cub19TexObjInputIteratormiE9self_type">[1]</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4I0EN3cub19TexObjInputIteratormIER9self_type8Distance">TexObjInputIterator::operator-= (C++ function)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4N3cub19TexObjInputIteratorptEv">TexObjInputIterator::operator-&gt; (C++ function)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4N3cub19TexObjInputIteratorlsERNSt7ostreamERK9self_type">TexObjInputIterator::operator&lt;&lt; (C++ function)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4NK3cub19TexObjInputIteratoreqERK9self_type">TexObjInputIterator::operator== (C++ function)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4I0ENK3cub19TexObjInputIteratorixE9reference8Distance">TexObjInputIterator::operator[] (C++ function)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4N3cub19TexObjInputIterator7pointerE">TexObjInputIterator::pointer (C++ type)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4N3cub19TexObjInputIterator9referenceE">TexObjInputIterator::reference (C++ type)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4N3cub19TexObjInputIterator9self_typeE">TexObjInputIterator::self_type (C++ type)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4N3cub19TexObjInputIterator19TexObjInputIteratorEv">TexObjInputIterator::TexObjInputIterator (C++ function)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4N3cub19TexObjInputIterator13UnbindTextureEv">TexObjInputIterator::UnbindTexture (C++ function)</a>
-</li>
-      <li><a href="cub/api/classcub_1_1TexObjInputIterator.html#_CPPv4N3cub19TexObjInputIterator10value_typeE">TexObjInputIterator::value_type (C++ type)</a>
+      <li><a href="cub/api/namespacecub_1a70b7d70856624fb3e76bb7775deca303.html#_CPPv4I00EN3cub19TexObjInputIteratorE">TexObjInputIterator (C++ type)</a>
 </li>
       <li><a href="cub/api/namespacecub_1a1b975318a8f3f7a19769fa51121bb288.html#_CPPv4N3cub10ThreadExitEv">ThreadExit (C++ function)</a>
 </li>
@@ -10029,8 +9998,6 @@
 </li>
       <li><a href="thrust/api/classthrust_1_1mr_1_1polymorphic__adaptor__resource.html#_CPPv4I0EN6thrust2mr28polymorphic_adaptor_resourceE">thrust::mr::polymorphic_adaptor_resource (C++ class)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="thrust/api/classthrust_1_1mr_1_1polymorphic__adaptor__resource.html#_CPPv4N6thrust2mr28polymorphic_adaptor_resource8allocateENSt6size_tENSt6size_tE">thrust::mr::polymorphic_adaptor_resource::allocate (C++ function)</a>
 </li>
       <li><a href="thrust/api/classthrust_1_1mr_1_1polymorphic__adaptor__resource.html#_CPPv4N6thrust2mr28polymorphic_adaptor_resource10deallocateE7pointerNSt6size_tENSt6size_tE">thrust::mr::polymorphic_adaptor_resource::deallocate (C++ function)</a>
@@ -10051,6 +10018,8 @@
 </li>
       <li><a href="thrust/api/structthrust_1_1mr_1_1pool__options.html#_CPPv4N6thrust2mr12pool_optionsE">thrust::mr::pool_options (C++ struct)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="thrust/api/structthrust_1_1mr_1_1pool__options.html#_CPPv4N6thrust2mr12pool_options9alignmentE">thrust::mr::pool_options::alignment (C++ member)</a>
 </li>
       <li><a href="thrust/api/structthrust_1_1mr_1_1pool__options.html#_CPPv4N6thrust2mr12pool_options15cache_oversizedE">thrust::mr::pool_options::cache_oversized (C++ member)</a>

@@ -521,7 +521,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/classcub_1_1CacheModifiedOutputIterator.html">cub::CacheModifiedOutputIterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/classcub_1_1GridQueue.html">cub::GridQueue</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/classcub_1_1SwizzleScanOp.html">cub::SwizzleScanOp</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cub/api/classcub_1_1TexObjInputIterator.html">cub::TexObjInputIterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/classcub_1_1WarpExchange.html">cub::WarpExchange</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/classcub_1_1WarpLoad.html">cub::WarpLoad</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/classcub_1_1WarpMergeSort.html">cub::WarpMergeSort</a></li>
@@ -650,6 +649,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a896be0f0cb8ed423fb9e413143cf8e91.html">cub::ShuffleIndex</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1ad69972e79ff49330e9a69ef2cc916ea3.html">cub::MatchAny</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1ae27130dceefcdc47f0d92a1a34d89c4d.html">cub::DispatchTransformReduce</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a70b7d70856624fb3e76bb7775deca303.html">cub::TexObjInputIterator</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a845ca81ef9b346ef7429a35d4fdc80d2.html">cub::BlockHistogramAlgorithm</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a4026d26205ac783e686edc635e92ea3e.html">cub::BlockHistogramMemoryPreference</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../cub/api/namespacecub_1a9d7e37497fdd99864c57adecda710401.html">cub::BlockLoadAlgorithm</a></li>
@@ -1430,6 +1430,7 @@
 </details></li>
 </ul>
 </details></li>
+<li class="toctree-l2"><a class="reference internal" href="../cccl/tma.html">Tensor Memory Accelerator (TMA)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../cccl/3.0_migration_guide.html">CCCL 2.x ‐ CCCL 3.0 migration guide</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../cccl/development/index.html">CCCL Development Guide</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="../cccl/development/macro.html">CCCL Internal Macros</a></li>
@@ -5103,6 +5104,167 @@ in parallel algorithms, including arithmetic, logical, and bitwise operations.</
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="cuda.compute.op.RawOp">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.op.</span></span><span class="sig-name descname"><span class="pre">RawOp</span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">ltoir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><span class="pre">bytes</span></a></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><span class="pre">bytes</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">b''</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">state_alignment</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">extra_ltoirs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><span class="pre">bytes</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.op.RawOp" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">RawOp</span></code> can be used to directly pass compiled device code (LTO-IR) implementing custom operators.</p>
+<p>This is useful for users who wish to implement custom operators in C++ or another language,
+or wish to use a different compilation pipeline than the default
+(JIT compilation from Python callables using Numba CUDA).</p>
+<p class="rubric">Example</p>
+<p>The example below shows how to compile C++ device code to LTOIR and use it with
+<a class="reference internal" href="#cuda.compute.algorithms.reduce_into" title="cuda.compute.algorithms.reduce_into"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce_into</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Create a custom C++ operator from LTOIR bytecode using RawOp.</span>
+
+<span class="sd">This example demonstrates how to compile C++ device code to LTOIR and use it</span>
+<span class="sd">as a custom operator.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">cuda.compute</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cuda.compute.op</span><span class="w"> </span><span class="kn">import</span> <span class="n">RawOp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cuda.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Device</span><span class="p">,</span> <span class="n">Program</span><span class="p">,</span> <span class="n">ProgramOptions</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_arch</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the SM architecture string for the current device.&quot;&quot;&quot;</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">Device</span><span class="p">()</span>
+    <span class="n">device</span><span class="o">.</span><span class="n">set_current</span><span class="p">()</span>
+    <span class="n">cc_major</span><span class="p">,</span> <span class="n">cc_minor</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">compute_capability</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;sm_</span><span class="si">{</span><span class="n">cc_major</span><span class="si">}{</span><span class="n">cc_minor</span><span class="si">}</span><span class="s2">&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compile_cpp_to_ltoir</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">arch</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compile C++ source to LTOIR using cuda.core.&quot;&quot;&quot;</span>
+    <span class="n">opts</span> <span class="o">=</span> <span class="n">ProgramOptions</span><span class="p">(</span>
+        <span class="n">arch</span><span class="o">=</span><span class="n">arch</span><span class="p">,</span>
+        <span class="n">relocatable_device_code</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">link_time_optimization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">prog</span> <span class="o">=</span> <span class="n">Program</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s2">&quot;c++&quot;</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">opts</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">prog</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;ltoir&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">code</span>
+
+
+<span class="c1"># Define a C++ custom multiply operator</span>
+<span class="n">cpp_source</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">extern &quot;C&quot; __device__ void multiply_op(void* a, void* b, void* result) {</span>
+<span class="s2">    *static_cast&lt;int*&gt;(result) = *static_cast&lt;int*&gt;(a) * *static_cast&lt;int*&gt;(b);</span>
+<span class="s2">}</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="c1"># Compile C++ to LTOIR</span>
+<span class="n">arch</span> <span class="o">=</span> <span class="n">get_arch</span><span class="p">()</span>
+<span class="n">ltoir_bytes</span> <span class="o">=</span> <span class="n">compile_cpp_to_ltoir</span><span class="p">(</span><span class="n">cpp_source</span><span class="p">,</span> <span class="n">arch</span><span class="p">)</span>
+
+<span class="c1"># Create a RawOp from the LTOIR bytecode</span>
+<span class="n">multiply_op</span> <span class="o">=</span> <span class="n">RawOp</span><span class="p">(</span><span class="n">ltoir</span><span class="o">=</span><span class="n">ltoir_bytes</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;multiply_op&quot;</span><span class="p">)</span>
+
+<span class="c1"># Prepare test data</span>
+<span class="n">h_input</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+<span class="n">d_input</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">h_input</span><span class="p">)</span>
+<span class="n">d_output</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+<span class="n">h_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+<span class="c1"># Use the custom operator with reduce_into</span>
+<span class="n">cuda</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">reduce_into</span><span class="p">(</span><span class="n">d_input</span><span class="p">,</span> <span class="n">d_output</span><span class="p">,</span> <span class="n">multiply_op</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">d_input</span><span class="p">),</span> <span class="n">h_init</span><span class="p">)</span>
+
+<span class="c1"># Verify the result</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">d_output</span><span class="o">.</span><span class="n">get</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">expected</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">h_input</span><span class="p">)</span>  <span class="c1"># 1 * 2 * 3 * 4 * 5 = 120</span>
+<span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="n">expected</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="n">expected</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Custom multiply reduction result: </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;RawOp stateless example completed successfully!&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The ABI name of the operator</p></li>
+<li><p><strong>ltoir</strong> – bytes object containing the LTO-IR of the compiled operator</p></li>
+<li><p><strong>state</strong> – Optional bytes representing the operator’s state</p></li>
+<li><p><strong>state_alignment</strong> – Alignment requirement for the state bytes (default: 1)</p></li>
+<li><p><strong>extra_ltoirs</strong> – Optional list of additional LTO-IRs to include during linking</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul>
+<li><p>The provided LTO-IR must define a function with the specified name and the correct signature.</p></li>
+<li><p>The function must use untyped pointers for all parameters and return type. The function body
+is responsible for correctly interpreting the pointer arguments based on the expected input and output types.
+For stateless operators, the signature is</p>
+<blockquote>
+<div><p>void func(void* arg1, void* arg2, …, void* result)`</p>
+</div></blockquote>
+<p>For stateful operators, the first parameter must be a pointer to the state:</p>
+<blockquote>
+<div><p>void func(void* state, void* arg1, void* arg2, …)</p>
+</div></blockquote>
+</li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.op.RawOp.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">ltoir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><span class="pre">bytes</span></a></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><span class="pre">bytes</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">b''</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">state_alignment</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">extra_ltoirs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><span class="pre">bytes</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.op.RawOp.__init__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.op.RawOp.compile">
+<span class="sig-name descname"><span class="pre">compile</span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">input_types</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">output_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+</dl>
+
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">cuda.compute._bindings.Op</span></span></span><a class="headerlink" href="#cuda.compute.op.RawOp.compile" title="Link to this definition">#</a></dt>
+<dd><p>Compile this operator to an Op for CCCL interop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_types</strong> – Tuple of TypeDescriptors for input arguments</p></li>
+<li><p><strong>output_type</strong> – Optional TypeDescriptor for return value (inferred if None)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Compiled Op object for C++ interop</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cuda.compute.op.RawOp.get_state">
+<span class="sig-name descname"><span class="pre">get_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><span class="pre">bytes</span></a></span></span><a class="headerlink" href="#cuda.compute.op.RawOp.get_state" title="Link to this definition">#</a></dt>
+<dd><p>Return the op’s state bytes.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="module-cuda.compute.struct">
 <span id="utilities"></span><h2>Utilities<a class="headerlink" href="#module-cuda.compute.struct" title="Link to this heading">#</a></h2>
@@ -5141,7 +5303,7 @@ mapping of field names to data types.</p></li>
 <p>Any object implementing the <code class="docutils literal notranslate"><span class="pre">__cuda_array_interface__</span></code> attribute can be used
 where a <a class="reference internal" href="#cuda.compute.typing.DeviceArrayLike" title="cuda.compute.typing.DeviceArrayLike"><code class="xref py py-class docutils literal notranslate"><span class="pre">DeviceArrayLike</span></code></a> is expected. This includes CuPy arrays, Numba
 device arrays, PyTorch CUDA tensors, and other GPU array types.</p>
-<p>See <a class="reference external" href="https://numba.readthedocs.io/en/stable/cuda/cuda_array_interface.html">CUDA Array Interface specification</a>
+<p>See <a class="reference external" href="https://nvidia.github.io/numba-cuda/user/cuda_array_interface.html">CUDA Array Interface specification</a>
 for details.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="cuda.compute.typing.DeviceArrayLike.__init__">
@@ -5173,11 +5335,12 @@ See <a class="reference internal" href="#module-cuda.compute.iterators" title="c
 <p>Algorithms accept the following objects as operators:</p>
 <ul class="simple">
 <li><p>Python functions or lambdas implementing the operator. This function will be JIT
-compiled into device code using <code class="docutils literal notranslate"><span class="pre">numba.cuda</span></code>.</p></li>
+compiled into device code using <a class="reference external" href="https://nvidia.github.io/numba-cuda/">numba.cuda</a>.</p></li>
 <li><p><a class="reference internal" href="#cuda.compute.op.OpKind" title="cuda.compute.op.OpKind"><code class="xref py py-class docutils literal notranslate"><span class="pre">OpKind</span></code></a> enumerators which are pre-defined constants
 for common operations.</p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">RawOp</span> <span class="pre">&lt;cuda.compute.op.RawOp</span></code> objects containing pre-compiled device code.</p></li>
 </ul>
-<p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">OpKind</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">_OpAdapter</span></code></p>
+<p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">OpKind</span></code> | <a class="reference internal" href="#cuda.compute.op.RawOp" title="cuda.compute.op.RawOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">RawOp</span></code></a> | <code class="xref py py-class docutils literal notranslate"><span class="pre">_OpAdapter</span></code></p>
 </dd></dl>
 
 </section>
@@ -5369,6 +5532,12 @@ for common operations.</p></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.op.OpKind.NEGATE"><code class="docutils literal notranslate"><span class="pre">NEGATE</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.op.OpKind.MINIMUM"><code class="docutils literal notranslate"><span class="pre">MINIMUM</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.op.OpKind.MAXIMUM"><code class="docutils literal notranslate"><span class="pre">MAXIMUM</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.op.RawOp"><code class="docutils literal notranslate"><span class="pre">RawOp</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.op.RawOp.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.op.RawOp.compile"><code class="docutils literal notranslate"><span class="pre">compile()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.op.RawOp.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
 </ul>
 </li>
 </ul>

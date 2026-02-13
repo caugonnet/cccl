@@ -10,7 +10,6 @@ Iterator Utilities
    classcub_1_1ArgIndexInputIterator
    classcub_1_1CacheModifiedInputIterator
    classcub_1_1CacheModifiedOutputIterator
-   classcub_1_1TexObjInputIterator
 
 .. list-table::
    :widths: 50 50
@@ -23,6 +22,4 @@ Iterator Utilities
    * - :doc:`cub::CacheModifiedInputIterator <classcub_1_1CacheModifiedInputIterator>`
      - 
    * - :doc:`cub::CacheModifiedOutputIterator <classcub_1_1CacheModifiedOutputIterator>`
-     - 
-   * - :doc:`cub::TexObjInputIterator <classcub_1_1TexObjInputIterator>`
      - 

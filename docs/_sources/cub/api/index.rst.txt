@@ -29,7 +29,6 @@ Classes
 * :doc:`cub::CacheModifiedOutputIterator <classcub_1_1CacheModifiedOutputIterator>`
 * :doc:`cub::GridQueue <classcub_1_1GridQueue>`
 * :doc:`cub::SwizzleScanOp <classcub_1_1SwizzleScanOp>`
-* :doc:`cub::TexObjInputIterator <classcub_1_1TexObjInputIterator>`
 * :doc:`cub::WarpExchange <classcub_1_1WarpExchange>`
 * :doc:`cub::WarpLoad <classcub_1_1WarpLoad>`
 * :doc:`cub::WarpMergeSort <classcub_1_1WarpMergeSort>`
@@ -170,6 +169,7 @@ Type Definitions
 ~~~~~~~~~~~~~~~~
 
 * :doc:`DispatchTransformReduce <namespacecub_1ae27130dceefcdc47f0d92a1a34d89c4d>`
+* :doc:`TexObjInputIterator <namespacecub_1a70b7d70856624fb3e76bb7775deca303>`
 
 Enumerations
 ~~~~~~~~~~~~
@@ -229,7 +229,6 @@ Enumerations
    classcub_1_1CacheModifiedOutputIterator
    classcub_1_1GridQueue
    classcub_1_1SwizzleScanOp
-   classcub_1_1TexObjInputIterator
    classcub_1_1WarpExchange
    classcub_1_1WarpLoad
    classcub_1_1WarpMergeSort
@@ -358,6 +357,7 @@ Enumerations
    namespacecub_1a896be0f0cb8ed423fb9e413143cf8e91
    namespacecub_1ad69972e79ff49330e9a69ef2cc916ea3
    namespacecub_1ae27130dceefcdc47f0d92a1a34d89c4d
+   namespacecub_1a70b7d70856624fb3e76bb7775deca303
    namespacecub_1a845ca81ef9b346ef7429a35d4fdc80d2
    namespacecub_1a4026d26205ac783e686edc635e92ea3e
    namespacecub_1a9d7e37497fdd99864c57adecda710401
