@@ -1,17 +1,10 @@
-//===----------------------------------------------------------------------===//
-//
-// Part of CUDA Experimental in CUDA C++ Core Libraries,
-// under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
-//
-//===----------------------------------------------------------------------===//
 
+#include <thrust/count.h>
 #include <thrust/device_vector.h>
 
 #include <cuda/memory_pool>
-#include <cuda/std/__pstl_algorithm>
 #include <cuda/stream>
 
 #include "nvbench_helper.cuh"
@@ -30,7 +23,7 @@ static void basic(nvbench::state& state, nvbench::type_list<T>)
   caching_allocator_t alloc{};
 
   state.exec(nvbench::exec_tag::gpu | nvbench::exec_tag::sync, [&](nvbench::launch& launch) {
-    do_not_optimize(cuda::std::count(cuda_policy(alloc, launch), in.begin(), in.end(), T{42}));
+    do_not_optimize(thrust::count(policy(alloc, launch), in.begin(), in.end(), T{42}));
   });
 }
 

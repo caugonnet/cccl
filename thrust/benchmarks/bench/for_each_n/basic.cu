@@ -1,27 +1,20 @@
-//===----------------------------------------------------------------------===//
-//
-// Part of CUDA Experimental in CUDA C++ Core Libraries,
-// under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
-//
-//===----------------------------------------------------------------------===//
 
 #include <thrust/device_vector.h>
+#include <thrust/for_each.h>
 
 #include <cuda/memory_pool>
-#include <cuda/std/__pstl_algorithm>
 #include <cuda/stream>
 
 #include "nvbench_helper.cuh"
 
-struct equal_to_42
+template <class T>
+struct square_t
 {
-  template <class T>
-  __device__ constexpr bool operator()(const T& val) const noexcept
+  __device__ void operator()(T& x) const
   {
-    return val == static_cast<T>(42);
+    x = x * x;
   }
 };
 
@@ -30,17 +23,19 @@ static void basic(nvbench::state& state, nvbench::type_list<T>)
 {
   const auto elements = static_cast<std::size_t>(state.get_int64("Elements"));
 
-  thrust::device_vector<T> in = generate(elements, bit_entropy::_1_000, T{0}, T{42});
+  thrust::device_vector<T> in(elements, T{1});
 
   state.add_element_count(elements);
   state.add_global_memory_reads<T>(elements);
   state.add_global_memory_writes<T>(elements);
 
+  square_t<T> op{};
+
   caching_allocator_t alloc{};
 
   state.exec(nvbench::exec_tag::gpu | nvbench::exec_tag::no_batch | nvbench::exec_tag::sync,
              [&](nvbench::launch& launch) {
-               cuda::std::replace_if(cuda_policy(alloc, launch), in.begin(), in.end(), equal_to_42{}, 1337);
+               thrust::for_each_n(policy(alloc, launch), in.begin(), elements, op);
              });
 }
 
