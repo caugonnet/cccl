@@ -158,7 +158,7 @@ class stf_cai:
             'typestr': self.dtype.str,     # e.g., '<f4' for float32
             'data': (self.ptr, False),     # (ptr, read-only?)
             'strides': None,               # or tuple of strides in bytes
-            'stream': self.stream,         # CUDA stream for access
+            'stream': self.stream if self.stream != 0 else None,  # CAI v3: 0 disallowed
         }
 
     def __getitem__(self, key):
@@ -528,7 +528,8 @@ cdef class task:
         return <uintptr_t>ptr
 
     def get_arg_cai(self, index):
-        """Return the argument as an stf_cai object (has __cuda_array_interface__; supports obj['data'] etc.)."""
+        """Return the argument as an stf_cai object (has __cuda_array_interface__; supports obj['data'] etc.).
+        The underlying memory is owned by the task/context; keep the task (or context) alive while using the returned view."""
         ptr = self.get_arg(index)
         return stf_cai(ptr, self._lds_args[index].shape, self._lds_args[index].dtype, stream=self.stream_ptr())
 
@@ -537,6 +538,7 @@ cdef class task:
         Return all non-token buffer arguments as stf_cai objects (have __cuda_array_interface__).
         Returns None, a single object, or a tuple. Use from non-shipped code (e.g. tests) to
         convert to numba/torch/cupy via from_cuda_array_interface or torch.as_tensor(obj).
+        Keep the task (or context) alive while any consumer uses the returned view(s).
         """
         non_token_cais = [self.get_arg_cai(i) for i in range(len(self._lds_args))
                           if not self._lds_args[i]._is_token]
