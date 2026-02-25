@@ -14,7 +14,10 @@ from __future__ import annotations
 def get_arg_numba(task, index):
     """Return one task argument as a Numba device array. task.get_arg_cai(index) returns stf_cai."""
     from numba import cuda
-    return cuda.from_cuda_array_interface(task.get_arg_cai(index), owner=None, sync=False)
+
+    return cuda.from_cuda_array_interface(
+        task.get_arg_cai(index), owner=None, sync=False
+    )
 
 
 def numba_arguments(task):
@@ -23,11 +26,14 @@ def numba_arguments(task):
     None, a single array, or a tuple of arrays.
     """
     from numba import cuda
+
     out = task.args_cai()
     if out is None:
         return None
     if isinstance(out, tuple):
-        return tuple(cuda.from_cuda_array_interface(o, owner=None, sync=False) for o in out)
+        return tuple(
+            cuda.from_cuda_array_interface(o, owner=None, sync=False) for o in out
+        )
     return cuda.from_cuda_array_interface(out, owner=None, sync=False)
 
 

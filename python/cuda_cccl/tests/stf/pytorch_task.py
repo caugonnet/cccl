@@ -14,6 +14,7 @@ from __future__ import annotations
 def tensor_arg(task, index):
     """Return one task argument as a torch.Tensor. task.get_arg_cai() returns an stf_cai (has __cuda_array_interface__)."""
     import torch
+
     return torch.as_tensor(task.get_arg_cai(index))
 
 
@@ -23,6 +24,7 @@ def tensor_arguments(task):
     None, a single tensor, or a tuple of tensors. task.args_cai() returns stf_cai object(s).
     """
     import torch
+
     out = task.args_cai()
     if out is None:
         return None
