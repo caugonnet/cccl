@@ -9,7 +9,7 @@ import pytest
 torch = pytest.importorskip("torch")
 
 import cuda.stf as stf  # noqa: E402
-from tests.stf.pytorch_task import pytorch_task  # noqa: E402
+from tests.stf.pytorch_task import pytorch_task, tensor_arg, tensor_arguments  # noqa: E402
 
 
 def test_pytorch():
@@ -26,28 +26,28 @@ def test_pytorch():
     with ctx.task(lX.rw()) as t:
         torch_stream = torch.cuda.ExternalStream(t.stream_ptr())
         with torch.cuda.stream(torch_stream):
-            tX = t.tensor_arguments()
+            tX = tensor_arguments(t)
             tX[:] = tX * 2  # In-place multiplication
 
     with ctx.task(lX.read(), lY.write()) as t:
         torch_stream = torch.cuda.ExternalStream(t.stream_ptr())
         with torch.cuda.stream(torch_stream):
-            tX = t.get_arg_as_tensor(0)
-            tY = t.get_arg_as_tensor(1)
+            tX = tensor_arg(t, 0)
+            tY = tensor_arg(t, 1)
             tY[:] = tX * 2  # Copy result into tY tensor
 
     with (
         ctx.task(lX.read(), lZ.write()) as t,
         torch.cuda.stream(torch.cuda.ExternalStream(t.stream_ptr())),
     ):
-        tX, tZ = t.tensor_arguments()  # Get tX and tZ tensors
+        tX, tZ = tensor_arguments(t)
         tZ[:] = tX * 4 + 1  # Copy result into tZ tensor
 
     with (
         ctx.task(lY.read(), lZ.rw()) as t,
         torch.cuda.stream(torch.cuda.ExternalStream(t.stream_ptr())),
     ):
-        tY, tZ = t.tensor_arguments()  # Get tY and tZ tensors
+        tY, tZ = tensor_arguments(t)
         tZ[:] = tY * 2 - 3  # Copy result into tZ tensor
 
     ctx.finalize()

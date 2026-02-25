@@ -142,7 +142,11 @@ class AccessMode(IntFlag):
     WRITE = STF_WRITE
     RW    = STF_RW
 
-class stf_arg_cai:
+class stf_cai:
+    """
+    Wrapper that exposes __cuda_array_interface__ for interop (torch, cupy, etc.).
+    Supports dict-style access (e.g. obj['data']) for code that expects a CAI dict.
+    """
     def __init__(self, ptr, tuple shape, dtype, stream=0):
         self.ptr = ptr               # integer device pointer
         self.shape = shape
@@ -156,6 +160,12 @@ class stf_arg_cai:
             'strides': None,               # or tuple of strides in bytes
             'stream': self.stream,         # CUDA stream for access
         }
+
+    def __getitem__(self, key):
+        return self.__cuda_array_interface__[key]
+
+    def get(self, key, default=None):
+        return self.__cuda_array_interface__.get(key, default)
 
 cdef class logical_data:
     cdef stf_logical_data_handle _ld
@@ -518,8 +528,9 @@ cdef class task:
         return <uintptr_t>ptr
 
     def get_arg_cai(self, index):
+        """Return the argument as an stf_cai object (has __cuda_array_interface__; supports obj['data'] etc.)."""
         ptr = self.get_arg(index)
-        return stf_arg_cai(ptr, self._lds_args[index].shape, self._lds_args[index].dtype, stream=self.stream_ptr()).__cuda_array_interface__
+        return stf_cai(ptr, self._lds_args[index].shape, self._lds_args[index].dtype, stream=self.stream_ptr())
 
     def get_arg_numba(self, index):
         cai = self.get_arg_cai(index)
@@ -527,7 +538,7 @@ cdef class task:
             from cuda.stf._adapters.numba_bridge import cai_to_numba
         except Exception as e:
             raise RuntimeError("numba support is not available") from e
-        return cai_to_numba(cai)
+        return cai_to_numba(cai.__cuda_array_interface__)
 
     def numba_arguments(self):
         # Only include non-token arguments in the tuple
@@ -540,24 +551,20 @@ cdef class task:
             return non_token_args[0]
         return tuple(non_token_args)
 
-    def get_arg_as_tensor(self, index):
-        cai = self.get_arg_cai(index)
-        try:
-            from cuda.stf._adapters.torch_bridge import cai_to_torch
-        except Exception as e:
-            raise RuntimeError("PyTorch support is not available") from e
-        return cai_to_torch(cai)
-
-    def tensor_arguments(self):
-        # Only include non-token arguments in the tuple
-        non_token_args = [self.get_arg_as_tensor(i) for i in range(len(self._lds_args))
+    def args_cai(self):
+        """
+        Return all non-token buffer arguments as stf_cai objects (have __cuda_array_interface__).
+        Returns None, a single object, or a tuple (same shape as numba_arguments).
+        Use from non-shipped code (e.g. tests) to convert to torch/cupy via torch.as_tensor(obj).
+        """
+        non_token_cais = [self.get_arg_cai(i) for i in range(len(self._lds_args))
                           if not self._lds_args[i]._is_token]
 
-        if len(non_token_args) == 0:
+        if len(non_token_cais) == 0:
             return None
-        elif len(non_token_args) == 1:
-            return non_token_args[0]
-        return tuple(non_token_args)
+        elif len(non_token_cais) == 1:
+            return non_token_cais[0]
+        return tuple(non_token_cais)
 
     # ---- context‑manager helpers -------------------------------
     def __enter__(self):

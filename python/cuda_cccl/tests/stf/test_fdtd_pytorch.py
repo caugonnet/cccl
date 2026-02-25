@@ -12,6 +12,7 @@ torch = pytest.importorskip("torch")
 import torch.cuda as tc  # noqa: E402
 
 import cuda.stf as stf  # noqa: E402
+from tests.stf.pytorch_task import tensor_arguments  # noqa: E402
 
 try:
     import matplotlib.pyplot as plt
@@ -125,7 +126,7 @@ def test_fdtd_3d_pytorch(
             ctx.task(lex.rw(), lhy.read(), lhz.read(), lepsilon.read()) as t,
             tc.stream(tc.ExternalStream(t.stream_ptr())),
         ):
-            ex, hy, hz, epsilon = t.tensor_arguments()
+            ex, hy, hz, epsilon = tensor_arguments(t)
             ex[i_es, j_es, k_es] = ex[i_es, j_es, k_es] + (
                 dt / (epsilon[i_es, j_es, k_es] * dx)
             ) * (
@@ -138,7 +139,7 @@ def test_fdtd_3d_pytorch(
             ctx.task(ley.rw(), lhx.read(), lhz.read(), lepsilon.read()) as t,
             tc.stream(tc.ExternalStream(t.stream_ptr())),
         ):
-            ey, hx, hz, epsilon = t.tensor_arguments()
+            ey, hx, hz, epsilon = tensor_arguments(t)
             ey[i_es, j_es, k_es] = ey[i_es, j_es, k_es] + (
                 dt / (epsilon[i_es, j_es, k_es] * dy)
             ) * (
@@ -151,7 +152,7 @@ def test_fdtd_3d_pytorch(
             ctx.task(lez.rw(), lhx.read(), lhy.read(), lepsilon.read()) as t,
             tc.stream(tc.ExternalStream(t.stream_ptr())),
         ):
-            ez, hx, hy, epsilon = t.tensor_arguments()
+            ez, hx, hy, epsilon = tensor_arguments(t)
             ez[i_es, j_es, k_es] = ez[i_es, j_es, k_es] + (
                 dt / (epsilon[i_es, j_es, k_es] * dz)
             ) * (
@@ -164,7 +165,7 @@ def test_fdtd_3d_pytorch(
             ctx.task(lez.rw()) as t,
             tc.stream(tc.ExternalStream(t.stream_ptr())),
         ):
-            ez = t.tensor_arguments()
+            ez = tensor_arguments(t)
             ez[cx, cy, cz] = ez[cx, cy, cz] + source(n * dt, cx * dx, cy * dy, cz * dz)
 
         # -------------------------
@@ -174,7 +175,7 @@ def test_fdtd_3d_pytorch(
             ctx.task(lhx.rw(), ley.read(), lez.read(), lmu.read()) as t,
             tc.stream(tc.ExternalStream(t.stream_ptr())),
         ):
-            hx, ey, ez, mu = t.tensor_arguments()
+            hx, ey, ez, mu = tensor_arguments(t)
             hx[i_hs, j_hs, k_hs] = hx[i_hs, j_hs, k_hs] - (
                 dt / (mu[i_hs, j_hs, k_hs] * dy)
             ) * (
@@ -187,7 +188,7 @@ def test_fdtd_3d_pytorch(
             ctx.task(lhy.rw(), lex.read(), lez.read(), lmu.read()) as t,
             tc.stream(tc.ExternalStream(t.stream_ptr())),
         ):
-            hy, ex, ez, mu = t.tensor_arguments()
+            hy, ex, ez, mu = tensor_arguments(t)
             hy[i_hs, j_hs, k_hs] = hy[i_hs, j_hs, k_hs] - (
                 dt / (mu[i_hs, j_hs, k_hs] * dz)
             ) * (
@@ -200,7 +201,7 @@ def test_fdtd_3d_pytorch(
             ctx.task(lhz.rw(), lex.read(), ley.read(), lmu.read()) as t,
             tc.stream(tc.ExternalStream(t.stream_ptr())),
         ):
-            hz, ex, ey, mu = t.tensor_arguments()
+            hz, ex, ey, mu = tensor_arguments(t)
             hz[i_hs, j_hs, k_hs] = hz[i_hs, j_hs, k_hs] - (
                 dt / (mu[i_hs, j_hs, k_hs] * dx)
             ) * (
@@ -213,7 +214,7 @@ def test_fdtd_3d_pytorch(
                 ctx.task(lez.read()) as t,
                 tc.stream(tc.ExternalStream(t.stream_ptr())),
             ):
-                ez = t.tensor_arguments()
+                ez = tensor_arguments(t)
                 print(f"{n}\t{ez[cx, cy, cz].item():.6e}")
                 if has_matplotlib:
                     show_slice(ez, plane="xy")

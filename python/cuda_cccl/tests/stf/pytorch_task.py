@@ -4,17 +4,37 @@
 
 """
 PyTorch-integrated task context manager for STF tests/examples.
-Not shipped in the wheel. Use pytorch_task(ctx, *deps) for automatic
-PyTorch stream handling and tensor unpacking. Requires PyTorch.
+Not shipped in the wheel. Uses task.args_cai() (CAI from cuda.stf), converts to
+torch.Tensor here so cuda.stf has no PyTorch dependency. Requires PyTorch.
 """
 
 from __future__ import annotations
 
 
+def tensor_arg(task, index):
+    """Return one task argument as a torch.Tensor. task.get_arg_cai() returns an stf_cai (has __cuda_array_interface__)."""
+    import torch
+    return torch.as_tensor(task.get_arg_cai(index))
+
+
+def tensor_arguments(task):
+    """
+    Return all task buffer arguments as torch.Tensors. Same shape as task.args_cai():
+    None, a single tensor, or a tuple of tensors. task.args_cai() returns stf_cai object(s).
+    """
+    import torch
+    out = task.args_cai()
+    if out is None:
+        return None
+    if isinstance(out, tuple):
+        return tuple(torch.as_tensor(o) for o in out)
+    return torch.as_tensor(out)
+
+
 def pytorch_task(ctx, *args):
     """
     Context manager: ctx.task(*args) with PyTorch stream and tensor conversion.
-    Yields tensor(s) from task.tensor_arguments() as a tuple.
+    Yields tensor(s) from task.args_cai() converted to torch, as a tuple.
 
     Example
     -------
@@ -45,7 +65,7 @@ def pytorch_task(ctx, *args):
             except Exception:
                 t.end()
                 raise
-            tensors = t.tensor_arguments()
+            tensors = tensor_arguments(t)
             if tensors is None:
                 return None
             if isinstance(tensors, tuple):
@@ -61,3 +81,6 @@ def pytorch_task(ctx, *args):
             return False
 
     return _PyTorchTaskContext()
+
+
+__all__ = ["pytorch_task", "tensor_arg", "tensor_arguments"]
