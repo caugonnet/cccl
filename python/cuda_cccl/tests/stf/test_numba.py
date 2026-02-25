@@ -9,7 +9,7 @@ import pytest
 from numba import cuda
 
 import cuda.stf as stf
-from tests.stf.numba_helpers import get_arg_numba, numba_arguments
+from .numba_helpers import get_arg_numba, numba_arguments
 
 numba.cuda.config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
 
@@ -241,6 +241,12 @@ def test_numba_places():
         dY = get_arg_numba(t, 0)
         dZ = get_arg_numba(t, 1)
         axpy[32, 64, nb_stream](2.0, dY, dZ)
+
+    ctx.finalize()
+    # Same expected values as test_numba (X=2, Y=5, Z=15) with multi-GPU placement
+    assert np.allclose(X, 2.0)
+    assert np.allclose(Y, 5.0)
+    assert np.allclose(Z, 15.0)
 
 
 if __name__ == "__main__":

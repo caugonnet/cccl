@@ -7,7 +7,7 @@ import numpy as np
 from numba import cuda
 
 import cuda.stf as stf
-from tests.stf.numba_helpers import get_arg_numba, numba_arguments
+from .numba_helpers import get_arg_numba, numba_arguments
 
 numba.cuda.config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
 
@@ -63,7 +63,6 @@ def test_numba_token():
 
     with ctx.task(lX.read(), lY.rw(), token.rw()) as t:
         nb_stream = cuda.external_stream(t.stream_ptr())
-        print(nb_stream)
         dX, dY = numba_arguments(t)
         axpy[blocks, threads_per_block, nb_stream](2.0, dX, dY)
 

@@ -8,10 +8,10 @@ import numba
 from numba import cuda
 
 import cuda.stf as stf
-from tests.stf.numba_decorator import jit
-from tests.stf.numba_helpers import numba_arguments
+from .numba_decorator import jit
+from .numba_helpers import numba_arguments
 
-numba.config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
+numba.cuda.config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
 
 
 class Plaintext:
