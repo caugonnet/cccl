@@ -11,6 +11,7 @@ import pytest
 torch = pytest.importorskip("torch")
 
 import cuda.stf as stf  # noqa: E402
+from tests.stf.pytorch_task import pytorch_task  # noqa: E402
 
 try:
     import matplotlib.pyplot as plt
@@ -124,7 +125,7 @@ def test_fdtd_3d_pytorch_simplified(
         # -------------------------
         # update electric fields (Es)
         # Ex(i,j,k) += (dt/(ε*dx)) * [(Hz(i,j,k)-Hz(i,j-1,k)) - (Hy(i,j,k)-Hy(i,j,k-1))]
-        with ctx.pytorch_task(lex.rw(), lhy.read(), lhz.read(), lepsilon.read()) as (
+        with pytorch_task(ctx, lex.rw(), lhy.read(), lhz.read(), lepsilon.read()) as (
             ex,
             hy,
             hz,
@@ -138,7 +139,7 @@ def test_fdtd_3d_pytorch_simplified(
             )
 
         # Ey(i,j,k) += (dt/(ε*dy)) * [(Hx(i,j,k)-Hx(i,j,k-1)) - (Hz(i,j,k)-Hz(i-1,j,k))]
-        with ctx.pytorch_task(ley.rw(), lhx.read(), lhz.read(), lepsilon.read()) as (
+        with pytorch_task(ctx, ley.rw(), lhx.read(), lhz.read(), lepsilon.read()) as (
             ey,
             hx,
             hz,
@@ -152,7 +153,7 @@ def test_fdtd_3d_pytorch_simplified(
             )
 
         # Ez(i,j,k) += (dt/(ε*dz)) * [(Hy(i,j,k)-Hy(i-1,j,k)) - (Hx(i,j,k)-Hx(i,j-1,k))]
-        with ctx.pytorch_task(lez.rw(), lhx.read(), lhy.read(), lepsilon.read()) as (
+        with pytorch_task(ctx, lez.rw(), lhx.read(), lhy.read(), lepsilon.read()) as (
             ez,
             hx,
             hy,
@@ -166,13 +167,13 @@ def test_fdtd_3d_pytorch_simplified(
             )
 
         # source at center cell
-        with ctx.pytorch_task(lez.rw()) as (ez,):
+        with pytorch_task(ctx, lez.rw()) as (ez,):
             ez[cx, cy, cz] = ez[cx, cy, cz] + source(n * dt, cx * dx, cy * dy, cz * dz)
 
         # -------------------------
         # update magnetic fields (Hs)
         # Hx(i,j,k) -= (dt/(μ*dy)) * [(Ez(i,j+1,k)-Ez(i,j,k)) - (Ey(i,j,k+1)-Ey(i,j,k))]
-        with ctx.pytorch_task(lhx.rw(), ley.read(), lez.read(), lmu.read()) as (
+        with pytorch_task(ctx, lhx.rw(), ley.read(), lez.read(), lmu.read()) as (
             hx,
             ey,
             ez,
@@ -186,7 +187,7 @@ def test_fdtd_3d_pytorch_simplified(
             )
 
         # Hy(i,j,k) -= (dt/(μ*dz)) * [(Ex(i,j,k+1)-Ex(i,j,k)) - (Ez(i+1,j,k)-Ez(i,j,k))]
-        with ctx.pytorch_task(lhy.rw(), lex.read(), lez.read(), lmu.read()) as (
+        with pytorch_task(ctx, lhy.rw(), lex.read(), lez.read(), lmu.read()) as (
             hy,
             ex,
             ez,
@@ -200,7 +201,7 @@ def test_fdtd_3d_pytorch_simplified(
             )
 
         # Hz(i,j,k) -= (dt/(μ*dx)) * [(Ey(i+1,j,k)-Ey(i,j,k)) - (Ex(i,j+1,k)-Ex(i,j,k))]
-        with ctx.pytorch_task(lhz.rw(), lex.read(), ley.read(), lmu.read()) as (
+        with pytorch_task(ctx, lhz.rw(), lex.read(), ley.read(), lmu.read()) as (
             hz,
             ex,
             ey,
@@ -214,7 +215,7 @@ def test_fdtd_3d_pytorch_simplified(
             )
 
         if output_freq > 0 and (n % output_freq) == 0:
-            with ctx.pytorch_task(lez.read()) as (ez,):
+            with pytorch_task(ctx, lez.read()) as (ez,):
                 print(f"{n}\t{ez[cx, cy, cz].item():.6e}")
                 if has_matplotlib:
                     show_slice(ez, plane="xy")

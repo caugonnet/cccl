@@ -9,6 +9,7 @@ import pytest
 torch = pytest.importorskip("torch")
 
 import cuda.stf as stf  # noqa: E402
+from tests.stf.pytorch_task import pytorch_task  # noqa: E402
 
 
 def test_pytorch():
@@ -81,19 +82,19 @@ def test_pytorch_task():
     # Equivalent operations to test_pytorch() but using pytorch_task syntax
 
     # In-place multiplication using pytorch_task (single tensor)
-    with ctx.pytorch_task(lX.rw()) as (tX,):
+    with pytorch_task(ctx, lX.rw()) as (tX,):
         tX[:] = tX * 2
 
     # Copy and multiply using pytorch_task (multiple tensors)
-    with ctx.pytorch_task(lX.read(), lY.write()) as (tX, tY):
+    with pytorch_task(ctx, lX.read(), lY.write()) as (tX, tY):
         tY[:] = tX * 2
 
     # Another operation combining tensors
-    with ctx.pytorch_task(lX.read(), lZ.write()) as (tX, tZ):
+    with pytorch_task(ctx, lX.read(), lZ.write()) as (tX, tZ):
         tZ[:] = tX * 4 + 1
 
     # Final operation with read-write access
-    with ctx.pytorch_task(lY.read(), lZ.rw()) as (tY, tZ):
+    with pytorch_task(ctx, lY.read(), lZ.rw()) as (tY, tZ):
         tZ[:] = tY * 2 - 3
 
     ctx.finalize()
