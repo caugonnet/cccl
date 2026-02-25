@@ -789,7 +789,7 @@ cdef class context:
 
         # Initialize with the specified value (cuda.core.Buffer.fill; CuPy/Numba fallback for 8-byte)
         try:
-            from cuda.stf._adapters.numba_utils import init_logical_data
+            from cuda.stf.fill_utils import init_logical_data
             init_logical_data(self, ld, fill_value, where, exec_place)
         except ImportError as e:
             raise RuntimeError("Fill support (cuda.core) is not available for logical_data_full") from e

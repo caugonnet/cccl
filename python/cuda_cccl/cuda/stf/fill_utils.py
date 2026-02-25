@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 """
-Utilities for STF operations (cuda.core fill for logical data init; CuPy/Numba fallback for 8-byte).
+Fill / init for STF logical data (cuda.core.Buffer.fill; CuPy/Numba fallback for 8-byte).
 """
 
 import numpy as np
