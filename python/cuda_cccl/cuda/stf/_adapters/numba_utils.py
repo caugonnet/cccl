@@ -3,15 +3,20 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 """
-Utilities for NUMBA-based STF operations.
+Utilities for STF operations (cuda.core fill for logical data init; CuPy/Numba fallback for 8-byte).
 """
 
-from numba import cuda
+import numpy as np
+
+from cuda.core import Buffer, Stream
 
 
 def init_logical_data(ctx, ld, value, data_place=None, exec_place=None):
     """
-    Initialize a logical data with a constant value using CuPy's optimized fill.
+    Initialize a logical data with a constant value.
+
+    Uses cuda.core.Buffer.fill for 1/2/4-byte element types. For 8-byte types
+    (e.g. float64, int64), falls back to CuPy if available, else a Numba kernel.
 
     Parameters
     ----------
@@ -36,55 +41,96 @@ def init_logical_data(ctx, ld, value, data_place=None, exec_place=None):
     task_args.append(dep_arg)
 
     with ctx.task(*task_args) as t:
-        # Get the array as a numba device array
-        nb_stream = cuda.external_stream(t.stream_ptr())
-        array = t.numba_arguments()
+        # Logical data index: 1 if exec_place was passed, else 0
+        ld_index = 1 if exec_place is not None else 0
+        cai = t.get_arg_cai(ld_index)
+        ptr = cai["data"][0]
+        shape = tuple(cai["shape"])
+        dtype = np.dtype(cai["typestr"])
+        size = int(np.prod(shape)) * dtype.itemsize
 
-        try:
-            # Use CuPy's optimized operations (much faster than custom kernels)
-            import cupy as cp
+        core_stream = Stream.from_handle(t.stream_ptr())
+        buf = Buffer.from_handle(ptr, size, owner=None)
 
-            with cp.cuda.Stream(nb_stream):
-                cp_view = cp.asarray(array)
-                if value == 0 or value == 0.0:
-                    # Use CuPy's potentially optimized zero operation
-                    cp_view.fill(0)  # CuPy may have special optimizations for zero
-                else:
-                    # Use generic fill for non-zero values
-                    cp_view.fill(value)
-        except ImportError:
-            # Fallback to simple kernel if CuPy not available
-            _fill_with_simple_kernel(array, value, nb_stream)
-
-
-@cuda.jit
-def _fill_kernel_fallback(array, value):
-    """Fallback 1D kernel when CuPy is not available."""
-    idx = cuda.grid(1)
-    if idx < array.size:
-        array.flat[idx] = value
+        if dtype.itemsize in (1, 2, 4):
+            # cuda.core.Buffer.fill supports int [0,256) or 1/2/4-byte pattern
+            if value == 0 or value == 0.0:
+                fill_val = 0
+            else:
+                fill_val = np.array([value], dtype=dtype).tobytes()
+            buf.fill(fill_val, stream=core_stream)
+        else:
+            # 8-byte or other: CuPy if available, else Numba kernel
+            _fill_large_element(shape, dtype, value, ptr, size, t.stream_ptr())
 
 
-@cuda.jit
-def _zero_kernel_fallback(array):
-    """Optimized fallback kernel for zero-filling when CuPy is not available."""
-    idx = cuda.grid(1)
-    if idx < array.size:
-        array.flat[idx] = 0
+def _fill_large_element(shape, dtype, value, ptr, size, stream_ptr):
+    """Fill buffer when element size is not 1/2/4 bytes (e.g. float64)."""
+    try:
+        import cupy as cp
+
+        mem = cp.cuda.UnownedMemory(ptr, size, owner=None)
+        memptr = cp.cuda.MemoryPointer(mem, 0)
+        arr = cp.ndarray(shape, dtype=dtype, memptr=memptr)
+        with cp.cuda.ExternalStream(stream_ptr):
+            arr.fill(value)
+    except ImportError:
+        # Fallback: Numba kernel when CuPy unavailable
+        from numba import cuda
+
+        nb_stream = cuda.external_stream(stream_ptr)
+        array = cuda.from_cuda_array_interface(
+            {
+                "data": (ptr, False),
+                "shape": shape,
+                "typestr": dtype.str,
+                "version": 2,
+            },
+            owner=None,
+            sync=False,
+        )
+        _fill_with_simple_kernel(array, value, nb_stream)
+
+
+def _make_fill_kernels():
+    """Build Numba JIT kernels only when needed (lazy)."""
+    from numba import cuda
+
+    @cuda.jit
+    def _fill_kernel_fallback(array, value):
+        idx = cuda.grid(1)
+        if idx < array.size:
+            array.flat[idx] = value
+
+    @cuda.jit
+    def _zero_kernel_fallback(array):
+        idx = cuda.grid(1)
+        if idx < array.size:
+            array.flat[idx] = 0
+
+    return _fill_kernel_fallback, _zero_kernel_fallback
+
+
+_fill_kernel_fallback = None
+_zero_kernel_fallback = None
+
+
+def _get_fill_kernels():
+    global _fill_kernel_fallback, _zero_kernel_fallback
+    if _fill_kernel_fallback is None:
+        _fill_kernel_fallback, _zero_kernel_fallback = _make_fill_kernels()
+    return _fill_kernel_fallback, _zero_kernel_fallback
 
 
 def _fill_with_simple_kernel(array, value, stream):
-    """Fallback method using simple NUMBA kernel when CuPy unavailable."""
+    """Fallback using a Numba JIT kernel (8-byte types when CuPy unavailable)."""
+    fill_kernel, zero_kernel = _get_fill_kernels()
     total_size = array.size
     threads_per_block = 256
     blocks_per_grid = (total_size + threads_per_block - 1) // threads_per_block
 
     if value == 0 or value == 0.0:
-        # Use the specialized zero kernel for potentially better performance
-        _zero_kernel_fallback[blocks_per_grid, threads_per_block, stream](array)
+        zero_kernel[blocks_per_grid, threads_per_block, stream](array)
     else:
-        # Use generic fill kernel for non-zero values
         typed_value = array.dtype.type(value)
-        _fill_kernel_fallback[blocks_per_grid, threads_per_block, stream](
-            array, typed_value
-        )
+        fill_kernel[blocks_per_grid, threads_per_block, stream](array, typed_value)

@@ -787,13 +787,12 @@ cdef class context:
         # Create empty logical data
         ld = self.logical_data_empty(shape, dtype, name)
 
-        # Initialize with the specified value using NUMBA
-        # The numba code already handles None properly by calling ld.write() without data place
+        # Initialize with the specified value (cuda.core.Buffer.fill; CuPy/Numba fallback for 8-byte)
         try:
             from cuda.stf._adapters.numba_utils import init_logical_data
             init_logical_data(self, ld, fill_value, where, exec_place)
         except ImportError as e:
-            raise RuntimeError("NUMBA support is not available for logical_data_full") from e
+            raise RuntimeError("Fill support (cuda.core) is not available for logical_data_full") from e
 
         return ld
 
