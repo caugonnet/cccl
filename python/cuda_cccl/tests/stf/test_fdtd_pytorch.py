@@ -12,6 +12,7 @@ torch = pytest.importorskip("torch")
 import torch.cuda as tc  # noqa: E402
 
 import cuda.stf as stf  # noqa: E402
+
 from .pytorch_task import tensor_arguments  # noqa: E402
 
 try:

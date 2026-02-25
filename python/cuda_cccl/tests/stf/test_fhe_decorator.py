@@ -8,6 +8,7 @@ import numba
 from numba import cuda
 
 import cuda.stf as stf
+
 from .numba_decorator import jit
 from .numba_helpers import numba_arguments
 
