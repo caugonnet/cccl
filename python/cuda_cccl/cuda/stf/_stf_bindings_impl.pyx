@@ -532,30 +532,11 @@ cdef class task:
         ptr = self.get_arg(index)
         return stf_cai(ptr, self._lds_args[index].shape, self._lds_args[index].dtype, stream=self.stream_ptr())
 
-    def get_arg_numba(self, index):
-        cai = self.get_arg_cai(index)
-        try:
-            from cuda.stf._adapters.numba_bridge import cai_to_numba
-        except Exception as e:
-            raise RuntimeError("numba support is not available") from e
-        return cai_to_numba(cai.__cuda_array_interface__)
-
-    def numba_arguments(self):
-        # Only include non-token arguments in the tuple
-        non_token_args = [self.get_arg_numba(i) for i in range(len(self._lds_args))
-                          if not self._lds_args[i]._is_token]
-
-        if len(non_token_args) == 0:
-            return None
-        elif len(non_token_args) == 1:
-            return non_token_args[0]
-        return tuple(non_token_args)
-
     def args_cai(self):
         """
         Return all non-token buffer arguments as stf_cai objects (have __cuda_array_interface__).
-        Returns None, a single object, or a tuple (same shape as numba_arguments).
-        Use from non-shipped code (e.g. tests) to convert to torch/cupy via torch.as_tensor(obj).
+        Returns None, a single object, or a tuple. Use from non-shipped code (e.g. tests) to
+        convert to numba/torch/cupy via from_cuda_array_interface or torch.as_tensor(obj).
         """
         non_token_cais = [self.get_arg_cai(i) for i in range(len(self._lds_args))
                           if not self._lds_args[i]._is_token]

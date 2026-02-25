@@ -8,6 +8,7 @@ import numba
 from numba import cuda
 
 import cuda.stf as stf
+from tests.stf.numba_helpers import numba_arguments
 
 numba.config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
 
@@ -32,7 +33,7 @@ class Plaintext:
         ) as t:
             nb_stream = cuda.external_stream(t.stream_ptr())
             nb_stream.synchronize()
-            hvalues = t.numba_arguments()
+            hvalues = numba_arguments(t)
             print([v for v in hvalues])
 
 
@@ -119,7 +120,7 @@ def test_fhe_decorator():
     ) as t:
         nb_stream = cuda.external_stream(t.stream_ptr())
         nb_stream.synchronize()
-        hvalues = t.numba_arguments()
+        hvalues = numba_arguments(t)
         actual = [int(v) for v in hvalues]
 
     ctx.finalize()

@@ -72,7 +72,10 @@ class stf_kernel_decorator:
         with ctx.task(*task_args) as t:
             dev_args = list(args)
             for dep_index, (pos, _) in enumerate(dep_items):
-                dev_args[pos] = t.get_arg_numba(dep_index)
+                cai = t.get_arg_cai(dep_index)
+                dev_args[pos] = cuda.from_cuda_array_interface(
+                    cai.__cuda_array_interface__, owner=None, sync=False
+                )
 
             if self._compiled_kernel is None:
                 self._compiled_kernel = cuda.jit(*self._jit_args, **self._jit_kwargs)(

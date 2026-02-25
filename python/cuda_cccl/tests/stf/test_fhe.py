@@ -8,6 +8,7 @@ import numba
 from numba import cuda
 
 import cuda.stf as stf
+from tests.stf.numba_helpers import numba_arguments
 
 numba.config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
 
@@ -32,7 +33,7 @@ class Plaintext:
         ) as t:
             nb_stream = cuda.external_stream(t.stream_ptr())
             nb_stream.synchronize()
-            hvalues = t.numba_arguments()
+            hvalues = numba_arguments(t)
             print([v for v in hvalues])
 
 
@@ -73,7 +74,7 @@ class Ciphertext:
         result = self.empty_like()
         with self.ctx.task(self.l.read(), other.l.read(), result.l.write()) as t:
             nb_stream = cuda.external_stream(t.stream_ptr())
-            da, db, dresult = t.numba_arguments()
+            da, db, dresult = numba_arguments(t)
             add_kernel[32, 16, nb_stream](da, db, dresult)
         return result
 
@@ -83,7 +84,7 @@ class Ciphertext:
         result = self.empty_like()
         with self.ctx.task(self.l.read(), other.l.read(), result.l.write()) as t:
             nb_stream = cuda.external_stream(t.stream_ptr())
-            da, db, dresult = t.numba_arguments()
+            da, db, dresult = numba_arguments(t)
             sub_kernel[32, 16, nb_stream](da, db, dresult)
         return result
 
@@ -93,7 +94,7 @@ class Ciphertext:
         total_key = (num_operands * self.key) & 0xFF
         with self.ctx.task(self.l.read(), result.l.write()) as t:
             nb_stream = cuda.external_stream(t.stream_ptr())
-            da, dresult = t.numba_arguments()
+            da, dresult = numba_arguments(t)
             sub_scalar_kernel[32, 16, nb_stream](da, dresult, total_key)
         return Plaintext(self.ctx, ld=result.l, key=self.key)
 
@@ -128,7 +129,7 @@ def test_fhe():
     ) as t:
         nb_stream = cuda.external_stream(t.stream_ptr())
         nb_stream.synchronize()
-        hvalues = t.numba_arguments()
+        hvalues = numba_arguments(t)
         actual = [int(v) for v in hvalues]
 
     ctx.finalize()
