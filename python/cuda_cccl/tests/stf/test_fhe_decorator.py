@@ -8,6 +8,7 @@ import numba
 from numba import cuda
 
 import cuda.stf as stf
+from tests.stf.numba_decorator import jit
 from tests.stf.numba_helpers import numba_arguments
 
 numba.config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
@@ -37,21 +38,21 @@ class Plaintext:
             print([v for v in hvalues])
 
 
-@stf.jit
+@jit
 def add_kernel(a, b, out):
     i = cuda.grid(1)
     if i < out.size:
         out[i] = (a[i] + b[i]) & 0xFF
 
 
-@stf.jit
+@jit
 def sub_kernel(a, b, out):
     i = cuda.grid(1)
     if i < out.size:
         out[i] = (a[i] - b[i]) & 0xFF
 
 
-@stf.jit
+@jit
 def sub_scalar_kernel(a, out, v):
     i = cuda.grid(1)
     if i < out.size:
@@ -99,7 +100,7 @@ def circuit(a, b):
 
 
 def test_fhe_decorator():
-    """Test FHE using @stf.jit decorators with addition encryption."""
+    """Test FHE using @jit (numba_decorator) with addition encryption."""
     ctx = stf.context(use_graph=False)
 
     vA = [3, 3, 2, 2, 17]

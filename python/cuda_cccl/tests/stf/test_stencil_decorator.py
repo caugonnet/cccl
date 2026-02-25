@@ -7,11 +7,12 @@ import numpy as np
 from numba import cuda
 
 import cuda.stf as stf
+from tests.stf.numba_decorator import jit
 
 numba.config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
 
 
-@stf.jit
+@jit
 def laplacian_5pt_kernel(u_in, u_out, dx, dy):
     """
     Compute a 5?~@~Qpoint Laplacian on u_in and write the result to u_out.
