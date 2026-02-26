@@ -11,14 +11,10 @@
 #
 # 2. Preload `nvrtc` and `nvJitLink` before importing the extension (indirect
 #   dependencies via cccl.c.parallel / cccl.c.experimental.stf).
-#
-# 3. On Windows, add the directory containing the extension's dependent DLLs
-#   (cuda/stf/<cuXX>/cccl/) to the process DLL search path via os.add_dll_directory.
 
 from __future__ import annotations
 
 import importlib
-import os
 
 from cuda.cccl._cuda_version_utils import detect_cuda_version, get_recommended_extra
 from cuda.pathfinder import (  # type: ignore[import-not-found]
@@ -60,13 +56,13 @@ if cuda_version not in [12, 13]:
         f"Unsupported CUDA version: {cuda_version}. Only CUDA 12 and 13 are supported."
     )
 
+extra_name = get_recommended_extra(cuda_version)
+module_suffix = f".{extra_name}._stf_bindings_impl"
+
 _BINDINGS_AVAILABLE = False
 
 try:
-    extra_name = get_recommended_extra(cuda_version)
-    bindings_module = importlib.import_module(
-        f".{extra_name}._stf_bindings_impl", __package__
-    )
+    bindings_module = importlib.import_module(module_suffix, __package__)
     # Import all symbols from the module
     globals().update(bindings_module.__dict__)
     _BINDINGS_AVAILABLE = True
