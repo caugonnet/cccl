@@ -1,24 +1,24 @@
 # Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
-# _bindings.py is a shim module that imports symbols from a
-# _bindings_impl extension module. The shim serves two purposes:
+# _stf_bindings.py is a shim module that imports symbols from a
+# _stf_bindings_impl extension module. The shim serves the same purposes as
+# cuda.compute._bindings:
 #
-# 1. Import a CUDA-specific extension. The cuda.cccl wheel ships with multiple
-#   extensions, one for each CUDA version. At runtime, this shim chooses the
-#   appropriate extension based on the detected CUDA version, and imports all
-#   symbols from it.
+# 1. Import a CUDA-specific extension. The wheel ships cuda/stf/cu12/ and
+#   cuda/stf/cu13/; at runtime this shim chooses based on the detected CUDA
+#   version and imports all symbols from the matching extension.
 #
-# 2. Preload `nvrtc` and `nvJitLink` before importing the extension.
-#   These shared libraries are indirect dependencies, pulled in via the direct
-#   dependency `cccl.c.parallel`. To ensure reliable symbol resolution at
-#   runtime, we explicitly load them first using `cuda.pathfinder`.
-#   Without this step, importing the Cython extension directly may fail or behave
-#   inconsistently depending on environment setup and dynamic linker behavior.
-#   This indirection ensures the right loading order, regardless of how
-#   `_bindings` is first imported across the codebase.
+# 2. Preload `nvrtc` and `nvJitLink` before importing the extension (indirect
+#   dependencies via cccl.c.parallel / cccl.c.experimental.stf).
+#
+# 3. On Windows, add the directory containing the extension's dependent DLLs
+#   (cuda/stf/<cuXX>/cccl/) to the process DLL search path via os.add_dll_directory.
+
+from __future__ import annotations
 
 import importlib
+import os
 
 from cuda.cccl._cuda_version_utils import detect_cuda_version, get_recommended_extra
 from cuda.pathfinder import (  # type: ignore[import-not-found]
