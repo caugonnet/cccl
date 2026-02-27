@@ -11,19 +11,21 @@
 /**
  * @file
  *
- * @brief Example: Thrust device_vector with an allocator that takes a data_place.
+ * @brief Example: Thrust device_vector with an allocator backed by a data_place.
+ *        Uses thrust::mr::memory_resource to wrap data_place, then
+ *        thrust::mr::allocator to create a compatible allocator.
  *        Storage is allocated via data_place::allocate (device, composite/VMM,
- *        or other place types). The data_place_allocator class is defined in
- *        this example only.
+ *        or other place types).
  */
 
 #include <thrust/copy.h>
 #include <thrust/device_ptr.h>
-#include <thrust/device_reference.h>
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
 #include <thrust/host_vector.h>
 #include <thrust/iterator/counting_iterator.h>
+#include <thrust/mr/allocator.h>
+#include <thrust/mr/memory_resource.h>
 #include <thrust/transform.h>
 
 #include <cuda/experimental/__stf/places/blocked_partition.cuh>
@@ -31,93 +33,48 @@
 #include <cuda/experimental/stf.cuh>
 
 #include <iostream>
-#include <limits>
 
 using namespace cuda::experimental::stf;
 
-// Thrust device allocator that delegates to a data_place.
-template <typename T>
-class data_place_allocator
+// Thrust memory resource that delegates to a data_place.
+class data_place_memory_resource final : public thrust::mr::memory_resource<thrust::device_ptr<void>>
 {
 public:
-  using value_type      = T;
-  using pointer         = thrust::device_ptr<T>;
-  using const_pointer   = thrust::device_ptr<const T>;
-  using reference       = thrust::device_reference<T>;
-  using const_reference = thrust::device_reference<const T>;
-  using size_type       = ::std::size_t;
-  using difference_type = ::std::ptrdiff_t;
-
-  template <typename U>
-  struct rebind
-  {
-    using other = data_place_allocator<U>;
-  };
-
-  explicit data_place_allocator(const data_place& place)
+  explicit data_place_memory_resource(const data_place& place)
       : place_(place)
   {}
 
-  data_place_allocator() = default;
-
-  template <typename U>
-  data_place_allocator(const data_place_allocator<U>& other)
-      : place_(other.place_)
-  {}
-
-  pointer allocate(size_type cnt, const_pointer = const_pointer(static_cast<T*>(nullptr)))
+  pointer do_allocate(std::size_t bytes, std::size_t /*alignment*/) override
   {
-    if (cnt == 0)
-    {
-      return pointer(nullptr);
-    }
-    if (cnt > max_size())
-    {
-      ::cuda::std::__throw_bad_alloc();
-    }
-    const size_type size_bytes = cnt * sizeof(T);
-    void* raw                  = place_.allocate(static_cast<::std::ptrdiff_t>(size_bytes));
-    return pointer(static_cast<T*>(raw));
+    void* raw = place_.allocate(static_cast<std::ptrdiff_t>(bytes));
+    return thrust::device_ptr<void>(raw);
   }
 
-  void deallocate(pointer p, size_type cnt) noexcept
+  void do_deallocate(pointer p, std::size_t bytes, std::size_t /*alignment*/) override
   {
-    if (!p)
-    {
-      return;
-    }
-    const size_type size_bytes = cnt * sizeof(T);
-    place_.deallocate(p.get(), size_bytes);
+    place_.deallocate(p.get(), bytes);
   }
 
-  size_type max_size() const
+  bool do_is_equal(const memory_resource& other) const noexcept override
   {
-    return (::std::numeric_limits<size_type>::max)() / sizeof(T);
-  }
-
-  bool operator==(const data_place_allocator& rhs) const
-  {
-    return place_ == rhs.place_;
-  }
-
-  bool operator!=(const data_place_allocator& rhs) const
-  {
-    return !(*this == rhs);
+    auto* o = dynamic_cast<const data_place_memory_resource*>(&other);
+    return o && place_ == o->place_;
   }
 
 private:
-  const data_place place_;
-
-  template <typename U>
-  friend class data_place_allocator;
+  data_place place_;
 };
+
+template <typename T>
+using data_place_allocator = thrust::mr::allocator<T, data_place_memory_resource>;
 
 // Run the Thrust example with the given data_place; returns true if the check passed.
 bool run_with_place(const data_place& place, const char* label)
 {
   const size_t n = 1024 * 1024;
 
-  data_place_allocator<double> alloc(place);
+  data_place_memory_resource memres(place);
+  data_place_allocator<double> alloc(&memres);
   thrust::device_vector<double, data_place_allocator<double>> d_vec(n, 0.0, alloc);
 
   thrust::transform(
