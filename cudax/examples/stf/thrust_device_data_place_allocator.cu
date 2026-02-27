@@ -15,7 +15,8 @@
  *        Uses thrust::mr::memory_resource to wrap data_place, then
  *        thrust::mr::allocator to create a compatible allocator.
  *        Storage is allocated via data_place::allocate (device, composite/VMM,
- *        or other place types).
+ *        or other place types). The same Thrust code works unchanged for
+ *        single-device, multi-device (VMM), or green-context placement.
  */
 
 #include <thrust/copy.h>
@@ -36,7 +37,9 @@
 
 using namespace cuda::experimental::stf;
 
-// Thrust memory resource that delegates to a data_place.
+// Minimal adapter: data_place is STF's abstraction; Thrust expects a
+// memory_resource. This class bridges the two. The resource must outlive
+// any vectors/allocators that use it.
 class data_place_memory_resource final : public thrust::mr::memory_resource<thrust::device_ptr<void>>
 {
 public:
