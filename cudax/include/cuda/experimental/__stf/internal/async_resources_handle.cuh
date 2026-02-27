@@ -71,12 +71,15 @@ struct decorated_stream
 class async_resources_handle;
 
 /**
- * @brief A stream_pool object stores a set of streams associated to a specific CUDA context (device, green context,
- * ...)
+ * @brief A stream_pool object stores a set of streams associated to a specific
+ * CUDA context (device, green context, ...)
  *
- * Workflow: pool = get_stream_pool(async_resources, place); stream = pool.next(place).
- * When a slot is empty, next(place) activates the place (RAII guard) and calls place.create_stream().
- * Place activation is the single mechanism for context; the pool does not store a context.
+ * Usage:
+ *   pool = get_stream_pool(async_resources, place);
+ *   stream = pool.next(place).
+ *
+ * When a slot is empty, next(place) activates the place (RAII guard) and calls
+ * place.create_stream().
  */
 struct stream_pool
 {
