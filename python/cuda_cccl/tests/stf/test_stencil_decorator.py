@@ -5,10 +5,9 @@
 import numba
 import numpy as np
 from numba import cuda
+from numba_decorator import jit
 
 import cuda.stf as stf
-
-from numba_decorator import jit
 
 numba.cuda.config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
 

@@ -6,10 +6,9 @@
 
 import numba
 from numba import cuda
+from numba_helpers import numba_arguments
 
 import cuda.stf as stf
-
-from numba_helpers import numba_arguments
 
 numba.cuda.config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
 

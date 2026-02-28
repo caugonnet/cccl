@@ -7,10 +7,9 @@ import numba
 import numpy as np
 import pytest
 from numba import cuda
+from numba_helpers import get_arg_numba, numba_arguments
 
 import cuda.stf as stf
-
-from numba_helpers import get_arg_numba, numba_arguments
 
 numba.cuda.config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
 
