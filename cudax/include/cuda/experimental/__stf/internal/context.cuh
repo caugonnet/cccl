@@ -1103,7 +1103,7 @@ UNITTEST("context import_resources_from")
   parent_ctx.finalize();
   EXPECT(released);
 };
-  
+
 UNITTEST("context graph and stage")
 {
   // stream_ctx: graph() is nullptr, stage() is size_t(-1)
