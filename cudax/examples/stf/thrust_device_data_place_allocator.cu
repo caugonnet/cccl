@@ -30,7 +30,6 @@
 #include <thrust/transform.h>
 
 #include <cuda/experimental/__stf/places/blocked_partition.cuh>
-#include <cuda/experimental/__stf/places/exec/green_context.cuh>
 #include <cuda/experimental/stf.cuh>
 
 #include <iostream>
@@ -110,21 +109,6 @@ int main()
   // All devices (composite, VMM path when multiple devices)
   all_ok &= run_with_place(data_place::composite(blocked_partition(), exec_place::all_devices()),
                            "composite(blocked_partition, all_devices)");
-
-#if _CCCL_CTK_AT_LEAST(12, 4)
-  // Example based on a grid of green contexts where we use a data place per green context
-  {
-    const int num_sms = 8;
-    const int dev_id  = 0;
-    green_context_helper gc_helper(num_sms, dev_id);
-    if (gc_helper.get_count() >= 1)
-    {
-      auto where     = gc_helper.get_grid(true);
-      data_place cdp = data_place::composite(blocked_partition(), where);
-      all_ok &= run_with_place(cdp, "composite(blocked_partition, green_context_grid)");
-    }
-  }
-#endif
 
   return all_ok ? 0 : 1;
 }
