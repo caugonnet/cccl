@@ -57,10 +57,15 @@ public:
     place_.deallocate(p.get(), bytes);
   }
 
-  bool do_is_equal(const memory_resource& other) const noexcept override
+  __host__ __device__ bool do_is_equal(const memory_resource& other) const noexcept override
   {
+#if defined(__CUDA_ARCH__)
+    (void)other;
+    return false; // No RTTI on device; conservatively treat as not equal
+#else
     auto* o = dynamic_cast<const data_place_memory_resource*>(&other);
     return o && place_ == o->place_;
+#endif
   }
 
 private:
