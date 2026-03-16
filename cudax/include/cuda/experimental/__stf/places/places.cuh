@@ -1569,9 +1569,11 @@ inline exec_place_grid partition_tile(const exec_place_grid& e_place, dim4 tile_
   return make_grid(mv(places), size);
 }
 
+class data_place_composite;
+
 namespace reserved
 {
-void* allocate_composite_data_place(const data_place& p, ::std::ptrdiff_t size);
+void* allocate_composite_data_place(const data_place_composite& p, ::std::ptrdiff_t size);
 void deallocate_composite_data_place(void* ptr);
 } // namespace reserved
 
@@ -1629,12 +1631,12 @@ public:
     return (get_grid() < o.get_grid()) ? -1 : 1;
   }
 
-  void* allocate(::std::ptrdiff_t, cudaStream_t) const override
+  void* allocate(::std::ptrdiff_t size, cudaStream_t) const override
   {
-    reserved::allocate_composite_data_place(ptr);
+    return reserved::allocate_composite_data_place(*this, size);
   }
 
-  void deallocate(void*, size_t, cudaStream_t) const override
+  void deallocate(void* ptr, size_t, cudaStream_t) const override
   {
     reserved::deallocate_composite_data_place(ptr);
   }

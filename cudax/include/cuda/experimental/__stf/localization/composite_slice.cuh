@@ -485,9 +485,8 @@ inline ::std::unordered_map<void*, ::std::unique_ptr<localized_array>>& get_comp
   return reg;
 }
 
-inline void* allocate_composite_data_place(const data_place& p, ::std::ptrdiff_t size)
+inline void* allocate_composite_data_place(const data_place_composite& p, ::std::ptrdiff_t size)
 {
-  EXPECT(p.is_composite());
   const size_t size_u               = static_cast<size_t>(size);
   const exec_place_grid& grid       = p.get_grid();
   const get_executor_func_t& mapper = p.get_partitioner();
