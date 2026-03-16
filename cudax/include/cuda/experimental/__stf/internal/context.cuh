@@ -1053,6 +1053,20 @@ UNITTEST("context is_graph_ctx")
   ctx2.finalize();
 };
 
+UNITTEST("context graph and stage")
+{
+  // stream_ctx: graph() is nullptr, stage() is size_t(-1)
+  context ctx;
+  EXPECT(ctx.graph() == nullptr);
+  ctx.finalize();
+
+  // graph_ctx: graph() and stage() delegate to backend
+  context ctx2 = graph_ctx();
+  ctx2.logical_data(1); // ensure context has been used so graph may be created
+  EXPECT(ctx2.graph() != nullptr);
+  ctx2.finalize();
+};
+
 UNITTEST("context with arguments")
 {
   cudaStream_t stream;
