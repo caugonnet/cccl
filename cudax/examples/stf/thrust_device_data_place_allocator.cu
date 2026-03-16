@@ -60,7 +60,7 @@ public:
   __host__ __device__ bool do_is_equal(const memory_resource& other) const noexcept override
   {
 #if defined(__CUDA_ARCH__)
-    (void)other;
+    (void) other;
     return false; // No RTTI on device; conservatively treat as not equal
 #else
     auto* o = dynamic_cast<const data_place_memory_resource*>(&other);
