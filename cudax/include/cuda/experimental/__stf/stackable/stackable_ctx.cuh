@@ -727,46 +727,69 @@ public:
     pimpl->push(ctx_offset, m, mv(where));
   }
 
-  // Helpers
-  template <typename... Pack>
-  auto read(Pack&&... pack) const
+  // Helpers — return lazy stackable_task_dep descriptors.
+  auto read() const
   {
-    using U = rw_type_of<T>;
-    return stackable_task_dep<U, ::std::monostate, false>(
-      *this, get_ld(get_data_root_offset()).read(::std::forward<Pack>(pack)...));
+    return stackable_task_dep<T, ::std::monostate, false>(*this, access_mode::read);
   }
 
-  template <typename... Pack>
-  auto write(Pack&&... pack)
+  auto read(data_place dp) const
   {
-    return stackable_task_dep(*this, get_ld(get_data_root_offset()).write(::std::forward<Pack>(pack)...));
+    return stackable_task_dep<T, ::std::monostate, false>(*this, access_mode::read, mv(dp));
   }
 
-  template <typename... Pack>
-  auto rw(Pack&&... pack)
+  auto write()
   {
-    return stackable_task_dep(*this, get_ld(get_data_root_offset()).rw(::std::forward<Pack>(pack)...));
+    return stackable_task_dep<T, ::std::monostate, false>(*this, access_mode::write);
   }
 
-  template <typename... Pack>
-  auto reduce(Pack&&... pack)
+  auto write(data_place dp)
   {
-    return stackable_task_dep(*this, get_ld(get_data_root_offset()).reduce(::std::forward<Pack>(pack)...));
+    return stackable_task_dep<T, ::std::monostate, false>(*this, access_mode::write, mv(dp));
   }
 
-  // Helper to create dependency with specific access mode - avoids cascade of if-else
-  template <typename... Pack>
-  auto get_dep_with_mode(access_mode mode, Pack&&... pack)
+  auto rw()
   {
-    switch (mode)
-    {
-      case access_mode::read:
-        return read(::std::forward<Pack>(pack)...);
-      case access_mode::write:
-        return write(::std::forward<Pack>(pack)...);
-      default: // access_mode::rw or combined modes
-        return rw(::std::forward<Pack>(pack)...);
-    }
+    return stackable_task_dep<T, ::std::monostate, false>(*this, access_mode::rw);
+  }
+
+  auto rw(data_place dp)
+  {
+    return stackable_task_dep<T, ::std::monostate, false>(*this, access_mode::rw, mv(dp));
+  }
+
+  template <typename Op>
+  auto reduce(Op)
+  {
+    return stackable_task_dep<T, Op, true>(*this, access_mode::reduce);
+  }
+
+  template <typename Op>
+  auto reduce(Op, data_place dp)
+  {
+    return stackable_task_dep<T, Op, true>(*this, access_mode::reduce, mv(dp));
+  }
+
+  template <typename Op>
+  auto reduce(Op, no_init)
+  {
+    return stackable_task_dep<T, Op, false>(*this, access_mode::reduce_no_init);
+  }
+
+  template <typename Op>
+  auto reduce(Op, no_init, data_place dp)
+  {
+    return stackable_task_dep<T, Op, false>(*this, access_mode::reduce_no_init, mv(dp));
+  }
+
+  auto dep_with_mode(access_mode m)
+  {
+    return stackable_task_dep<T, ::std::monostate, false>(*this, m);
+  }
+
+  auto dep_with_mode(access_mode m, data_place dp)
+  {
+    return stackable_task_dep<T, ::std::monostate, false>(*this, m, mv(dp));
   }
 
   auto shape() const
@@ -904,12 +927,15 @@ inline stackable_logical_data<void_interface> stackable_ctx::token()
   return stackable_logical_data<void_interface>(*this, head, true, get_root_ctx().token(), true);
 }
 
-//! Task dependency for a stackable logical data
+//! Task dependency specification for a stackable logical data.
+//!
+//! This is a lazy descriptor that stores the data, access mode, and data place.
+//! The actual task_dep is only created when resolve() is called with the correct
+//! context offset, ensuring it always references the right logical data level.
 template <typename T, typename reduce_op, bool initialize>
 class stackable_task_dep
 {
 public:
-  // STF-compatible typedefs (required by parallel_for_scope and other STF templates)
   using data_t      = T;
   using dep_type    = T;
   using op_and_init = ::std::pair<reduce_op, ::std::bool_constant<initialize>>;
@@ -919,27 +945,20 @@ public:
     does_work = !::std::is_same_v<reduce_op, ::std::monostate>
   };
 
-  stackable_task_dep(stackable_logical_data<T> _d, task_dep<T, reduce_op, initialize> _dep)
+  stackable_task_dep(stackable_logical_data<T> _d, access_mode _mode, data_place _dplace = data_place::affine())
       : d(mv(_d))
-      , dep(mv(_dep))
+      , mode(_mode)
+      , dplace(mv(_dplace))
   {}
 
-  // Implicit conversion to task_dep
-  operator task_dep<T, reduce_op, initialize>&()
+  // Implicit conversion to task_dep for interop with non-stackable contexts.
+  // Resolves at the current thread's head offset.
+  operator task_dep<T, reduce_op, initialize>() const
   {
     auto& sctx = d.get_impl()->sctx;
     int offset = sctx.get_head_offset();
-    d.validate_access(offset, sctx, get_access_mode());
-    return dep;
-  }
-
-  // Implicit conversion to task_dep
-  operator const task_dep<T, reduce_op, initialize>&() const
-  {
-    auto& sctx = d.get_impl()->sctx;
-    int offset = sctx.get_head_offset();
-    d.validate_access(offset, sctx, get_access_mode());
-    return dep;
+    d.validate_access(offset, sctx, mode);
+    return resolve(offset);
   }
 
   const stackable_logical_data<T>& get_d() const
@@ -947,79 +966,28 @@ public:
     return d;
   }
 
-  // Convert to task_dep using explicit context offset (for deferred processing)
-  task_dep<T, reduce_op, initialize>& to_task_dep_with_offset(int context_offset)
-  {
-    auto& sctx = d.get_impl()->sctx;
-    d.validate_access(context_offset, sctx, get_access_mode());
-
-    // Create new task_dep using the logical_data at the specified context offset
-    // to ensure correct access to pushed data in nested contexts
-    auto& context_ld = d.get_ld(context_offset);
-
-    switch (get_access_mode())
-    {
-      case access_mode::read:
-        dep = context_ld.read();
-        break;
-      case access_mode::write:
-        dep = context_ld.write();
-        break;
-      default: // access_mode::rw or combined modes
-        dep = context_ld.rw();
-        break;
-    }
-
-    return dep;
-  }
-
-  // Const version for use in const contexts (like concretize_deferred_task)
-  const task_dep<T, reduce_op, initialize>& to_task_dep_with_offset(int context_offset) const
-  {
-    auto& sctx = d.get_impl()->sctx;
-    d.validate_access(context_offset, sctx, get_access_mode());
-
-    // Create new task_dep using the logical_data at the specified context offset
-    // to ensure correct access to pushed data in nested contexts
-    // Note: Need non-const access to create task dependencies, even from const method
-    auto& context_ld = const_cast<stackable_logical_data<T>&>(d).get_ld(context_offset);
-
-    switch (get_access_mode())
-    {
-      case access_mode::read:
-        dep = context_ld.read();
-        break;
-      case access_mode::write:
-        dep = context_ld.write();
-        break;
-      default: // access_mode::rw or combined modes
-        dep = context_ld.rw();
-        break;
-    }
-
-    return dep;
-  }
-
-  // Provide non-const and const accessors.
-  auto& underlying_dep()
-  {
-    // `*this` is a stackable_task_dep. Upcast to the base subobject.
-    return dep;
-  }
-
-  const auto& underlying_dep() const
-  {
-    return dep;
-  }
-
   access_mode get_access_mode() const
   {
-    return dep.get_access_mode();
+    return mode;
+  }
+
+  const data_place& get_dplace() const
+  {
+    return dplace;
+  }
+
+  // Create a concrete task_dep from the logical data at the given context offset.
+  // Callers must ensure validate_access has already been called for this offset.
+  task_dep<T, reduce_op, initialize> resolve(int context_offset) const
+  {
+    auto& context_ld = d.get_ld(context_offset);
+    return task_dep<T, reduce_op, initialize>(context_ld, mode, dplace);
   }
 
 private:
   stackable_logical_data<T> d;
-  mutable task_dep<T, reduce_op, initialize> dep;
+  access_mode mode;
+  data_place dplace;
 };
 
 #ifdef UNITTESTED_FILE

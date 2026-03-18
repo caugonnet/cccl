@@ -41,16 +41,14 @@ struct is_stackable_task_dep<stackable_task_dep<T, ReduceOp, Init>> : ::std::tru
 template <typename T>
 inline constexpr bool is_stackable_task_dep_v = is_stackable_task_dep<T>::value;
 
-// This helper converts stackable_task_dep to the underlying task_dep. If we
-// have a stackable_logical_data A, A.read() is indeed a stackable_task_dep,
-// which we can pass to stream_ctx/graph_ctx constructs by extracting the
-// underlying task_dep.
+// Resolve a stackable_task_dep to a concrete task_dep at the given context
+// offset. Non-stackable arguments are forwarded unchanged.
 template <typename U>
-decltype(auto) to_task_dep(U&& u)
+decltype(auto) resolve_dep(int offset, U&& u)
 {
   if constexpr (is_stackable_task_dep_v<::std::decay_t<U>>)
   {
-    return ::std::forward<U>(u).underlying_dep();
+    return u.resolve(offset);
   }
   else
   {

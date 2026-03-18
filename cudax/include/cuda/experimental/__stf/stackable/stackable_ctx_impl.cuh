@@ -92,14 +92,13 @@ public:
     exec_place exec_place_;
     ::std::tuple<Deps...> task_deps_tuple_;
 
-    // Store additional dependencies with captured operations
+    // Type-erased metadata for additional dependencies added via add_deps()
     struct additional_dep_info
     {
       int logical_data_id;
       access_mode mode;
-      // Store just the essential operations as simple lambdas
       ::std::function<void(stackable_ctx&, int, access_mode)> validate_access_op;
-      ::std::function<task_dep_untyped(access_mode)> create_task_dep_op;
+      ::std::function<task_dep_untyped(int, access_mode)> resolve_op;
     };
     ::std::vector<additional_dep_info> additional_deps_;
 
@@ -129,20 +128,18 @@ public:
         static_assert(reserved::is_stackable_task_dep_v<::std::decay_t<decltype(dep)>>,
                       "add_deps in stackable context only accepts stackable task dependencies");
 
-        // Store metadata and create operations
         additional_dep_info info;
         info.logical_data_id = dep.get_d().get_unique_id();
         info.mode            = dep.get_access_mode();
 
-        // Create operations with direct member function calls
         auto logical_data       = dep.get_d();
         info.validate_access_op = [logical_data](stackable_ctx& sctx, int offset, access_mode mode) mutable {
           logical_data.validate_access(offset, sctx, mode);
         };
 
-        info.create_task_dep_op = [logical_data, this](access_mode mode) mutable -> task_dep_untyped {
-          // Create dependency with proper context offset for deferred processing
-          return logical_data.get_dep_with_mode(mode).to_task_dep_with_offset(this->offset_);
+        info.resolve_op = [logical_data](int offset, access_mode mode) mutable -> task_dep_untyped {
+          auto& ld = logical_data.get_ld(offset);
+          return task_dep_untyped(ld, mode);
         };
 
         additional_deps_.push_back(::std::move(info));
@@ -152,69 +149,53 @@ public:
     }
 
   private:
-    // Concretize the deferred task - process all dependencies and create the final concrete task
+    // Concretize the deferred task: combine access modes, validate/push, resolve deps, create the task.
     template <typename TaskAction>
     auto concretize_deferred_task(TaskAction&& action) const
     {
       return ::std::apply(
         [this, &action](auto&&... initial_args) {
-          // Combine access modes for all dependencies (initial + additional)
+          // 1. Combine access modes across all dependencies (initial + additional)
           ::std::map<int, access_mode> combined_modes;
 
-          // Process initial arguments
           if constexpr (sizeof...(initial_args) > 0)
           {
-            auto process_initial = [&](const auto& arg) {
-              static_assert(reserved::is_stackable_task_dep_v<::std::decay_t<decltype(arg)>>,
-                            "All arguments must be stackable task dependencies");
+            auto combine = [&](const auto& arg) {
               int id             = arg.get_d().get_unique_id();
               combined_modes[id] = combined_modes[id] | arg.get_access_mode();
             };
-            (process_initial(initial_args), ...);
+            (combine(initial_args), ...);
           }
 
-          // Process additional dependencies from add_deps
           for (const auto& info : additional_deps_)
           {
             combined_modes[info.logical_data_id] = combined_modes[info.logical_data_id] | info.mode;
           }
 
-          // Validate access for ALL dependencies (initial + additional) with combined modes
-
-          // First validate initial arguments with their combined access modes
+          // 2. Validate and auto-push with combined modes
           if constexpr (sizeof...(initial_args) > 0)
           {
-            auto validate_initial = [&](const auto& arg) {
-              static_assert(reserved::is_stackable_task_dep_v<::std::decay_t<decltype(arg)>>,
-                            "All arguments must be stackable task dependencies");
-              int id             = arg.get_d().get_unique_id();
-              auto combined_mode = combined_modes[id];
-              // Validate initial argument with combined mode
-              arg.get_d().validate_access(offset_, sctx_, combined_mode);
+            auto validate = [&](const auto& arg) {
+              arg.get_d().validate_access(offset_, sctx_, combined_modes[arg.get_d().get_unique_id()]);
             };
-            (validate_initial(initial_args), ...);
+            (validate(initial_args), ...);
           }
 
-          // Then validate additional dependencies from add_deps
           for (const auto& info : additional_deps_)
           {
-            auto combined_mode = combined_modes[info.logical_data_id];
-            // Use the stored operation - needed for automatic push pattern (stackable2.cu style)
-            info.validate_access_op(sctx_, offset_, combined_mode);
+            info.validate_access_op(sctx_, offset_, combined_modes[info.logical_data_id]);
           }
 
-          // Create task with task dependencies and execution place
+          // 3. Resolve initial deps and create the task
           auto task = [&]() {
             auto& ctx = sctx_.get_ctx(offset_);
 
-            // Convert stored task dependencies using apply
             auto task_deps = ::std::apply(
               [this](auto&&... deps) {
-                return ::std::make_tuple(deps.to_task_dep_with_offset(offset_)...);
+                return ::std::make_tuple(deps.resolve(offset_)...);
               },
               task_deps_tuple_);
 
-            // Call ctx.task with execution place and collected dependencies
             return ::std::apply(
               [&ctx, exec_place = exec_place_](auto&&... deps) {
                 return ctx.task(exec_place, deps...);
@@ -222,25 +203,18 @@ public:
               task_deps);
           }();
 
-          // Add the additional dependencies from add_deps calls to the underlying task
+          // 4. Resolve and add additional deps from add_deps calls
           for (const auto& info : additional_deps_)
           {
-            auto combined_mode = combined_modes[info.logical_data_id];
-
-            // Use the stored operation to create and add the dependency
-            task.add_deps(info.create_task_dep_op(combined_mode));
+            task.add_deps(info.resolve_op(offset_, combined_modes[info.logical_data_id]));
           }
 
-          // Apply symbol if it was set
           if (symbol_.has_value())
           {
             task.set_symbol(*symbol_);
           }
 
-          // Extract the base task from unified_task using the new get_base_task() method
           concrete_task_ = task.get_base_task();
-
-          // Execute the provided action with the fully constructed task
           return action(task);
         },
         task_deps_tuple_);
@@ -1601,18 +1575,16 @@ public:
     return stackable_logical_data<T>(*this, head, false, mv(underlying_ld), true);
   }
 
-  // This is the function that should be called before starting a task to push
-  // data at the proper depth, or automatically push them at the appropriate
-  // depth if necessary. If this happens, we may update the task_dep objects to
-  // reflect the actual logical data that needs to be used.
+  // Validate access modes and auto-push data to the correct context depth.
+  // When the same logical data appears multiple times in a task's deps, access
+  // modes are combined before pushing so that the data is imported with the
+  // correct mode (e.g. read + write => rw).
   template <typename... Pack>
-  void process_pack([[maybe_unused]] int offset, const Pack&... pack) const
+  void validate_and_push([[maybe_unused]] int offset, const Pack&... pack) const
   {
-    // This is a map of logical data, and the combined access modes
     ::std::vector<::std::pair<int, access_mode>> combined_accesses;
 
-    // Lambda to combine argument access modes
-    [[maybe_unused]] auto combine_access_modes = [&combined_accesses](const auto& arg) {
+    [[maybe_unused]] auto combine = [&combined_accesses](const auto& arg) {
       if constexpr (reserved::is_stackable_task_dep_v<::std::decay_t<decltype(arg)>>)
       {
         int id        = arg.get_d().get_unique_id();
@@ -1625,50 +1597,30 @@ public:
 
         if (it != combined_accesses.end())
         {
-          it->second = it->second | m; // Update if found
+          it->second = it->second | m;
         }
         else
         {
-          combined_accesses.emplace_back(id, m); // Insert if not found
+          combined_accesses.emplace_back(id, m);
         }
       }
-      // Do nothing for non-stackable types
     };
 
-    // Lambda to process individual arguments
-    [[maybe_unused]] auto process_argument = [&combined_accesses, offset, this](const auto& arg) {
+    [[maybe_unused]] auto validate = [&combined_accesses, offset, this](const auto& arg) {
       if constexpr (reserved::is_stackable_task_dep_v<::std::decay_t<decltype(arg)>>)
       {
-        // If the stackable logical data appears in multiple deps of the same
-        // task, we need to combine access modes to push the data automatically
-        // with an appropriate mode.
         int id  = arg.get_d().get_unique_id();
         auto it = ::std::find_if(
           combined_accesses.begin(), combined_accesses.end(), [id](const ::std::pair<int, access_mode>& entry) {
             return entry.first == id;
           });
         _CCCL_ASSERT(it != combined_accesses.end(), "internal error");
-        access_mode combined_m = it->second;
-
-        // If the logical data was not at the appropriate level, we may
-        // automatically push it. In this case, we need to update the logical data
-        // referenced in the task_dep object to point to the correct context level.
-        arg.get_d().validate_access(offset, *this, combined_m);
-        {
-          // Update the underlying task_dep to reference the correct logical_data
-          // after automatic push. This uses the existing update_data mechanism
-          // which is designed for in-place mutation in immediate processing contexts.
-          arg.underlying_dep().update_data(arg.get_d().get_ld(offset));
-        }
+        arg.get_d().validate_access(offset, *this, it->second);
       }
-      // Do nothing for non-stackable types
     };
 
-    // First pass: combine access modes for all stackable dependencies
-    (combine_access_modes(pack), ...);
-
-    // Second pass: process each argument with combined access modes
-    (process_argument(pack), ...);
+    (combine(pack), ...);
+    (validate(pack), ...);
   }
 
 public:
@@ -1696,57 +1648,47 @@ public:
   template <typename... Pack>
   auto parallel_for(Pack&&... pack)
   {
-    auto lock = pimpl->acquire_shared_lock();
-
+    auto lock  = pimpl->acquire_shared_lock();
     int offset = get_head_offset();
-    process_pack(offset, pack...);
-
-    return get_ctx(get_head_offset()).parallel_for(reserved::to_task_dep(::std::forward<Pack>(pack))...);
+    validate_and_push(offset, pack...);
+    return get_ctx(offset).parallel_for(reserved::resolve_dep(offset, ::std::forward<Pack>(pack))...);
   }
 
   template <typename... Pack>
   auto launch(Pack&&... pack)
   {
-    auto lock = pimpl->acquire_shared_lock();
-
+    auto lock  = pimpl->acquire_shared_lock();
     int offset = get_head_offset();
-    process_pack(offset, pack...);
-
-    return get_ctx(get_head_offset()).launch(reserved::to_task_dep(::std::forward<Pack>(pack))...);
+    validate_and_push(offset, pack...);
+    return get_ctx(offset).launch(reserved::resolve_dep(offset, ::std::forward<Pack>(pack))...);
   }
 
   template <typename... Pack>
   auto cuda_kernel(Pack&&... pack)
   {
-    auto lock = pimpl->acquire_shared_lock();
-
+    auto lock  = pimpl->acquire_shared_lock();
     int offset = get_head_offset();
-    process_pack(offset, pack...);
-
-    return get_ctx(get_head_offset()).cuda_kernel(reserved::to_task_dep(::std::forward<Pack>(pack))...);
+    validate_and_push(offset, pack...);
+    return get_ctx(offset).cuda_kernel(reserved::resolve_dep(offset, ::std::forward<Pack>(pack))...);
   }
 
   template <typename... Pack>
   auto cuda_kernel_chain(Pack&&... pack)
   {
-    auto lock = pimpl->acquire_shared_lock();
-
+    auto lock  = pimpl->acquire_shared_lock();
     int offset = get_head_offset();
-    process_pack(offset, pack...);
-
-    return get_ctx(get_head_offset()).cuda_kernel_chain(reserved::to_task_dep(::std::forward<Pack>(pack))...);
+    validate_and_push(offset, pack...);
+    return get_ctx(offset).cuda_kernel_chain(reserved::resolve_dep(offset, ::std::forward<Pack>(pack))...);
   }
 #endif
 
   template <typename... Pack>
   auto host_launch(Pack&&... pack)
   {
-    auto lock = pimpl->acquire_shared_lock();
-
+    auto lock  = pimpl->acquire_shared_lock();
     int offset = get_head_offset();
-    process_pack(offset, pack...);
-
-    return get_ctx(get_head_offset()).host_launch(reserved::to_task_dep(::std::forward<Pack>(pack))...);
+    validate_and_push(offset, pack...);
+    return get_ctx(offset).host_launch(reserved::resolve_dep(offset, ::std::forward<Pack>(pack))...);
   }
 
   auto fence()
@@ -1789,12 +1731,10 @@ public:
   template <typename... Pack>
   void push_affinity(Pack&&... pack) const
   {
-    auto lock = pimpl->acquire_shared_lock();
-
+    auto lock  = pimpl->acquire_shared_lock();
     int offset = get_head_offset();
-    process_pack(offset, pack...);
-
-    get_ctx(offset).push_affinity(reserved::to_task_dep(::std::forward<Pack>(pack))...);
+    validate_and_push(offset, pack...);
+    get_ctx(offset).push_affinity(reserved::resolve_dep(offset, ::std::forward<Pack>(pack))...);
   }
 
   void pop_affinity() const
