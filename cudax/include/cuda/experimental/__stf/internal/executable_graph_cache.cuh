@@ -150,6 +150,7 @@ public:
 
   // Check if there is a matching entry (and update it if necessary)
   // the returned bool indicate is this is a cache hit (true = cache hit, false = cache miss)
+  // The graph g is only used during this call (for update or instantiate); it is never stored.
   ::cuda::std::pair<::std::shared_ptr<cudaGraphExec_t>, bool> query(size_t nnodes, size_t nedges, cudaGraph_t g)
   {
     int dev_id = cuda_try<cudaGetDevice>();

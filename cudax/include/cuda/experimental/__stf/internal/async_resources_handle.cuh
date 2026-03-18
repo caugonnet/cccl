@@ -153,10 +153,12 @@ public:
     return pimpl->cached_syncs.validate_sync_and_update(dst, src, event_id);
   }
 
+  // The graph is only used during the call (to update or instantiate); it is never stored, so the
+  // caller only needs to keep it valid for the duration of the call.
   ::cuda::std::pair<::std::shared_ptr<cudaGraphExec_t>, bool>
   cached_graphs_query(size_t nnodes, size_t nedges, cudaGraph_t g)
   {
-    assert(pimpl);
+    _CCCL_ASSERT(pimpl, "async_resources_handle is not initialized");
     return pimpl->cached_graphs.query(nnodes, nedges, g);
   }
 
@@ -172,7 +174,7 @@ public:
     cuda_safe_call(cudaGraphGetEdges(g, nullptr, nullptr, &nedges));
 #endif // _CCCL_CTK_AT_LEAST(13, 0)
 
-    assert(pimpl);
+    _CCCL_ASSERT(pimpl, "async_resources_handle is not initialized");
     return cached_graphs_query(nnodes, nedges, g);
   }
 
