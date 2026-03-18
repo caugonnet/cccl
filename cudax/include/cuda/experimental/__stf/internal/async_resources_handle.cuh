@@ -158,7 +158,7 @@ public:
   ::cuda::std::pair<::std::shared_ptr<cudaGraphExec_t>, bool>
   cached_graphs_query(size_t nnodes, size_t nedges, cudaGraph_t g)
   {
-    assert(pimpl);
+    _CCCL_ASSERT(pimpl, "async_resources_handle is not initialized");
     return pimpl->cached_graphs.query(nnodes, nedges, g);
   }
 
@@ -174,7 +174,7 @@ public:
     cuda_safe_call(cudaGraphGetEdges(g, nullptr, nullptr, &nedges));
 #endif // _CCCL_CTK_AT_LEAST(13, 0)
 
-    assert(pimpl);
+    _CCCL_ASSERT(pimpl, "async_resources_handle is not initialized");
     return cached_graphs_query(nnodes, nedges, g);
   }
 
