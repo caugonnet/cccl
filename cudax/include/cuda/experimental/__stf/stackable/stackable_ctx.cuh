@@ -1343,8 +1343,11 @@ public:
 
 private:
   stackable_ctx& ctx_;
-  ::std::optional<stackable_ctx::while_graph_scope_guard> while_guard_;
+  // counter_ must be declared before while_guard_ so that while_guard_ is
+  // destroyed first (reverse declaration order).  Its destructor calls
+  // ctx_.pop() which may still reference counter data.
   stackable_logical_data<scalar_view<size_t>> counter_;
+  ::std::optional<stackable_ctx::while_graph_scope_guard> while_guard_;
 };
 
 // Implementation of repeat_graph_scope method - defined here after repeat_graph_scope_guard class is complete
