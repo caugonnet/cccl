@@ -134,6 +134,9 @@ public:
   class deferred_task_builder
   {
   public:
+    // Safe to store a reference: the builder is a short-lived temporary used
+    // in a single expression (e.g. ctx.task(deps)->*lambda) and is never
+    // persisted beyond the statement that created it.
     stackable_ctx& sctx_;
     int offset_;
 
