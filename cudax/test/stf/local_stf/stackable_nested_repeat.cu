@@ -63,8 +63,7 @@ int main()
   for (size_t i = 0; i < sz; i++)
   {
     int expected = static_cast<int>(i + niter1 * niter2 * niter3);
-    fprintf(stderr, "i %ld : EXPECTED %d got %d\n", i, expected, data[i]);
-    //_CCCL_ASSERT(data[i] == expected, "invalid result at index");
+    _CCCL_ASSERT(data[i] == expected, "invalid result at index");
   }
 
   return 0;
