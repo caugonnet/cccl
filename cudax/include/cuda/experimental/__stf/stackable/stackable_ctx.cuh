@@ -448,7 +448,7 @@ private:
       const auto& root_children = sctx.get_children_offsets(data_root_offset);
       for (auto c : root_children)
       {
-        if (c < int(impl_state->data_nodes.size()) && impl_state->data_nodes[c].has_value())
+        if (impl_state->was_imported(c))
         {
           // Transfer shared_ptr ownership to child context's retained_data vector.
           // The child context will keep impl_state alive until it's popped.
@@ -507,8 +507,7 @@ private:
       // Base case: if this is root context (no parent), data should already exist
       if (parent_offset == -1)
       {
-        _CCCL_ASSERT(ctx_offset < int(impl_state->data_nodes.size()) && impl_state->data_nodes[ctx_offset].has_value(),
-                     "Root context must already have data");
+        _CCCL_ASSERT(impl_state->was_imported(ctx_offset), "Root context must already have data");
         return;
       }
 
