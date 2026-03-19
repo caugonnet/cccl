@@ -241,7 +241,7 @@ private:
         event_list unfreeze_prereqs;
 
         // Once frozen, count number of calls to get
-        mutable int get_cnt;
+        mutable int get_cnt = 0;
 
         // Keep track of actual data accesses, so that we can detect if we
         // eventually did not need to freeze a data in write mode, for example.
