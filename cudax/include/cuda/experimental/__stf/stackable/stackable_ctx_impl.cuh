@@ -426,6 +426,9 @@ public:
             cudaGraphNode_t n;
             cuda_safe_call(cudaGraphAddChildGraphNode(&n, parent_graph, nullptr, 0, dummy_graph));
 
+            // cudaGraphAddChildGraphNode clones dummy_graph into the parent
+            cuda_safe_call(cudaGraphDestroy(dummy_graph));
+
             // Get the graph described by the child, not the graph that was
             // cloned into the child graph node so that changes are reflected
             // in it.
