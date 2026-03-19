@@ -57,6 +57,33 @@ public:
   virtual void pop_after_finalize(int parent_offset, const event_list& finalize_prereqs) const = 0;
 };
 
+// Combine access mode for a logical data id into a small vector.
+// Used to merge duplicate data accesses within a single task's deps
+// (e.g. read + write on the same data → rw).
+inline void combine_access_mode(::std::vector<::std::pair<int, access_mode>>& combined, int id, access_mode m)
+{
+  auto it = ::std::find_if(combined.begin(), combined.end(), [id](const ::std::pair<int, access_mode>& entry) {
+    return entry.first == id;
+  });
+  if (it != combined.end())
+  {
+    it->second = it->second | m;
+  }
+  else
+  {
+    combined.emplace_back(id, m);
+  }
+}
+
+inline access_mode lookup_combined_mode(const ::std::vector<::std::pair<int, access_mode>>& combined, int id)
+{
+  auto it = ::std::find_if(combined.begin(), combined.end(), [id](const ::std::pair<int, access_mode>& entry) {
+    return entry.first == id;
+  });
+  _CCCL_ASSERT(it != combined.end(), "internal error: logical data id not found in combined modes");
+  return it->second;
+}
+
 //! \brief This class defines a context that behaves as a context which can have nested subcontexts (implemented as
 //! local CUDA graphs)
 class stackable_ctx
@@ -156,34 +183,34 @@ public:
       return ::std::apply(
         [this, &action](auto&&... initial_args) {
           // 1. Combine access modes across all dependencies (initial + additional)
-          ::std::map<int, access_mode> combined_modes;
+          ::std::vector<::std::pair<int, access_mode>> combined_modes;
 
           if constexpr (sizeof...(initial_args) > 0)
           {
             auto combine = [&](const auto& arg) {
-              int id             = arg.get_d().get_unique_id();
-              combined_modes[id] = combined_modes[id] | arg.get_access_mode();
+              combine_access_mode(combined_modes, arg.get_d().get_unique_id(), arg.get_access_mode());
             };
             (combine(initial_args), ...);
           }
 
           for (const auto& info : additional_deps_)
           {
-            combined_modes[info.logical_data_id] = combined_modes[info.logical_data_id] | info.mode;
+            combine_access_mode(combined_modes, info.logical_data_id, info.mode);
           }
 
           // 2. Validate and auto-push with combined modes
           if constexpr (sizeof...(initial_args) > 0)
           {
             auto validate = [&](const auto& arg) {
-              arg.get_d().validate_access(offset_, sctx_, combined_modes[arg.get_d().get_unique_id()]);
+              arg.get_d().validate_access(
+                offset_, sctx_, lookup_combined_mode(combined_modes, arg.get_d().get_unique_id()));
             };
             (validate(initial_args), ...);
           }
 
           for (const auto& info : additional_deps_)
           {
-            info.validate_access_op(sctx_, offset_, combined_modes[info.logical_data_id]);
+            info.validate_access_op(sctx_, offset_, lookup_combined_mode(combined_modes, info.logical_data_id));
           }
 
           // 3. Resolve initial deps and create the task
@@ -206,7 +233,7 @@ public:
           // 4. Resolve and add additional deps from add_deps calls
           for (const auto& info : additional_deps_)
           {
-            task.add_deps(info.resolve_op(offset_, combined_modes[info.logical_data_id]));
+            task.add_deps(info.resolve_op(offset_, lookup_combined_mode(combined_modes, info.logical_data_id)));
           }
 
           if (symbol_.has_value())
@@ -1609,35 +1636,14 @@ public:
     [[maybe_unused]] auto combine = [&combined_accesses](const auto& arg) {
       if constexpr (reserved::is_stackable_task_dep_v<::std::decay_t<decltype(arg)>>)
       {
-        int id        = arg.get_d().get_unique_id();
-        access_mode m = arg.get_access_mode();
-
-        auto it = ::std::find_if(
-          combined_accesses.begin(), combined_accesses.end(), [id](const ::std::pair<int, access_mode>& entry) {
-            return entry.first == id;
-          });
-
-        if (it != combined_accesses.end())
-        {
-          it->second = it->second | m;
-        }
-        else
-        {
-          combined_accesses.emplace_back(id, m);
-        }
+        combine_access_mode(combined_accesses, arg.get_d().get_unique_id(), arg.get_access_mode());
       }
     };
 
     [[maybe_unused]] auto validate = [&combined_accesses, offset, this](const auto& arg) {
       if constexpr (reserved::is_stackable_task_dep_v<::std::decay_t<decltype(arg)>>)
       {
-        int id  = arg.get_d().get_unique_id();
-        auto it = ::std::find_if(
-          combined_accesses.begin(), combined_accesses.end(), [id](const ::std::pair<int, access_mode>& entry) {
-            return entry.first == id;
-          });
-        _CCCL_ASSERT(it != combined_accesses.end(), "internal error");
-        arg.get_d().validate_access(offset, *this, it->second);
+        arg.get_d().validate_access(offset, *this, lookup_combined_mode(combined_accesses, arg.get_d().get_unique_id()));
       }
     };
 
