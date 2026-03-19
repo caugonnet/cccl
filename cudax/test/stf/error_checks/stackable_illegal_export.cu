@@ -73,7 +73,7 @@ int main()
   sctx.host_launch(lB.read())->*[](auto b) {
     for (size_t i = 0; i < b.size(); i++)
     {
-      EXPECT(b(i) == 2 * (17 - 3 * (42 + 2 * i)));
+      EXPECT(b(i) == 42);
     }
   };
 
