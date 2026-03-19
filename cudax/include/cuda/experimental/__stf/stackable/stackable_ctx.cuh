@@ -398,8 +398,6 @@ private:
 
       impl_state->data_nodes[data_root_offset].emplace(ld);
 
-      // fprintf(stderr, "Creating ld with ctx offset %d and root offset %d\n", target_offset, data_root_offset);
-
       // If necessary, import data recursively until we reach the target depth.
       // We first find the path from the target to the root and we push along this path
       if (target_offset != data_root_offset)

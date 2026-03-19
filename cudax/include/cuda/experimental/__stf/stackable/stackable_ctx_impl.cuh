@@ -61,13 +61,11 @@ public:
 // Combine access mode for a logical data id into a small vector.
 // Used to merge duplicate data accesses within a single task's deps
 // (e.g. read + write on the same data becomes rw).
-inline void combine_access_mode(
-  ::std::vector<::std::pair<int, access_mode>>& combined, int id, access_mode m)
+inline void combine_access_mode(::std::vector<::std::pair<int, access_mode>>& combined, int id, access_mode m)
 {
-  auto it = ::std::find_if(
-    combined.begin(), combined.end(), [id](const ::std::pair<int, access_mode>& entry) {
-      return entry.first == id;
-    });
+  auto it = ::std::find_if(combined.begin(), combined.end(), [id](const ::std::pair<int, access_mode>& entry) {
+    return entry.first == id;
+  });
   if (it != combined.end())
   {
     it->second = it->second | m;
@@ -78,13 +76,11 @@ inline void combine_access_mode(
   }
 }
 
-inline access_mode lookup_combined_mode(
-  const ::std::vector<::std::pair<int, access_mode>>& combined, int id)
+inline access_mode lookup_combined_mode(const ::std::vector<::std::pair<int, access_mode>>& combined, int id)
 {
-  auto it = ::std::find_if(
-    combined.begin(), combined.end(), [id](const ::std::pair<int, access_mode>& entry) {
-      return entry.first == id;
-    });
+  auto it = ::std::find_if(combined.begin(), combined.end(), [id](const ::std::pair<int, access_mode>& entry) {
+    return entry.first == id;
+  });
   _CCCL_ASSERT(it != combined.end(), "internal error: logical data id not found in combined modes");
   return it->second;
 }
@@ -744,12 +740,8 @@ public:
       _CCCL_ASSERT(!nodes[node_offset], "inconsistent state");
 
 #if _CCCL_CTK_AT_LEAST(12, 4) && !defined(CUDASTF_DISABLE_CODE_GENERATION) && defined(__CUDACC__)
-      // Additional validation for push_while (when conditional_handle is provided)
       if (config.conditional_handle != nullptr)
       {
-        int parent_depth = is_root ? -1 : int(node_tree.depth(head_offset));
-
-        // push_while cannot be used as root context - must have a parent
         _CCCL_ASSERT(head_offset != -1, "push_while cannot be used as root context - use push() for root");
       }
 #endif
@@ -765,8 +757,6 @@ public:
       }
       else
       {
-        // In the current implementation, depth > 1 is using a no-op for push/pop
-        ///   _CCCL_ASSERT(parent_depth == 0, "invalid state");
         // Keep track of parenthood
         node_tree.set_parent(head_offset, node_offset);
 
@@ -1470,7 +1460,6 @@ public:
   {
     auto lock = pimpl->acquire_shared_lock();
 
-    // fprintf(stderr, "initialize from shape.\n");
     int head = pimpl->get_head_offset();
     return stackable_logical_data(*this, head, true, get_root_ctx().logical_data(mv(s)), true);
   }
@@ -1490,7 +1479,6 @@ public:
   {
     auto lock = pimpl->acquire_shared_lock();
 
-    // fprintf(stderr, "initialize from shape.\n");
     int head = pimpl->get_head_offset();
     return stackable_logical_data(*this, head, true, get_ctx(head).logical_data(mv(s)), false);
   }
@@ -1513,7 +1501,6 @@ public:
     auto lock = pimpl->acquire_shared_lock();
 
     int head = pimpl->get_head_offset();
-    // fprintf(stderr, "initialize from value.\n");
     auto underlying_ld = get_ctx(head).logical_data(::std::forward<Pack>(pack)...);
     using T            = typename decltype(underlying_ld)::element_type;
     return stackable_logical_data<T>(*this, head, false, mv(underlying_ld), true);
@@ -1538,8 +1525,7 @@ public:
     [[maybe_unused]] auto validate = [&combined_accesses, offset, this](const auto& arg) {
       if constexpr (reserved::is_stackable_task_dep_v<::std::decay_t<decltype(arg)>>)
       {
-        arg.get_d().validate_access(
-          offset, *this, lookup_combined_mode(combined_accesses, arg.get_d().get_unique_id()));
+        arg.get_d().validate_access(offset, *this, lookup_combined_mode(combined_accesses, arg.get_d().get_unique_id()));
       }
     };
 
