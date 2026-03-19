@@ -73,25 +73,15 @@ namespace cuda::experimental::stf
  * this checks if a subsequent operation requesting a different mode is valid.
  * For example, data imported as read-only cannot be written.
  */
+inline bool access_mode_is_mutating(access_mode m)
+{
+  return m == access_mode::write || m == access_mode::rw || m == access_mode::reduce
+      || m == access_mode::reduce_no_init;
+}
+
 inline bool access_mode_permits(access_mode granted, access_mode requested)
 {
-  switch (requested)
-  {
-    case access_mode::read:
-    case access_mode::none:
-    case access_mode::relaxed:
-      return true;
-    case access_mode::write:
-    case access_mode::reduce:
-      return granted == access_mode::rw || granted == access_mode::write || granted == access_mode::reduce
-          || granted == access_mode::reduce_no_init;
-    case access_mode::rw:
-    case access_mode::reduce_no_init:
-      return granted == access_mode::rw || granted == access_mode::write || granted == access_mode::reduce
-          || granted == access_mode::reduce_no_init;
-    default:
-      return false;
-  }
+  return !access_mode_is_mutating(requested) || access_mode_is_mutating(granted);
 }
 
 //! Logical data type used in a stackable_ctx context type.
