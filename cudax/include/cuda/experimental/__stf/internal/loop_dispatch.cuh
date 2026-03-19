@@ -103,12 +103,6 @@ inline void loop_dispatch(
       if constexpr (::std::is_same_v<::std::remove_reference_t<context_t>, stackable_ctx>)
       {
         ctx.set_head_offset(head);
-        // fprintf(stderr, "LOOP DISPATCH on stackable ctx SET head %d - tid %ld / nthreads %ld\n", head, tid,
-        // nthreads);
-        //  if (!stackable_disabled())
-        //  {
-        //    ctx.push();
-        //  }
       }
 
       // Distribute subplaces in a round robin fashion
@@ -127,14 +121,6 @@ inline void loop_dispatch(
           func(i);
         }
       }
-
-      // if constexpr (::std::is_same_v<::std::remove_reference_t<context_t>, stackable_ctx>)
-      // {
-      //   if (!stackable_disabled())
-      //   {
-      //     ctx.pop();
-      //   }
-      // }
 
       ctx.pop_affinity();
     };
