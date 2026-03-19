@@ -819,7 +819,7 @@ public:
       }
 
       // Ensure the node offset was unused
-      _CCCL_ASSERT(!nodes[node_offset].has_value(), "inconsistent state");
+      _CCCL_ASSERT(!nodes[node_offset], "inconsistent state");
 
 #if _CCCL_CTK_AT_LEAST(12, 4) && !defined(CUDASTF_DISABLE_CODE_GENERATION) && defined(__CUDACC__)
       // Additional validation for push_while (when conditional_handle is provided)
@@ -836,7 +836,7 @@ public:
       {
         // If there is no current context, this is the root context and we use a stream_ctx
         // Create stream context node
-        nodes[node_offset].emplace(::std::make_unique<stream_ctx_node>());
+        nodes[node_offset] = ::std::make_unique<stream_ctx_node>();
 
         // root of the context
         root_offset = node_offset;
@@ -849,18 +849,18 @@ public:
         node_tree.set_parent(head_offset, node_offset);
 
         // Create graph context node
-        auto& parent_node = nodes[head_offset].value();
+        auto& parent_node = nodes[head_offset];
         auto& parent_ctx  = parent_node->ctx;
         auto handle       = get_async_handle(parent_ctx);
 
         // Create graph context node with optional conditional support
-        nodes[node_offset].emplace(::std::make_unique<graph_ctx_node>(parent_node.get(), mv(handle), loc, config));
+        nodes[node_offset] = ::std::make_unique<graph_ctx_node>(parent_node.get(), mv(handle), loc, config);
       }
 
       // Handle stats and update head
       if (display_graph_stats)
       {
-        auto& new_node    = *nodes[node_offset].value();
+        auto& new_node    = *nodes[node_offset];
         new_node.callsite = loc;
       }
 
@@ -888,9 +888,9 @@ public:
       int head_offset = get_head_offset();
 
       _CCCL_ASSERT(nodes.size() > 0, "Calling pop while no context was pushed");
-      _CCCL_ASSERT(nodes[head_offset].has_value(), "invalid state");
+      _CCCL_ASSERT(nodes[head_offset], "invalid state");
 
-      auto& current_node = nodes[head_offset].value();
+      auto& current_node = nodes[head_offset];
 
       // Automatically pop data if needed. This will destroy the logical data
       // created within the context that is being destroyed. Unless using "non
@@ -912,7 +912,7 @@ public:
     {
       int head_offset = get_head_offset();
 
-      auto& current_node = nodes[head_offset].value();
+      auto& current_node = nodes[head_offset];
       auto& current_ctx  = current_node->ctx;
 
       // Make the async resource handle reusable on this execution place
@@ -934,7 +934,7 @@ public:
       int parent_offset = node_tree.get_parent(head_offset);
       _CCCL_ASSERT(parent_offset != -1, "internal error: no parent ctx");
 
-      auto& parent_node = nodes[parent_offset].value();
+      auto& parent_node = nodes[parent_offset];
       auto& parent_ctx  = parent_node->ctx;
 
       // Now that the context has been finalized, we can unfreeze data (unless
@@ -994,7 +994,7 @@ public:
 
       // Polymorphic finalization - no conditionals needed!
       int head_offset    = get_head_offset();
-      auto& current_node = *nodes[head_offset].value();
+      auto& current_node = *nodes[head_offset];
 
       // Use polymorphic dispatch for context-specific finalization
       event_list finalize_prereqs = current_node.finalize();
@@ -1012,31 +1012,31 @@ public:
     context& get_root_ctx()
     {
       _CCCL_ASSERT(root_offset != -1, "invalid state");
-      _CCCL_ASSERT(nodes[root_offset].has_value(), "invalid state");
-      return nodes[root_offset].value()->ctx;
+      _CCCL_ASSERT(nodes[root_offset], "invalid state");
+      return nodes[root_offset]->ctx;
     }
 
     const context& get_root_ctx() const
     {
       _CCCL_ASSERT(root_offset != -1, "invalid state");
-      _CCCL_ASSERT(nodes[root_offset].has_value(), "invalid state");
-      return nodes[root_offset].value()->ctx;
+      _CCCL_ASSERT(nodes[root_offset], "invalid state");
+      return nodes[root_offset]->ctx;
     }
 
     ::std::unique_ptr<ctx_node_base>& get_node(int offset)
     {
       _CCCL_ASSERT(offset != -1, "invalid value");
       _CCCL_ASSERT(offset < int(nodes.size()), "invalid value");
-      _CCCL_ASSERT(nodes[offset].has_value(), "invalid value");
-      return nodes[offset].value();
+      _CCCL_ASSERT(nodes[offset], "invalid value");
+      return nodes[offset];
     }
 
     const ::std::unique_ptr<ctx_node_base>& get_node(int offset) const
     {
       _CCCL_ASSERT(offset != -1, "invalid value");
       _CCCL_ASSERT(offset < int(nodes.size()), "invalid value");
-      _CCCL_ASSERT(nodes[offset].has_value(), "invalid value");
-      return nodes[offset].value();
+      _CCCL_ASSERT(nodes[offset], "invalid value");
+      return nodes[offset];
     }
 
     context& get_ctx(int offset)
@@ -1161,7 +1161,7 @@ public:
     }
 
     // Actual state for each node (which organization is dictated by node_tree)
-    ::std::vector<::std::optional<::std::unique_ptr<ctx_node_base>>> nodes;
+    ::std::vector<::std::unique_ptr<ctx_node_base>> nodes;
 
     // Hierarchy of the context nodes
     node_hierarchy node_tree;
