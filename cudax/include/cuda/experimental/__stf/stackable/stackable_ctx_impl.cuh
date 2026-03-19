@@ -59,12 +59,14 @@ public:
 
 // Combine access mode for a logical data id into a small vector.
 // Used to merge duplicate data accesses within a single task's deps
-// (e.g. read + write on the same data → rw).
-inline void combine_access_mode(::std::vector<::std::pair<int, access_mode>>& combined, int id, access_mode m)
+// (e.g. read + write on the same data becomes rw).
+inline void combine_access_mode(
+  ::std::vector<::std::pair<int, access_mode>>& combined, int id, access_mode m)
 {
-  auto it = ::std::find_if(combined.begin(), combined.end(), [id](const ::std::pair<int, access_mode>& entry) {
-    return entry.first == id;
-  });
+  auto it = ::std::find_if(
+    combined.begin(), combined.end(), [id](const ::std::pair<int, access_mode>& entry) {
+      return entry.first == id;
+    });
   if (it != combined.end())
   {
     it->second = it->second | m;
@@ -75,11 +77,13 @@ inline void combine_access_mode(::std::vector<::std::pair<int, access_mode>>& co
   }
 }
 
-inline access_mode lookup_combined_mode(const ::std::vector<::std::pair<int, access_mode>>& combined, int id)
+inline access_mode lookup_combined_mode(
+  const ::std::vector<::std::pair<int, access_mode>>& combined, int id)
 {
-  auto it = ::std::find_if(combined.begin(), combined.end(), [id](const ::std::pair<int, access_mode>& entry) {
-    return entry.first == id;
-  });
+  auto it = ::std::find_if(
+    combined.begin(), combined.end(), [id](const ::std::pair<int, access_mode>& entry) {
+      return entry.first == id;
+    });
   _CCCL_ASSERT(it != combined.end(), "internal error: logical data id not found in combined modes");
   return it->second;
 }
@@ -109,6 +113,23 @@ public:
     ::std::function<void()> add_dependency_to_task;
   };
 
+  //! @brief Defers task creation until all dependencies are known.
+  //!
+  //! In a regular context, task() immediately creates the underlying task and
+  //! add_deps() appends to it -- access modes are already resolved.
+  //!
+  //! In a stackable context, we cannot create the task immediately because
+  //! add_deps() may later introduce additional dependencies on the same logical
+  //! data with a different access mode (e.g. read initially, then write via
+  //! add_deps). The data must be imported (pushed/frozen) with the *combined*
+  //! mode (rw in that example), but once data is frozen with a given mode it
+  //! cannot be upgraded.
+  //!
+  //! deferred_task_builder therefore collects all dependencies first, combines
+  //! access modes per logical data, validates and auto-pushes with the correct
+  //! combined mode, and only then creates the real task via the underlying
+  //! context. The task is concretized lazily on the first call to operator->*
+  //! (when the task body is provided) or set_symbol.
   template <typename... Deps>
   class deferred_task_builder
   {
@@ -1643,7 +1664,8 @@ public:
     [[maybe_unused]] auto validate = [&combined_accesses, offset, this](const auto& arg) {
       if constexpr (reserved::is_stackable_task_dep_v<::std::decay_t<decltype(arg)>>)
       {
-        arg.get_d().validate_access(offset, *this, lookup_combined_mode(combined_accesses, arg.get_d().get_unique_id()));
+        arg.get_d().validate_access(
+          offset, *this, lookup_combined_mode(combined_accesses, arg.get_d().get_unique_id()));
       }
     };
 
