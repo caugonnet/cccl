@@ -81,7 +81,7 @@ int main()
 
   ctx.finalize();
 
-  // Verify results - each element should be doubled
+  // Verify results - each element is incremented max_iter1*max_iter2 times
   for (size_t i = 0; i < sz; i++)
   {
     int expected = static_cast<int>(i + max_iter1 * max_iter2);

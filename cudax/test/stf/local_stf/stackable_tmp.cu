@@ -22,7 +22,6 @@ using namespace cuda::experimental::stf;
 template <typename T>
 static __global__ void kernel_set(T* addr, T val)
 {
-  printf("SETTING ADDR %p at %d\n", addr, val);
   *addr = val;
 }
 

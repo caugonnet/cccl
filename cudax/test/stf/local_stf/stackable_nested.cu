@@ -62,7 +62,7 @@ int main()
 
   sctx.finalize();
 
-  // Verify results - each element should be doubled
+  // Verify results - each element goes through 3 iterations of d(i)*=2, d(i)++
   for (size_t i = 0; i < sz; i++)
   {
     int expected = static_cast<int>(((i * 2 + 1) * 2 + 1) * 2 + 1);

@@ -35,7 +35,6 @@ int main()
   ctx.push();
 
   // da and db are for the same variable : we expect it to be equivalent to a RW access
-  // ctx.task(var_handle.write(), var_handle.read())->*[](cudaStream_t stream, auto da, auto db) {
   ctx.task(var_handle.write(), var_handle.read())->*[](cudaStream_t stream, auto da, auto db) {
     add<<<1, 1, 0, stream>>>(da.data_handle(), db.data_handle());
   };
@@ -45,8 +44,6 @@ int main()
   // Read that value on the host
   ctx.host_launch(var_handle.read())->*[](auto da) {
     int result = *da.data_handle();
-    (void) result;
-    fprintf(stderr, "RESULT %d\n", result);
     assert(result == 43);
   };
 

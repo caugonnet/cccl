@@ -129,7 +129,6 @@ public:
   {
     if (this != &other)
     {
-      fprintf(stderr, "CTX copy assignment (src = %s)\n", other.symbol.c_str());
       ctx    = other.ctx;
       symbol = other.symbol;
       copy_content(ctx, other, *this);
