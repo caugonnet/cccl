@@ -358,9 +358,6 @@ private:
 
       mutable ::std::vector<::std::optional<data_node>> data_nodes;
 
-      // If the logical data was created at a level that is not directly the
-      // root of the context, we remember this offset
-      // size_t offset_depth = 0;
       int data_root_offset;
 
       ::std::string symbol;
