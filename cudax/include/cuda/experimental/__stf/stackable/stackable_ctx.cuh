@@ -657,7 +657,7 @@ private:
     void set_write_back(bool flag)
     {
       _CCCL_ASSERT(!impl_state->data_nodes.empty(), "invalid value");
-      impl_state->data_nodes[0].value().ld.set_write_back(flag);
+      impl_state->data_nodes[impl_state->data_root_offset].value().ld.set_write_back(flag);
     }
 
     // Indicate that this logical data will only be used in a read-only mode
