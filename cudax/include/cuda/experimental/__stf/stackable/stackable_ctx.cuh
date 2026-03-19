@@ -213,14 +213,6 @@ private:
             : ld(mv(ld))
         {}
 
-        ~data_node()
-        {
-          if (!frozen_ld.has_value())
-          {
-            return;
-          }
-        }
-
         // Get the access mode used to freeze data
         access_mode get_frozen_mode() const
         {
