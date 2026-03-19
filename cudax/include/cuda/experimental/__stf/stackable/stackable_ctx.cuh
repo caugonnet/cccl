@@ -436,9 +436,9 @@ private:
 
       _CCCL_ASSERT(impl_state->data_nodes[data_root_offset].has_value(), "");
 
-      // TODO: Implement early cleanup of leaf nodes for better resource management
-      // For now, we remove the last node but should traverse all leaves
-      impl_state->data_nodes.pop_back();
+      // Clear the root data node; child nodes at other offsets are kept alive
+      // via retain_data below until their owning sub-context is popped.
+      impl_state->data_nodes[data_root_offset].reset();
 
       // Ensure we don't destroy the state too early by retaining its state
       // (with a shared_ptr) in all children of the data_root_offset if they
