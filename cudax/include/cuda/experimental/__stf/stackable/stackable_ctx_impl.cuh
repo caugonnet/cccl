@@ -653,11 +653,27 @@ public:
         }
       }
 
-      // Try to find an offset which is not used
+      void grow()
+      {
+        int old_size = static_cast<int>(parent.size());
+        int new_size =
+          ::std::max(old_size + 1, static_cast<int>(old_size * growth_factor_numerator / growth_factor_denominator));
+        parent.resize(new_size);
+        children.resize(new_size);
+        for (int i = new_size - 1; i >= old_size; i--)
+        {
+          free_list.push_back(i);
+        }
+      }
+
       int get_avail_entry()
       {
-        // XXX implement growth mechanism
-        // remember size of parent, push new items in the free list ? (grow())
+        if (free_list.empty())
+        {
+          grow();
+        }
+
+        // This should never happen, as grow() should have been called if the free list is empty
         _CCCL_ASSERT(!free_list.empty(), "no slot available");
 
         int result = free_list.back();
@@ -1253,17 +1269,20 @@ public:
 
   int get_head_offset() const
   {
+    auto lock = pimpl->acquire_shared_lock();
     return pimpl->get_head_offset();
   }
 
   /** True if the current thread has a head offset set (has entered the context). */
   bool has_head_set() const
   {
+    auto lock = pimpl->acquire_shared_lock();
     return pimpl->has_head_set();
   }
 
   void set_head_offset(int offset)
   {
+    auto lock = pimpl->acquire_exclusive_lock();
     pimpl->set_head_offset(offset);
   }
 
