@@ -26,9 +26,7 @@ static constexpr int NTHREADS = 20;
 static constexpr int NBATCHES = 3;
 static constexpr size_t N     = 1024;
 
-void worker(stackable_ctx sctx,
-            int main_head,
-            stackable_logical_data<slice<int>> ld)
+void worker(stackable_ctx sctx, int main_head, stackable_logical_data<slice<int>> ld)
 {
   sctx.set_head_offset(main_head);
   sctx.push();
