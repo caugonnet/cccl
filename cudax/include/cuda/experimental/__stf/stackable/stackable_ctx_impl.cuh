@@ -150,8 +150,8 @@ public:
     };
     ::std::vector<additional_dep_info> additional_deps_;
 
-    // Store the concrete task (base class)
-    mutable ::std::optional<::cuda::experimental::stf::task> concrete_task_;
+    // Store the concrete task (base class), set by concretize_deferred_task
+    ::std::optional<::cuda::experimental::stf::task> concrete_task_;
 
     // Optional symbol to be applied to the underlying task when concretized
     ::std::optional<::std::string> symbol_;
@@ -199,7 +199,7 @@ public:
   private:
     // Concretize the deferred task: combine access modes, validate/push, resolve deps, create the task.
     template <typename TaskAction>
-    auto concretize_deferred_task(TaskAction&& action) const
+    auto concretize_deferred_task(TaskAction&& action)
     {
       return ::std::apply(
         [this, &action](auto&&... initial_args) {
