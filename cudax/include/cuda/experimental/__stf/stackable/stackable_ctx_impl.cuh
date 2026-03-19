@@ -994,39 +994,6 @@ public:
     }
 
   private:
-    void print_logical_data_summary() const
-    {
-      traverse_nodes([this](int offset) {
-        auto& ctx = get_ctx(offset);
-        // fprintf(stderr, "[context %d (%s)] logical data summary:\n", offset, ctx.to_string().c_str());
-        //   ctx.print_logical_data_summary();
-      });
-    }
-
-    /* Recursively apply a function over every node of the context tree */
-    template <typename Func>
-    void traverse_nodes(Func&& func) const
-    {
-      ::std::stack<int> node_stack;
-      node_stack.push(root_offset);
-
-      while (!node_stack.empty())
-      {
-        int offset = node_stack.top();
-        node_stack.pop();
-
-        // Call the provided function on the current node
-        func(offset);
-
-        // Push children to stack (reverse order to maintain left-to-right order)
-        const auto& children = get_children_offsets(offset);
-        for (auto it = children.rbegin(); it != children.rend(); ++it)
-        {
-          node_stack.push(*it);
-        }
-      }
-    }
-
     void print_cache_stats_summary() const
     {
       if (!display_graph_stats || stats_map.size() == 0)
@@ -1703,13 +1670,6 @@ public:
                  "Can only finalize if there is no pending contexts");
 
     get_root_ctx().finalize();
-  }
-
-  void print_logical_data_summary() const
-  {
-    auto lock = pimpl->acquire_shared_lock();
-
-    pimpl->print_logical_data_summary();
   }
 
   ::std::shared_lock<::std::shared_mutex> acquire_shared_lock() const
