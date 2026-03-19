@@ -93,23 +93,6 @@ public:
   template <typename T>
   using logical_data_t = ::cuda::experimental::stf::stackable_logical_data<T>;
 
-  //! Store metadata about task dependencies to automatically push data before
-  //! the task is started.
-  //!
-  //! This is needed to implement add_deps, where dependencies are discovered
-  //! incrementally and where importing a piece of data in a write-only mode, and
-  //! then the same data in read mode would result in incorrect behaviour, while
-  //! we expect to import it in rw mode in this scenario.
-
-  // Information about a deferred argument that needs add_deps at task execution time
-  struct deferred_arg_info
-  {
-    int logical_data_id;
-    access_mode combined_access_mode;
-    // Store function that adds dependency to underlying task (validation already done)
-    ::std::function<void()> add_dependency_to_task;
-  };
-
   //! @brief Defers task creation until all dependencies are known.
   //!
   //! In a regular context, task() immediately creates the underlying task and
@@ -1467,7 +1450,7 @@ public:
   {
     auto lock = pimpl->acquire_shared_lock();
 
-    int head = pimpl->get_head_offset();
+    int head           = pimpl->get_head_offset();
     auto underlying_ld = get_ctx(head).logical_data(::std::forward<Pack>(pack)...);
     using T            = typename decltype(underlying_ld)::element_type;
     return stackable_logical_data<T>(*this, head, false, mv(underlying_ld), true);
