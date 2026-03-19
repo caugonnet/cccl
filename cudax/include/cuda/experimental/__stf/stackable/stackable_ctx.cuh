@@ -332,7 +332,9 @@ private:
 
     private:
       // Centralized method to grow data nodes to a certain size
-      void grow_data_nodes(int target_size, size_t factor_numerator = 3, size_t factor_denominator = 2)
+      void grow_data_nodes(int target_size,
+                           size_t factor_numerator   = node_hierarchy::default_growth_numerator,
+                           size_t factor_denominator = node_hierarchy::default_growth_denominator)
       {
         if (target_size < int(data_nodes.size()))
         {
