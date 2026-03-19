@@ -53,9 +53,9 @@ class stackable_logical_data;
 class stackable_logical_data_impl_state_base
 {
 public:
-  virtual ~stackable_logical_data_impl_state_base()                                            = default;
-  virtual void pop_before_finalize(int ctx_offset) const                                       = 0;
-  virtual void pop_after_finalize(int parent_offset, const event_list& finalize_prereqs) const = 0;
+  virtual ~stackable_logical_data_impl_state_base()                                      = default;
+  virtual void pop_before_finalize(int ctx_offset)                                       = 0;
+  virtual void pop_after_finalize(int parent_offset, const event_list& finalize_prereqs) = 0;
 };
 
 // Combine access mode for a logical data id into a small vector.

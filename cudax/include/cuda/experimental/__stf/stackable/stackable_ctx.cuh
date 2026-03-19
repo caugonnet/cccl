@@ -111,7 +111,7 @@ private:
       // This method is called when we pop the stackable_logical_data before we
       // have called finalize() on the nested context. This destroys the
       // logical data that was created in the nested context.
-      virtual void pop_before_finalize(int ctx_offset) const override
+      void pop_before_finalize(int ctx_offset) override
       {
         // either data node is valid at the same offset (if the logical data
         // wasn't destroyed), or its parent must be valid.
@@ -162,7 +162,7 @@ private:
       }
 
       // Unfreeze the logical data after the context has been finalized.
-      virtual void pop_after_finalize(int parent_offset, const event_list& finalize_prereqs) const override
+      void pop_after_finalize(int parent_offset, const event_list& finalize_prereqs) override
       {
         nvtx_range r("stackable_logical_data::pop_after_finalize");
 
@@ -223,7 +223,7 @@ private:
         event_list unfreeze_prereqs;
 
         // Once frozen, count number of calls to get
-        mutable int get_cnt = 0;
+        int get_cnt = 0;
 
         // Keep track of actual data accesses, so that we can detect if we
         // eventually did not need to freeze a data in write mode, for example.
@@ -344,9 +344,9 @@ private:
         data_nodes.resize(new_size);
       }
 
-      mutable stackable_ctx sctx;
+      stackable_ctx sctx;
 
-      mutable ::std::vector<::std::optional<data_node>> data_nodes;
+      ::std::vector<::std::optional<data_node>> data_nodes;
 
       int data_root_offset;
 
@@ -490,7 +490,7 @@ private:
     }
 
     /* Import data into the ctx at this offset */
-    void push(int ctx_offset, access_mode m, data_place where = data_place::invalid()) const
+    void push(int ctx_offset, access_mode m, data_place where = data_place::invalid())
     {
       int parent_offset = sctx.get_parent_offset(ctx_offset);
 
@@ -602,12 +602,12 @@ private:
     }
 
     /* Pop one level down */
-    void pop_before_finalize(int ctx_offset) const
+    void pop_before_finalize(int ctx_offset)
     {
       impl_state->pop_before_finalize(ctx_offset);
     }
 
-    void pop_after_finalize(int parent_offset, const event_list& finalize_prereqs) const
+    void pop_after_finalize(int parent_offset, const event_list& finalize_prereqs)
     {
       impl_state->pop_after_finalize(parent_offset, finalize_prereqs);
     }
@@ -673,9 +673,7 @@ private:
     template <typename, typename, bool>
     friend class stackable_task_dep;
 
-    // Note: mutable required for validate_access() calls from const methods
-    // Consider refactoring to make validation logic const-correct
-    mutable stackable_ctx sctx; // in which stackable context was this created ?
+    stackable_ctx sctx;
 
     ::std::shared_ptr<state> impl_state;
   };
