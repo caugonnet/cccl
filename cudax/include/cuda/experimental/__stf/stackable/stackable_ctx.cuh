@@ -369,11 +369,6 @@ private:
       // write() or rw() access
       bool read_only = false;
 
-      // We can call the stackable_logical_data destructor before popping the
-      // context. In this case, the state must be retained to unfreeze when
-      // appropriate.
-      bool was_destroyed = false;
-
       mutable ::std::shared_mutex mutex;
     };
 
@@ -445,8 +440,6 @@ private:
       int data_root_offset = impl_state->get_data_root_offset();
 
       _CCCL_ASSERT(impl_state->data_nodes[data_root_offset].has_value(), "");
-
-      impl_state->was_destroyed = true;
 
       // TODO: Implement early cleanup of leaf nodes for better resource management
       // For now, we remove the last node but should traverse all leaves
