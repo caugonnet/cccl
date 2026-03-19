@@ -150,7 +150,6 @@ public:
                     "All dependency arguments must be stackable task dependencies");
     }
 
-  public:
     // Add more dependencies via add_deps
     template <typename... MoreDeps>
     auto& add_deps(MoreDeps&&... deps)
