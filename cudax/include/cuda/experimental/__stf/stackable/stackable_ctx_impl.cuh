@@ -34,6 +34,7 @@
 #include "cuda/experimental/__stf/internal/context.cuh"
 #include "cuda/experimental/__stf/internal/task.cuh"
 #include "cuda/experimental/__stf/stackable/conditional_nodes.cuh"
+#include "cuda/experimental/__stf/stackable/stackable_node_hierarchy.cuh"
 #include "cuda/experimental/__stf/stackable/stackable_task_dep.cuh"
 #include "cuda/experimental/__stf/utility/hash.cuh"
 #include "cuda/experimental/__stf/utility/source_location.cuh"
@@ -658,149 +659,19 @@ public:
       cudaGraphNode_t output_node = nullptr;
     };
 
-    // Configuration constants
-    static constexpr int initial_node_pool_size       = 16;
-    static constexpr size_t growth_factor_numerator   = 3;
-    static constexpr size_t growth_factor_denominator = 2;
-
-    // Centralized method to grow context nodes to a certain size
-    void grow_context_nodes(int target_size,
-                            size_t factor_numerator   = growth_factor_numerator,
-                            size_t factor_denominator = growth_factor_denominator)
+    // Grow the sparse context node vector to accommodate at least target_size entries.
+    void grow_context_nodes(int target_size)
     {
       if (target_size < int(nodes.size()))
       {
-        return; // Already large enough
+        return;
       }
 
-      size_t new_size =
-        ::std::max(static_cast<size_t>(target_size), nodes.size() * factor_numerator / factor_denominator);
+      size_t new_size = ::std::max(
+        static_cast<size_t>(target_size),
+        nodes.size() * node_hierarchy::default_growth_numerator / node_hierarchy::default_growth_denominator);
       nodes.resize(new_size);
     }
-
-    // TODO this could be a standalone class when we split this header ...
-    /* To describe the hierarchy of contexts, and the hierarchy of stackable
-     * logical data which should match the structure of the context hierarchy,
-     * this class describes a tree using a vector of offsets. Every node has an
-     * offset, and we keep track of the parent offset of each node, as well as
-     * its children. */
-    class node_hierarchy
-    {
-    public:
-      node_hierarchy()
-      {
-        // May grow up later if more contexts are needed
-        constexpr int initialize_size = initial_node_pool_size;
-        parent.resize(initialize_size);
-        children.resize(initialize_size);
-        free_list.reserve(initialize_size);
-
-        for (int i = 0; i < initialize_size; i++)
-        {
-          // The order of the nodes does not really matter, but it may be
-          // easier to follow if we get nodes in a reasonable order (sequence
-          // from 0 ...)
-          free_list.push_back(initialize_size - 1 - i);
-        }
-      }
-
-      void grow()
-      {
-        int old_size = static_cast<int>(parent.size());
-        int new_size =
-          ::std::max(old_size + 1, static_cast<int>(old_size * growth_factor_numerator / growth_factor_denominator));
-        parent.resize(new_size);
-        children.resize(new_size);
-        for (int i = new_size - 1; i >= old_size; i--)
-        {
-          free_list.push_back(i);
-        }
-      }
-
-      int get_avail_entry()
-      {
-        if (free_list.empty())
-        {
-          grow();
-        }
-
-        // This should never happen, as grow() should have been called if the free list is empty
-        _CCCL_ASSERT(!free_list.empty(), "no slot available");
-
-        int result = free_list.back();
-        free_list.pop_back();
-
-        // the node should be unused
-        _CCCL_ASSERT(children[result].empty(), "invalid state");
-        parent[result] = -1;
-
-        return result;
-      }
-
-      // When a node of the tree is destroyed, we can reuse its offset by
-      // putting it back in the list of available offsets which can describe a
-      // node.
-      void discard_node(int offset)
-      {
-        nvtx_range r("discard_node");
-
-        // Remove this child from its parent (if any)
-        int p = parent[offset];
-        if (p != -1)
-        {
-          // Use efficient erase-remove idiom instead of rebuilding vector
-          auto& parent_children = children[p];
-          auto it               = ::std::find(parent_children.begin(), parent_children.end(), offset);
-          _CCCL_ASSERT(it != parent_children.end(), "invalid hierarchy state");
-          parent_children.erase(it);
-        }
-
-        children[offset].clear();
-        parent[offset] = -1;
-
-        // Make this offset available again
-        free_list.push_back(offset);
-      }
-
-      void set_parent(int parent_offset, int child_offset)
-      {
-        parent[child_offset] = parent_offset;
-        children[parent_offset].push_back(child_offset);
-      }
-
-      int get_parent(int offset) const
-      {
-        _CCCL_ASSERT(offset < int(parent.size()), "node offset exceeds parent array size");
-        return parent[offset];
-      }
-
-      const auto& get_children(int offset) const
-      {
-        _CCCL_ASSERT(offset < int(children.size()), "node offset exceeds children array size");
-        return children[offset];
-      }
-
-      size_t depth(int offset) const
-      {
-        int p = get_parent(offset);
-        if (p == -1)
-        {
-          return 0;
-        }
-
-        return 1 + depth(p);
-      }
-
-    private:
-      // Offset of the node's parent : -1 if none. Only valid for entries not in free-list.
-      ::std::vector<int> parent;
-
-      // If a node has children, indicate their offset here
-      ::std::vector<::std::vector<int>> children;
-
-      // Available offsets to create new nodes
-      ::std::vector<int> free_list;
-    };
 
   public:
     impl()
