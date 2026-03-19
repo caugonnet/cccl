@@ -948,8 +948,12 @@ public:
     int get_head_offset() const
     {
       auto it = head_map.find(::std::this_thread::get_id());
-      _CCCL_ASSERT(it != head_map.end(), "ctx offset isn't set in that thread");
-      return (it != head_map.end()) ? it->second : -1;
+      if (it == head_map.end())
+      {
+        fprintf(stderr, "Error: context offset isn't set in this thread\n");
+        abort();
+      }
+      return it->second;
     }
 
     /** True if the current thread has a head offset set (has entered the context). */
