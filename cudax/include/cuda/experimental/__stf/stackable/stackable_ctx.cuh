@@ -24,6 +24,7 @@
 #endif // no system header
 
 #include <algorithm>
+#include <atomic>
 #include <iostream>
 #include <shared_mutex>
 #include <stack>
@@ -142,14 +143,13 @@ private:
           access_mode frozen_mode = get_frozen_mode(parent_offset);
           if ((frozen_mode == access_mode::rw) && (data_nodes[ctx_offset].value().effective_mode == access_mode::read))
           {
-            static int warning_count = 0;
-            if (warning_count < 100)
+            static ::std::atomic<int> warning_count{0};
+            if (warning_count.fetch_add(1, ::std::memory_order_relaxed) < 100)
             {
               fprintf(stderr,
                       "Warning : no write access on data pushed with a write mode (may be suboptimal) (symbol %s)\n",
                       symbol.empty() ? "(no symbol)" : symbol.c_str());
-              warning_count++;
-              if (warning_count == 100)
+              if (warning_count.load(::std::memory_order_relaxed) == 100)
               {
                 fprintf(stderr, "Warning: Suppressing further write mode warnings (reached limit of 100)\n");
               }
