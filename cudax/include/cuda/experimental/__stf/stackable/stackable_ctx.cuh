@@ -65,7 +65,6 @@
 
 namespace cuda::experimental::stf
 {
-
 /**
  * @brief Check whether a granted access mode permits a requested access mode.
  *
