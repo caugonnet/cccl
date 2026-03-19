@@ -1063,27 +1063,6 @@ public:
       return ::std::unique_lock<::std::shared_mutex>(mutex);
     }
 
-    /* Methods to explicitly lock/unlock the mutex in a read-only or write way */
-    void lock_shared() const
-    {
-      mutex.lock_shared();
-    }
-
-    void unlock_shared() const
-    {
-      mutex.unlock_shared();
-    }
-
-    void lock_exclusive()
-    {
-      mutex.lock();
-    }
-
-    void unlock_exclusive()
-    {
-      mutex.unlock();
-    }
-
   private:
     mutable ::std::shared_mutex mutex;
   };
