@@ -4,7 +4,7 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2022-2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
@@ -86,7 +86,8 @@ inline bool access_mode_permits(access_mode granted, access_mode requested)
           || granted == access_mode::reduce_no_init;
     case access_mode::rw:
     case access_mode::reduce_no_init:
-      return granted == access_mode::rw || granted == access_mode::reduce_no_init;
+      return granted == access_mode::rw || granted == access_mode::write || granted == access_mode::reduce
+          || granted == access_mode::reduce_no_init;
     default:
       return false;
   }
