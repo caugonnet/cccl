@@ -63,7 +63,6 @@ int main()
     sctx.parallel_for(lB.shape(), lB.read(), lC.rw())->*[] __device__(size_t i, auto b, auto c) {
       c(i) += b(i);
     };
-
   }
 
   sctx.host_launch(lA2.read())->*[](auto a2) {

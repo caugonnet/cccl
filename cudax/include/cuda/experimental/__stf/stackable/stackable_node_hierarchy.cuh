@@ -30,7 +30,6 @@
 
 namespace cuda::experimental::stf
 {
-
 //! @brief Tree of integer offsets describing the hierarchy of stackable context nodes.
 //!
 //! Every node is identified by an integer offset.  The class maintains
@@ -40,7 +39,7 @@ namespace cuda::experimental::stf
 class node_hierarchy
 {
 public:
-  node_hierarchy(int initial_size = default_initial_size,
+  node_hierarchy(int initial_size  = default_initial_size,
                  size_t growth_num = default_growth_numerator,
                  size_t growth_den = default_growth_denominator)
       : growth_factor_numerator(growth_num)
@@ -136,8 +135,8 @@ public:
     return 1 + depth(p);
   }
 
-  static constexpr int default_initial_size        = 16;
-  static constexpr size_t default_growth_numerator  = 3;
+  static constexpr int default_initial_size          = 16;
+  static constexpr size_t default_growth_numerator   = 3;
   static constexpr size_t default_growth_denominator = 2;
 
 private:
@@ -153,5 +152,4 @@ private:
   //! Available offsets to create new nodes
   ::std::vector<int> free_list;
 };
-
 } // namespace cuda::experimental::stf
