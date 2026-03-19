@@ -65,6 +65,34 @@
 
 namespace cuda::experimental::stf
 {
+
+/**
+ * @brief Check whether a granted access mode permits a requested access mode.
+ *
+ * When data is imported into a nested context with a given mode (granted),
+ * this checks if a subsequent operation requesting a different mode is valid.
+ * For example, data imported as read-only cannot be written.
+ */
+inline bool access_mode_permits(access_mode granted, access_mode requested)
+{
+  switch (requested)
+  {
+    case access_mode::read:
+    case access_mode::none:
+    case access_mode::relaxed:
+      return true;
+    case access_mode::write:
+    case access_mode::reduce:
+      return granted == access_mode::rw || granted == access_mode::write || granted == access_mode::reduce
+          || granted == access_mode::reduce_no_init;
+    case access_mode::rw:
+    case access_mode::reduce_no_init:
+      return granted == access_mode::rw || granted == access_mode::reduce_no_init;
+    default:
+      return false;
+  }
+}
+
 //! Logical data type used in a stackable_ctx context type.
 //!
 //! It should behaves exactly like a logical_data with additional API to import
@@ -513,7 +541,7 @@ private:
       {
         // Data already exists - ensure existing mode is compatible, no upgrades possible
         auto& existing_node = impl_state->data_nodes[ctx_offset].value();
-        _CCCL_ASSERT(access_mode_is_compatible(existing_node.effective_mode, m), "Cannot change existing access mode");
+        _CCCL_ASSERT(access_mode_permits(existing_node.effective_mode, m), "Cannot change existing access mode");
         return;
       }
 
@@ -560,7 +588,7 @@ private:
         access_mode existing_frozen_mode = from_data_node.frozen_ld.value().get_access_mode();
 
         // Check if we need to upgrade the frozen mode for implicit push
-        if (!access_mode_is_compatible(existing_frozen_mode, m))
+        if (!access_mode_permits(existing_frozen_mode, m))
         {
           fprintf(stderr,
                   "Error: Incompatible access mode - existing frozen mode %s conflicts with requested mode %s\n",
@@ -863,7 +891,7 @@ public:
       {
         access_mode parent_frozen_mode = pimpl->get_frozen_mode(parent_offset);
         // Check access mode compatibility with parent's frozen mode
-        if (!access_mode_is_compatible(parent_frozen_mode, m))
+        if (!access_mode_permits(parent_frozen_mode, m))
         {
           fprintf(stderr,
                   "Error: Invalid access mode transition - parent frozen with %s, requesting %s\n",
