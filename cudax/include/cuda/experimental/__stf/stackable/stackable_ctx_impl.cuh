@@ -1150,236 +1150,24 @@ public:
     pimpl->pop();
   }
 
-  //! \brief RAII wrapper for automatic push/pop management (lock_guard style)
-  //!
-  //! This class provides automatic scope management for nested contexts,
-  //! following the same semantics as std::lock_guard.
-  //! The constructor calls push() and the destructor calls pop().
-  //!
-  //! Usage (direct constructor style like std::lock_guard):
-  //! \code
-  //! {
-  //!   stackable_ctx::graph_scope_guard scope{ctx};
-  //!   // nested context operations...
-  //!   // pop() called automatically when scope goes out of scope
-  //! }
-  //! \endcode
-  //!
-  //! Usage (factory method style):
-  //! \code
-  //! {
-  //!   auto scope = ctx.graph_scope();
-  //!   // nested context operations...
-  //! }
-  //! \endcode
-  class graph_scope_guard
-  {
-  public:
-    using context_type = stackable_ctx;
+  // RAII guard classes are defined as standalone types after the stackable_ctx
+  // class (in stackable_ctx.cuh) so that the class body stays focused on core
+  // logic.  The using-declarations below preserve the stackable_ctx::guard
+  // nested-name syntax for backward compatibility.
+  class graph_scope_guard;
+#if _CCCL_CTK_AT_LEAST(12, 4) && !defined(CUDASTF_DISABLE_CODE_GENERATION) && defined(__CUDACC__)
+  class while_graph_scope_guard;
+#endif
 
-    explicit graph_scope_guard(stackable_ctx& ctx,
-                               const ::cuda::std::source_location& loc = ::cuda::std::source_location::current())
-        : ctx_(ctx)
-    {
-      ctx_.push(loc);
-    }
-
-    ~graph_scope_guard()
-    {
-      ctx_.pop();
-    }
-
-    // Non-copyable, non-movable (like std::lock_guard)
-    graph_scope_guard(const graph_scope_guard&)            = delete;
-    graph_scope_guard& operator=(const graph_scope_guard&) = delete;
-    graph_scope_guard(graph_scope_guard&&)                 = delete;
-    graph_scope_guard& operator=(graph_scope_guard&&)      = delete;
-
-  private:
-    stackable_ctx& ctx_;
-  };
+  [[nodiscard]] graph_scope_guard
+  graph_scope(const ::cuda::std::source_location& loc = ::cuda::std::source_location::current());
 
 #if _CCCL_CTK_AT_LEAST(12, 4) && !defined(CUDASTF_DISABLE_CODE_GENERATION) && defined(__CUDACC__)
-  //! \brief RAII guard for while loop contexts with conditional graphs
-  //!
-  //! This guard automatically creates a while loop context using push_while() on construction
-  //! and calls pop() on destruction. It provides access to the conditional handle created.
-  class while_graph_scope_guard
-  {
-  public:
-    using context_type = stackable_ctx;
-
-    explicit while_graph_scope_guard(
-      stackable_ctx& ctx,
-      unsigned int default_launch_value       = 0,
-      unsigned int flags                      = cudaGraphCondAssignDefault,
-      const ::cuda::std::source_location& loc = ::cuda::std::source_location::current())
-        : ctx_(ctx)
-    {
-      ctx_.push_while(&conditional_handle_, default_launch_value, flags, loc);
-    }
-
-    ~while_graph_scope_guard()
-    {
-      ctx_.pop();
-    }
-
-    //! \brief Get the conditional handle for controlling the while loop
-    //! \return The conditional handle value
-    cudaGraphConditionalHandle cond_handle() const
-    {
-      return conditional_handle_;
-    }
-
-    template <typename... Deps>
-    class condition_update_scope
-    {
-    public:
-      condition_update_scope(stackable_ctx& ctx, cudaGraphConditionalHandle handle, Deps... deps)
-          : ctx_(ctx)
-          , handle_(handle)
-          , tdeps(mv(deps)...)
-      {}
-
-      // Helper to extract data_t from dependency types
-      template <typename T>
-      using data_t_of = typename T::data_t;
-
-      template <typename CondFunc>
-      void operator->*(CondFunc&& cond_func)
-      {
-        /* Build a cuda kernel from the deps then pass it a lambda that will
-         * configure a call to the condition_update_kernel kernel */
-        ::std::apply(
-          [this](auto&&... deps) {
-            return this->ctx_.cuda_kernel(deps...).set_symbol("condition_update");
-          },
-          tdeps)
-            ->*[cond_func = mv(cond_func), h = handle_](data_t_of<Deps>... args) {
-                  return cuda_kernel_desc{
-                    reserved::condition_update_kernel<CondFunc, data_t_of<Deps>...>, 1, 1, 0, h, cond_func, args...};
-                };
-      }
-
-    private:
-      stackable_ctx& ctx_;
-      cudaGraphConditionalHandle handle_;
-      ::std::tuple<::std::decay_t<Deps>...> tdeps;
-    };
-
-    //! \brief Helper for updating while loop condition using a device lambda
-    //!
-    //! Creates a helper object that supports the fluent ->* interface.
-    //! The lambda should return true to continue the loop, false to exit.
-    //!
-    //! Example usage:
-    //! ```cpp
-    //! auto while_guard = ctx.while_graph_scope();
-    //!
-    //! // Simple condition check
-    //! while_guard.update_cond(counter.read())->*[] __device__(auto counter) {
-    //!   return *counter > 0; // Continue while counter > 0
-    //! };
-    //!
-    //! // Complex condition with multiple data
-    //! while_guard.update_cond(residual.read(), max_iter.read())->*[tol] __device__(auto residual, auto iter) {
-    //!   bool converged = (*residual < tol);
-    //!   bool max_reached = (*iter >= 1000);
-    //!   return !converged && !max_reached; // Continue until converged or max iterations
-    //! };
-    //! ```
-    template <typename... Args>
-    auto update_cond(Args&&... args)
-    {
-      return condition_update_scope(ctx_, cond_handle(), args...); // Simple copy instead of forwarding
-    }
-
-    // Non-copyable, non-movable
-    while_graph_scope_guard(const while_graph_scope_guard&)            = delete;
-    while_graph_scope_guard& operator=(const while_graph_scope_guard&) = delete;
-    while_graph_scope_guard(while_graph_scope_guard&&)                 = delete;
-    while_graph_scope_guard& operator=(while_graph_scope_guard&&)      = delete;
-
-  private:
-    stackable_ctx& ctx_;
-    cudaGraphConditionalHandle conditional_handle_{};
-  };
-#endif // _CCCL_CTK_AT_LEAST(12, 4) && !defined(CUDASTF_DISABLE_CODE_GENERATION) && defined(__CUDACC__)
-
-  //! \brief Create RAII scope that automatically handles push/pop
-  //!
-  //! Creates a graph_scope_guard object that calls push() on construction and pop() on destruction.
-  //! The [[nodiscard]] attribute ensures the returned object is stored (not discarded),
-  //! as discarding it would immediately call the destructor and pop() prematurely.
-  //!
-  //! \param loc Source location for debugging (defaults to call site)
-  //! \return graph_scope_guard object that manages the nested context lifetime
-  [[nodiscard]] auto graph_scope(const ::cuda::std::source_location& loc = ::cuda::std::source_location::current())
-  {
-    return graph_scope_guard(*this, loc);
-  }
-
-#if _CCCL_CTK_AT_LEAST(12, 4) && !defined(CUDASTF_DISABLE_CODE_GENERATION) && defined(__CUDACC__)
-  //! \brief Create RAII scope for while loop contexts with conditional graphs
-  //!
-  //! Creates a while_graph_scope_guard object that calls push_while() on construction and pop() on destruction.
-  //! The [[nodiscard]] attribute ensures the returned object is stored (not discarded),
-  //! as discarding it would immediately call the destructor and pop() prematurely.
-  //!
-  //! Example usage:
-  //! ```cpp
-  //! stackable_ctx ctx;
-  //! {
-  //!   auto while_guard = ctx.while_graph_scope();
-  //!   // Tasks added here are part of the while loop body
-  //!   auto handle = while_guard.cond_handle();
-  //!   // Use handle to control while loop execution
-  //! } // Automatic pop() when while_guard goes out of scope
-  //! ```
-  //!
-  //! \param default_launch_value Default launch value for the conditional node (default: 1)
-  //! \param flags Conditional flags for the while loop (default: cudaGraphCondAssignDefault)
-  //! \param loc Source location for debugging (defaults to call site)
-  //! \return while_graph_scope_guard object that manages the while context lifetime and provides access to the
-  //! conditional handle
-  [[nodiscard]] auto while_graph_scope(
+  [[nodiscard]] while_graph_scope_guard while_graph_scope(
     unsigned int default_launch_value       = 1,
     unsigned int flags                      = cudaGraphCondAssignDefault,
-    const ::cuda::std::source_location& loc = ::cuda::std::source_location::current())
-  {
-    return while_graph_scope_guard(*this, default_launch_value, flags, loc);
-  }
+    const ::cuda::std::source_location& loc = ::cuda::std::source_location::current());
 
-  //! \brief Create RAII scope for repeat loops with automatic counter management
-  //!
-  //! Creates a repeat_graph_scope_guard object that automatically manages the loop counter
-  //! and conditional logic. The [[nodiscard]] attribute ensures the returned object is stored,
-  //! as discarding it would immediately call the destructor and end the scope prematurely.
-  //!
-  //! This is a higher-level abstraction over while_graph_scope that automatically handles:
-  //! - Counter initialization and management
-  //! - Loop termination condition
-  //! - Integration with the while graph system
-  //!
-  //! Example usage:
-  //! ```cpp
-  //! stackable_ctx ctx;
-  //! auto data = ctx.logical_data(...);
-  //!
-  //! {
-  //!   auto guard = ctx.repeat_graph_scope(10);
-  //!   // Tasks added here will run 10 times
-  //!   ctx.parallel_for(data.shape(), data.rw())->*[] __device__(size_t i, auto d) {
-  //!     d(i) += 1.0;
-  //!   };
-  //! } // Automatic cleanup when guard goes out of scope
-  //! ```
-  //!
-  //! \param count Number of iterations to repeat
-  //! \param default_launch_value Default launch value for the conditional node (default: 1)
-  //! \param flags Conditional flags for the while loop (default: cudaGraphCondAssignDefault)
-  //! \param loc Source location for debugging (defaults to call site)
-  //! \return repeat_graph_scope_guard object that manages the repeat loop lifetime
   [[nodiscard]] auto repeat_graph_scope(
     size_t count,
     unsigned int default_launch_value       = 1,
