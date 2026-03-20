@@ -56,6 +56,7 @@ set(
   parallel_for_2D.cu
   pi.cu
   scan.cu
+  sqrt_newton_stackable.cu
   standalone-launches.cu
   word_count.cu
   word_count_reduce.cu
