@@ -53,21 +53,21 @@ int main()
 
   stackable_ctx sctx;
 
-  auto lA = sctx.logical_data(shape_of<slice<int>>(64));
+  auto lval = sctx.logical_data(shape_of<scalar_view<int>>());
 
-  sctx.parallel_for(lA.shape(), lA.write())->*[] __device__(size_t i, auto a) {
-    a(i) = static_cast<int>(i);
+  sctx.parallel_for(box(1), lval.write())->*[] __device__(size_t, auto val) {
+    *val = 42;
   };
 
   {
     auto scope = sctx.graph_scope();
 
-    sctx.parallel_for(lA.shape(), lA.rw())->*[] __device__(size_t i, auto a) {
-      a(i) *= 2;
+    sctx.parallel_for(box(1), lval.rw())->*[] __device__(size_t, auto val) {
+      *val += 1;
     };
 
     should_abort = true;
-    sctx.wait(lA); // wait() in nested context must abort
+    sctx.wait(lval); // wait() in nested context must abort
   }
 
   _CCCL_ASSERT(false, "This should not be reached");
