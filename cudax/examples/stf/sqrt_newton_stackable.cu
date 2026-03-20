@@ -32,7 +32,7 @@ int main()
 #else
   stackable_ctx ctx;
 
-  constexpr size_t N = 1024;
+  constexpr size_t N   = 1024;
   constexpr double tol = 1e-12;
 
   ::std::vector<double> host_S(N);
@@ -59,7 +59,7 @@ int main()
               double x_old = x(i);
               double x_new = 0.5 * (x_old + s(i) / x_old);
               x(i)         = x_new;
-              max_err       = fabs(x_new - x_old);
+              max_err      = fabs(x_new - x_old);
             };
 
     while_guard.update_cond(lmax_err.read())->*[tol] __device__(auto max_err) {
