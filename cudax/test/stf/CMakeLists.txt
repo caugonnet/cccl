@@ -24,8 +24,10 @@ set(
   error_checks/misformed_tasks_dbl_end.cu
   error_checks/misformed_tasks_dbl_start.cu
   error_checks/non_managed_data.cu
+  error_checks/stackable_fence_in_nested.cu
   error_checks/stackable_illegal_export.cu
   error_checks/stackable_inconsistent_access_modes.cu
+  error_checks/stackable_wait_in_nested.cu
   error_checks/uninitialized_data.cu
   error_checks/write_frozen.cu
   examples/cuda_kernels_driver.cu
