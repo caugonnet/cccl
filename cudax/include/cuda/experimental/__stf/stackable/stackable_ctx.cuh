@@ -428,15 +428,11 @@ private:
 
       _CCCL_ASSERT(impl_state->data_nodes[data_root_offset].has_value(), "");
 
-      // Clear the root data node; child nodes at other offsets are kept alive
-      // via retain_data below until their owning sub-context is popped.
-      impl_state->data_nodes[data_root_offset].reset();
-
-      // Ensure we don't destroy the state too early by retaining its state
-      // (with a shared_ptr) in all children of the data_root_offset if they
-      // are valid
-      // We do not retain it in the data_root_offset because  is not frozen
-      // in this context.
+      // Do NOT destroy data_nodes here: the root data_node may still hold a
+      // frozen_ld that children depend on for pop_after_finalize to unfreeze.
+      // Ownership is transferred to children via retain_data; the shared_ptr
+      // ref-count ensures all data_nodes (including the root) are destroyed
+      // only after every child context has finished its pop sequence.
       const auto& root_children = sctx.get_children_offsets(data_root_offset);
       for (auto c : root_children)
       {
