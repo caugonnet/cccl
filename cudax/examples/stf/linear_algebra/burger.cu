@@ -215,14 +215,14 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 
   stackable_ctx ctx;
 
-  size_t N = 100000; // Large system - auto-scaled parameters maintain stability
+  size_t N = 2560;
   if (argc > 1)
   {
     N = atoi(argv[1]);
     fprintf(stderr, "N = %zu\n", N);
   }
 
-  size_t nsteps = 10000;
+  size_t nsteps = 200;
   if (argc > 2)
   {
     nsteps = atol(argv[2]);
