@@ -1277,6 +1277,204 @@ void stf_cuda_kernel_destroy(stf_cuda_kernel_handle k);
 
 //! \}
 
+//! \defgroup StackableContext Stackable Context
+//! \brief Nestable context with graph scopes, while loops, and repeat
+//!
+//! \details
+//! The stackable context provides hierarchical task graph nesting. The root
+//! context is a stream backend; nested scopes create graph contexts that
+//! capture work into CUDA graphs. While loops and repeat scopes use CUDA 12.4+
+//! conditional graph nodes.
+//! \{
+
+//! \brief Create a stackable context (root is stream backend)
+//!
+//! \param[out] ctx Pointer to receive context handle
+void stf_stackable_ctx_create(stf_ctx_handle* ctx);
+
+//! \brief Finalize a stackable context
+//!
+//! \param ctx Stackable context handle
+void stf_stackable_ctx_finalize(stf_ctx_handle ctx);
+
+//! \brief Get fence stream for a stackable context (must be at root level)
+//!
+//! \param ctx Stackable context handle
+//! \return CUDA stream for synchronization
+cudaStream_t stf_stackable_ctx_fence(stf_ctx_handle ctx);
+
+//! \brief Push a graph scope (nested graph context)
+//!
+//! \param ctx Stackable context handle
+void stf_stackable_push_graph(stf_ctx_handle ctx);
+
+//! \brief Pop the current scope (graph scope only; use specific pop for while/repeat)
+//!
+//! \param ctx Stackable context handle
+void stf_stackable_pop(stf_ctx_handle ctx);
+
+//! \brief Opaque handle for a while loop scope
+typedef void* stf_while_scope_handle;
+
+//! \brief Opaque handle for a repeat scope
+typedef void* stf_repeat_scope_handle;
+
+#if CUDART_VERSION >= 12040
+
+//! \brief Push a while loop scope (CUDA 12.4+ conditional graph node)
+//!
+//! \param ctx Stackable context handle
+//! \param[out] scope Pointer to receive while scope handle
+void stf_stackable_push_while(stf_ctx_handle ctx, stf_while_scope_handle* scope);
+
+//! \brief Pop (destroy) a while loop scope
+//!
+//! \param scope While scope handle from stf_stackable_push_while()
+void stf_stackable_pop_while(stf_while_scope_handle scope);
+
+//! \brief Get the cudaGraphConditionalHandle for manual condition setting
+//!
+//! \param scope While scope handle
+//! \return The conditional handle as a 64-bit integer (cast of cudaGraphConditionalHandle)
+uint64_t stf_while_scope_get_cond_handle(stf_while_scope_handle scope);
+
+//! \brief Push a repeat scope (fixed iteration count, CUDA 12.4+)
+//!
+//! The repeat scope automatically creates a counter, initializes it, and sets
+//! up the decrement-and-check condition. The user only needs to provide the
+//! loop body tasks between push and pop.
+//!
+//! \param ctx Stackable context handle
+//! \param count Number of iterations
+//! \param[out] scope Pointer to receive repeat scope handle
+void stf_stackable_push_repeat(stf_ctx_handle ctx, size_t count, stf_repeat_scope_handle* scope);
+
+//! \brief Pop (destroy) a repeat scope
+//!
+//! \param scope Repeat scope handle from stf_stackable_push_repeat()
+void stf_stackable_pop_repeat(stf_repeat_scope_handle scope);
+
+//! \brief Comparison operator for built-in while conditions
+typedef enum stf_compare_op
+{
+  STF_CMP_GT = 0, //!< Greater than (>)
+  STF_CMP_LT = 1, //!< Less than (<)
+  STF_CMP_GE = 2, //!< Greater than or equal (>=)
+  STF_CMP_LE = 3, //!< Less than or equal (<=)
+} stf_compare_op;
+
+//! \brief Data type for built-in while condition scalars
+typedef enum stf_dtype
+{
+  STF_DTYPE_FLOAT32 = 0,
+  STF_DTYPE_FLOAT64 = 1,
+  STF_DTYPE_INT32   = 2,
+  STF_DTYPE_INT64   = 3,
+} stf_dtype;
+
+//! \brief Set a built-in while loop condition: continue while scalar <op> threshold
+//!
+//! Creates an internal task that reads the scalar logical data, compares it
+//! against the threshold, and calls cudaGraphSetConditional accordingly.
+//! Call this inside the while scope, after all loop body tasks.
+//!
+//! \param ctx Stackable context handle
+//! \param scope While scope handle
+//! \param ld Logical data handle for a scalar value (1 element)
+//! \param op Comparison operator
+//! \param threshold Threshold value for comparison
+//! \param dtype Data type of the scalar
+void stf_stackable_while_cond_scalar(
+  stf_ctx_handle ctx,
+  stf_while_scope_handle scope,
+  stf_logical_data_handle ld,
+  stf_compare_op op,
+  double threshold,
+  stf_dtype dtype);
+
+#endif // CUDART_VERSION >= 12040
+
+//! \brief Create logical data on a stackable context from existing memory
+//!
+//! \param ctx Stackable context handle
+//! \param[out] ld Pointer to receive logical data handle
+//! \param addr Pointer to existing data
+//! \param sz Size in bytes
+//! \param dplace Data place specification
+void stf_stackable_logical_data_with_place(
+  stf_ctx_handle ctx, stf_logical_data_handle* ld, void* addr, size_t sz, stf_data_place dplace);
+
+//! \brief Create logical data on a stackable context (convenience: host data place)
+//!
+//! \param ctx Stackable context handle
+//! \param[out] ld Pointer to receive logical data handle
+//! \param addr Pointer to existing host data
+//! \param sz Size in bytes
+void stf_stackable_logical_data(stf_ctx_handle ctx, stf_logical_data_handle* ld, void* addr, size_t sz);
+
+//! \brief Create empty logical data on a stackable context
+//!
+//! \param ctx Stackable context handle
+//! \param length Size in bytes
+//! \param[out] to Pointer to receive logical data handle
+void stf_stackable_logical_data_empty(stf_ctx_handle ctx, size_t length, stf_logical_data_handle* to);
+
+//! \brief Create a synchronization token on a stackable context
+//!
+//! \param ctx Stackable context handle
+//! \param[out] ld Pointer to receive token handle
+void stf_stackable_token(stf_ctx_handle ctx, stf_logical_data_handle* ld);
+
+//! \brief Set symbol on stackable logical data
+void stf_stackable_logical_data_set_symbol(stf_logical_data_handle ld, const char* symbol);
+
+//! \brief Mark stackable logical data as read-only (enables concurrent reads across scopes)
+void stf_stackable_logical_data_set_read_only(stf_logical_data_handle ld);
+
+//! \brief Destroy stackable logical data
+void stf_stackable_logical_data_destroy(stf_logical_data_handle ld);
+
+//! \brief Destroy a stackable token (separate from logical data due to internal type difference)
+void stf_stackable_token_destroy(stf_logical_data_handle ld);
+
+//! \brief Create a task on a stackable context
+//!
+//! Creates a task on the current (head) underlying context. Dependencies
+//! are added with stf_stackable_task_add_dep which handles auto-push of
+//! data across scope boundaries.
+//!
+//! After creation, use stf_task_start(), stf_task_end(), stf_task_get_custream(),
+//! and stf_task_get() as normal.
+//!
+//! \param ctx Stackable context handle
+//! \param[out] t Pointer to receive task handle
+void stf_stackable_task_create(stf_ctx_handle ctx, stf_task_handle* t);
+
+//! \brief Add dependency to a stackable task (validates and auto-pushes data across scopes)
+//!
+//! \param ctx Stackable context handle (needed for auto-push validation)
+//! \param t Task handle
+//! \param ld Stackable logical data handle
+//! \param m Access mode
+void stf_stackable_task_add_dep(
+  stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m);
+
+//! \brief Add dependency with data place to a stackable task
+//!
+//! \param ctx Stackable context handle
+//! \param t Task handle
+//! \param ld Stackable logical data handle
+//! \param m Access mode
+//! \param data_p Data place specification
+void stf_stackable_task_add_dep_with_dplace(
+  stf_ctx_handle ctx,
+  stf_task_handle t,
+  stf_logical_data_handle ld,
+  stf_access_mode m,
+  stf_data_place* data_p);
+
+//! \}
+
 #ifdef __cplusplus
 }
 #endif

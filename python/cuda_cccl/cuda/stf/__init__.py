@@ -21,6 +21,7 @@ else:
         data_place,
         dep,
         exec_place,
+        stackable_context,
     )
 
     __all__ = [
@@ -29,4 +30,5 @@ else:
         "dep",
         "exec_place",
         "data_place",
+        "stackable_context",
     ]

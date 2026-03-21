@@ -116,8 +116,61 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
 
     void stf_token(stf_ctx_handle ctx, stf_logical_data_handle* ld);
 
+    # Stackable context
+    void stf_stackable_ctx_create(stf_ctx_handle* ctx)
+    void stf_stackable_ctx_finalize(stf_ctx_handle ctx)
+    CUstream stf_stackable_ctx_fence(stf_ctx_handle ctx)
+    void stf_stackable_push_graph(stf_ctx_handle ctx)
+    void stf_stackable_pop(stf_ctx_handle ctx)
+
+    ctypedef void* stf_while_scope_handle
+    ctypedef void* stf_repeat_scope_handle
+
+    void stf_stackable_push_while(stf_ctx_handle ctx, stf_while_scope_handle* scope)
+    void stf_stackable_pop_while(stf_while_scope_handle scope)
+    uint64_t stf_while_scope_get_cond_handle(stf_while_scope_handle scope)
+    void stf_stackable_push_repeat(stf_ctx_handle ctx, size_t count, stf_repeat_scope_handle* scope)
+    void stf_stackable_pop_repeat(stf_repeat_scope_handle scope)
+
+    cdef enum stf_compare_op:
+        STF_CMP_GT
+        STF_CMP_LT
+        STF_CMP_GE
+        STF_CMP_LE
+
+    cdef enum stf_dtype:
+        STF_DTYPE_FLOAT32
+        STF_DTYPE_FLOAT64
+        STF_DTYPE_INT32
+        STF_DTYPE_INT64
+
+    void stf_stackable_while_cond_scalar(
+        stf_ctx_handle ctx,
+        stf_while_scope_handle scope,
+        stf_logical_data_handle ld,
+        stf_compare_op op,
+        double threshold,
+        stf_dtype dtype)
+
+    void stf_stackable_logical_data_with_place(
+        stf_ctx_handle ctx, stf_logical_data_handle* ld, void* addr, size_t sz, stf_data_place dplace)
+    void stf_stackable_logical_data(stf_ctx_handle ctx, stf_logical_data_handle* ld, void* addr, size_t sz)
+    void stf_stackable_logical_data_empty(stf_ctx_handle ctx, size_t length, stf_logical_data_handle* to)
+    void stf_stackable_token(stf_ctx_handle ctx, stf_logical_data_handle* ld)
+    void stf_stackable_logical_data_set_symbol(stf_logical_data_handle ld, const char* symbol)
+    void stf_stackable_logical_data_set_read_only(stf_logical_data_handle ld)
+    void stf_stackable_logical_data_destroy(stf_logical_data_handle ld)
+    void stf_stackable_token_destroy(stf_logical_data_handle ld)
+
     ctypedef struct stf_task_handle_t
     ctypedef stf_task_handle_t* stf_task_handle
+
+    # Stackable task (must come after stf_task_handle typedef)
+    void stf_stackable_task_create(stf_ctx_handle ctx, stf_task_handle* t)
+    void stf_stackable_task_add_dep(
+        stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m)
+    void stf_stackable_task_add_dep_with_dplace(
+        stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m, stf_data_place* data_p)
     void stf_task_create(stf_ctx_handle ctx, stf_task_handle* t)
     void stf_task_set_exec_place(stf_task_handle t, stf_exec_place* exec_p)
     void stf_task_set_symbol(stf_task_handle t, const char* symbol)
@@ -361,7 +414,7 @@ cdef class logical_data:
 
 class dep:
     __slots__ = ("ld", "mode", "dplace")
-    def __init__(self, logical_data ld, int mode, dplace=None):
+    def __init__(self, object ld, int mode, dplace=None):
         self.ld   = ld
         self.mode = mode
         self.dplace = dplace  # can be None or a data place
@@ -839,3 +892,439 @@ cdef class context:
                     "Arguments must be dependency objects or an exec_place"
                 )
         return t
+
+
+# ===========================================================================
+# Stackable logical data — wraps stackable_logical_data<slice<char>> handles
+# ===========================================================================
+
+cdef class stackable_logical_data:
+    cdef stf_logical_data_handle _ld
+    cdef stf_ctx_handle _ctx
+
+    cdef object _dtype
+    cdef tuple  _shape
+    cdef int    _ndim
+    cdef size_t _len
+    cdef str    _symbol
+    cdef readonly bint _is_token
+
+    def __cinit__(self):
+        self._ld = NULL
+        self._ctx = NULL
+        self._len = 0
+        self._dtype = None
+        self._shape = ()
+        self._ndim = 0
+        self._symbol = None
+        self._is_token = False
+
+    def __dealloc__(self):
+        if self._ld != NULL:
+            if self._is_token:
+                stf_stackable_token_destroy(self._ld)
+            else:
+                stf_stackable_logical_data_destroy(self._ld)
+            self._ld = NULL
+
+    def set_symbol(self, str name):
+        stf_stackable_logical_data_set_symbol(self._ld, name.encode())
+        self._symbol = name
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @property
+    def shape(self):
+        return self._shape
+
+    def set_read_only(self):
+        """Mark this logical data as read-only (enables concurrent reads across scopes)."""
+        stf_stackable_logical_data_set_read_only(self._ld)
+
+    def read(self, dplace=None):
+        return dep(self, AccessMode.READ.value, dplace)
+
+    def write(self, dplace=None):
+        return dep(self, AccessMode.WRITE.value, dplace)
+
+    def rw(self, dplace=None):
+        return dep(self, AccessMode.RW.value, dplace)
+
+    def empty_like(self):
+        cdef stackable_logical_data out = stackable_logical_data.__new__(stackable_logical_data)
+        stf_stackable_logical_data_empty(self._ctx, self._len, &out._ld)
+        out._ctx   = self._ctx
+        out._dtype = self._dtype
+        out._shape = self._shape
+        out._ndim  = self._ndim
+        out._len   = self._len
+        out._symbol = None
+        out._is_token = False
+        return out
+
+    def __repr__(self):
+        return (f"stackable_logical_data(shape={self._shape}, dtype={self._dtype}, "
+                f"is_token={self._is_token}, symbol={self._symbol!r})")
+
+
+# ===========================================================================
+# Stackable task — wraps a task handle created on a stackable context
+# ===========================================================================
+
+cdef class stackable_task:
+    cdef stf_task_handle _t
+    cdef stf_ctx_handle _ctx
+    cdef list _lds_args
+
+    def __cinit__(self, stackable_context ctx):
+        stf_stackable_task_create(ctx._ctx, &self._t)
+        self._ctx = ctx._ctx
+        self._lds_args = []
+
+    def __dealloc__(self):
+        if self._t != NULL:
+            stf_task_destroy(self._t)
+
+    def start(self):
+        stf_task_enable_capture(self._t)
+        stf_task_start(self._t)
+
+    def end(self):
+        stf_task_end(self._t)
+
+    def add_dep(self, object d):
+        if not isinstance(d, dep):
+            raise TypeError("add_dep expects read(ld), write(ld) or rw(ld)")
+
+        cdef stackable_logical_data ldata = <stackable_logical_data> d.ld
+        cdef int mode_int = int(d.mode)
+        cdef stf_access_mode mode_ce = <stf_access_mode> mode_int
+        cdef data_place dp
+
+        if d.dplace is None:
+            stf_stackable_task_add_dep(self._ctx, self._t, ldata._ld, mode_ce)
+        else:
+            dp = <data_place> d.dplace
+            stf_stackable_task_add_dep_with_dplace(self._ctx, self._t, ldata._ld, mode_ce, &dp._c_place)
+
+        self._lds_args.append(ldata)
+
+    def set_exec_place(self, object exec_p):
+        if not isinstance(exec_p, exec_place):
+            raise TypeError("set_exec_place expects an exec_place argument")
+        cdef exec_place ep = <exec_place> exec_p
+        stf_task_set_exec_place(self._t, &ep._c_place)
+
+    def stream_ptr(self) -> int:
+        cdef CUstream s = stf_task_get_custream(self._t)
+        return <uintptr_t> s
+
+    def get_arg(self, index) -> int:
+        if self._lds_args[index]._is_token:
+            raise RuntimeError("cannot materialize a token argument")
+        cdef void *ptr = stf_task_get(self._t, index)
+        return <uintptr_t>ptr
+
+    def get_arg_cai(self, index):
+        ptr = self.get_arg(index)
+        return stf_cai(ptr, self._lds_args[index].shape, self._lds_args[index].dtype, stream=self.stream_ptr())
+
+    def args_cai(self):
+        non_token_cais = [self.get_arg_cai(i) for i in range(len(self._lds_args))
+                          if not self._lds_args[i]._is_token]
+        if len(non_token_cais) == 0:
+            return None
+        elif len(non_token_cais) == 1:
+            return non_token_cais[0]
+        return tuple(non_token_cais)
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, object exc_type, object exc, object tb):
+        self.end()
+        return False
+
+
+# ===========================================================================
+# Scope helper functions (cdef so they can declare C-typed locals)
+# ===========================================================================
+
+cdef uintptr_t _push_graph_impl(stf_ctx_handle ctx):
+    stf_stackable_push_graph(ctx)
+    return 0
+
+cdef _pop_graph_impl(stf_ctx_handle ctx):
+    stf_stackable_pop(ctx)
+
+cdef uintptr_t _push_while_impl(stf_ctx_handle ctx):
+    cdef stf_while_scope_handle scope = NULL
+    stf_stackable_push_while(ctx, &scope)
+    return <uintptr_t>scope
+
+cdef uint64_t _get_cond_handle_impl(uintptr_t scope_ptr):
+    return stf_while_scope_get_cond_handle(<stf_while_scope_handle>scope_ptr)
+
+cdef _pop_while_impl(uintptr_t scope_ptr):
+    stf_stackable_pop_while(<stf_while_scope_handle>scope_ptr)
+
+cdef uintptr_t _push_repeat_impl(stf_ctx_handle ctx, size_t count):
+    cdef stf_repeat_scope_handle scope = NULL
+    stf_stackable_push_repeat(ctx, count, &scope)
+    return <uintptr_t>scope
+
+cdef _pop_repeat_impl(uintptr_t scope_ptr):
+    stf_stackable_pop_repeat(<stf_repeat_scope_handle>scope_ptr)
+
+cdef _while_cond_scalar_impl(stf_ctx_handle ctx, uintptr_t scope_ptr,
+                              stf_logical_data_handle ld,
+                              int op, double threshold, int dtype_code):
+    stf_stackable_while_cond_scalar(
+        ctx,
+        <stf_while_scope_handle>scope_ptr,
+        ld,
+        <stf_compare_op>op,
+        threshold,
+        <stf_dtype>dtype_code)
+
+
+# ===========================================================================
+# Scope context managers
+# ===========================================================================
+
+class _GraphScope:
+    """Context manager for graph_scope (push/pop)."""
+    def __init__(self, ctx):
+        self._ctx = ctx
+    def __enter__(self):
+        _push_graph_impl((<stackable_context>self._ctx)._ctx)
+        return self
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        _pop_graph_impl((<stackable_context>self._ctx)._ctx)
+        return False
+
+class _WhileLoop:
+    """Context manager for while_loop (CUDA 12.4+ conditional graph node)."""
+    def __init__(self, ctx):
+        self._ctx = ctx
+        self._scope = 0
+        self._cond_handle = 0
+
+    def __enter__(self):
+        self._scope = _push_while_impl((<stackable_context>self._ctx)._ctx)
+        self._cond_handle = _get_cond_handle_impl(self._scope)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        _pop_while_impl(self._scope)
+        return False
+
+    @property
+    def cond_handle(self):
+        """Raw cudaGraphConditionalHandle as uint64 (for custom condition kernels)."""
+        return self._cond_handle
+
+    def continue_while(self, *args):
+        """
+        Set a built-in while condition.
+
+        Usage:
+            loop.continue_while(ld, ">", threshold)
+            loop.continue_while(ld, "<", threshold)
+        """
+        if len(args) == 3:
+            ld_obj, op_str, threshold = args
+            self._set_scalar_condition(ld_obj, op_str, float(threshold))
+        else:
+            raise ValueError("continue_while expects (logical_data, op_string, threshold)")
+
+    def _set_scalar_condition(self, ld_obj, str op_str, double threshold):
+        if op_str == ">":
+            op = <int>STF_CMP_GT
+        elif op_str == "<":
+            op = <int>STF_CMP_LT
+        elif op_str == ">=":
+            op = <int>STF_CMP_GE
+        elif op_str == "<=":
+            op = <int>STF_CMP_LE
+        else:
+            raise ValueError(f"Unsupported comparison operator: {op_str}")
+
+        dt = ld_obj.dtype
+        if dt == np.float32:
+            dtype_code = <int>STF_DTYPE_FLOAT32
+        elif dt == np.float64:
+            dtype_code = <int>STF_DTYPE_FLOAT64
+        elif dt == np.int32:
+            dtype_code = <int>STF_DTYPE_INT32
+        elif dt == np.int64:
+            dtype_code = <int>STF_DTYPE_INT64
+        else:
+            raise ValueError(f"Unsupported dtype for while condition: {dt}")
+
+        _while_cond_scalar_impl(
+            (<stackable_context>self._ctx)._ctx,
+            self._scope,
+            (<stackable_logical_data>ld_obj)._ld,
+            op,
+            threshold,
+            dtype_code)
+
+    def condition_task(self, *args):
+        """Return a stackable_task for manual condition setting (advanced)."""
+        return self._ctx.task(*args)
+
+class _RepeatScope:
+    """Context manager for repeat (fixed iteration count, CUDA 12.4+)."""
+    def __init__(self, ctx, count):
+        self._ctx = ctx
+        self._count = count
+        self._scope = 0
+
+    def __enter__(self):
+        self._scope = _push_repeat_impl((<stackable_context>self._ctx)._ctx, self._count)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        _pop_repeat_impl(self._scope)
+        return False
+
+
+# ===========================================================================
+# Stackable context
+# ===========================================================================
+
+cdef class stackable_context:
+    cdef stf_ctx_handle _ctx
+
+    def __cinit__(self):
+        stf_stackable_ctx_create(&self._ctx)
+
+    def __dealloc__(self):
+        self.finalize()
+
+    def __repr__(self):
+        return f"stackable_context(handle={<uintptr_t>self._ctx})"
+
+    def finalize(self):
+        if self._ctx != NULL:
+            stf_stackable_ctx_finalize(self._ctx)
+        self._ctx = NULL
+
+    def fence(self):
+        """Return the fence CUDA stream as a Python int. Must be at root level."""
+        cdef CUstream s = stf_stackable_ctx_fence(self._ctx)
+        return <uintptr_t>s
+
+    def logical_data(self, object buf, data_place dplace=None, str name=None):
+        """Create stackable logical data from an existing buffer."""
+        cdef stackable_logical_data out = stackable_logical_data.__new__(stackable_logical_data)
+        out._ctx = self._ctx
+        cdef Py_buffer view
+        cdef int flags
+
+        if dplace is None:
+            dplace = data_place.host()
+
+        if hasattr(buf, '__cuda_array_interface__'):
+            cai = buf.__cuda_array_interface__
+            data_ptr, readonly = cai['data']
+            original_shape = cai['shape']
+            typestr = cai['typestr']
+            if typestr.startswith('|V') and 'descr' in cai:
+                out._dtype = np.dtype(cai['descr'])
+            else:
+                out._dtype = np.dtype(typestr)
+            out._shape = original_shape
+            out._ndim = len(out._shape)
+            itemsize = out._dtype.itemsize
+            total_items = 1
+            for dim in out._shape:
+                total_items *= dim
+            out._len = total_items * itemsize
+            stf_stackable_logical_data_with_place(
+                self._ctx, &out._ld, <void*><uintptr_t>data_ptr, out._len, dplace._c_place)
+        else:
+            flags = PyBUF_FORMAT | PyBUF_ND
+            if PyObject_GetBuffer(buf, &view, flags) != 0:
+                raise ValueError("object doesn't support the buffer protocol or __cuda_array_interface__")
+            try:
+                out._ndim = view.ndim
+                out._len = view.len
+                out._shape = tuple(<Py_ssize_t>view.shape[i] for i in range(view.ndim))
+                out._dtype = np.dtype(view.format)
+                stf_stackable_logical_data_with_place(
+                    self._ctx, &out._ld, view.buf, view.len, dplace._c_place)
+            finally:
+                PyBuffer_Release(&view)
+
+        if name is not None:
+            out.set_symbol(name)
+        return out
+
+    def logical_data_empty(self, shape, dtype=None, str name=None):
+        """Create stackable logical data with uninitialized values."""
+        if dtype is None:
+            dtype = np.float64
+
+        cdef stackable_logical_data out = stackable_logical_data.__new__(stackable_logical_data)
+        out._ctx = self._ctx
+        out._dtype = np.dtype(dtype)
+        out._shape = tuple(shape) if not isinstance(shape, tuple) else shape
+        out._ndim = len(out._shape)
+        cdef size_t total_items = 1
+        for dim in out._shape:
+            total_items *= dim
+        out._len = total_items * out._dtype.itemsize
+        stf_stackable_logical_data_empty(self._ctx, out._len, &out._ld)
+
+        if name is not None:
+            out.set_symbol(name)
+        return out
+
+    def token(self):
+        """Create a synchronization token."""
+        cdef stackable_logical_data out = stackable_logical_data.__new__(stackable_logical_data)
+        out._ctx = self._ctx
+        out._dtype = None
+        out._shape = None
+        out._ndim = 0
+        out._len = 0
+        out._is_token = True
+        stf_stackable_token(self._ctx, &out._ld)
+        return out
+
+    def task(self, *args):
+        """Create a task on the current scope of this stackable context."""
+        exec_place_set = False
+        t = stackable_task(self)
+        for d in args:
+            if isinstance(d, dep):
+                t.add_dep(d)
+            elif isinstance(d, exec_place):
+                if exec_place_set:
+                    raise ValueError("Only one exec_place can be given")
+                t.set_exec_place(d)
+                exec_place_set = True
+            else:
+                raise TypeError("Arguments must be dependency objects or an exec_place")
+        return t
+
+    def graph_scope(self):
+        """Return a context manager that pushes/pops a graph scope."""
+        return _GraphScope(self)
+
+    def while_loop(self):
+        """Return a context manager for a while loop (CUDA 12.4+)."""
+        return _WhileLoop(self)
+
+    def repeat(self, size_t count):
+        """Return a context manager that repeats the body count times (CUDA 12.4+)."""
+        return _RepeatScope(self, count)
