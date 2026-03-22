@@ -45,8 +45,8 @@ def init_logical_data(ctx, ld, value, data_place=None, exec_place=None):
     task_args.append(dep_arg)
 
     with ctx.task(*task_args) as t:
-        ld_index = 1 if exec_place is not None else 0
-        cai = t.get_arg_cai(ld_index)
+        # exec_place configures the task itself; it does not consume a dependency slot.
+        cai = t.get_arg_cai(0)
         ptr = cai["data"][0]
         shape = tuple(cai["shape"])
         dtype = np.dtype(cai["typestr"])
