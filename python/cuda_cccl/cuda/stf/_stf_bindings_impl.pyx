@@ -144,7 +144,7 @@ class AccessMode(IntFlag):
 
 class stf_cai:
     """
-    Wrapper that exposes __cuda_array_interface__ for interop (torch, cupy, etc.).
+    Wrapper that exposes CUDA Array Interface v3 for interop (torch, cupy, etc.).
     Supports dict-style access (e.g. obj['data']) for code that expects a CAI dict.
     """
     def __init__(self, ptr, tuple shape, dtype, stream=0):
@@ -153,7 +153,7 @@ class stf_cai:
         self.dtype = np.dtype(dtype)
         self.stream = stream        # CUDA stream handle (int or 0)
         self.__cuda_array_interface__ = {
-            'version': 2,
+            'version': 3,
             'shape': self.shape,
             'typestr': self.dtype.str,     # e.g., '<f4' for float32
             'data': (self.ptr, False),     # (ptr, read-only?)
@@ -528,17 +528,18 @@ cdef class task:
         return <uintptr_t>ptr
 
     def get_arg_cai(self, index):
-        """Return the argument as an stf_cai object (has __cuda_array_interface__; supports obj['data'] etc.).
-        The underlying memory is owned by the task/context; keep the task (or context) alive while using the returned view."""
+        """Return the argument as a CUDA Array Interface v3 object.
+        The returned view is only valid while the task is active, i.e. until stf_task_end()
+        or the end of the surrounding ``with ctx.task(...)`` block."""
         ptr = self.get_arg(index)
         return stf_cai(ptr, self._lds_args[index].shape, self._lds_args[index].dtype, stream=self.stream_ptr())
 
     def args_cai(self):
         """
-        Return all non-token buffer arguments as stf_cai objects (have __cuda_array_interface__).
+        Return all non-token buffer arguments as CUDA Array Interface v3 objects.
         Returns None, a single object, or a tuple. Use from non-shipped code (e.g. tests) to
         convert to numba/torch/cupy via from_cuda_array_interface or torch.as_tensor(obj).
-        Keep the task (or context) alive while any consumer uses the returned view(s).
+        Returned views are only valid while the task is active.
         """
         non_token_cais = [self.get_arg_cai(i) for i in range(len(self._lds_args))
                           if not self._lds_args[i]._is_token]

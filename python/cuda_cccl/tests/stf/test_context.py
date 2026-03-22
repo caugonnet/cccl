@@ -71,5 +71,21 @@ def test_ctx3():
     del ctx
 
 
+def test_task_arg_cai_v3():
+    X = np.ones(16, dtype=np.float32)
+
+    ctx = stf.context()
+    lX = ctx.logical_data(X)
+
+    with ctx.task(lX.read()) as t:
+        cai = t.get_arg_cai(0).__cuda_array_interface__
+        assert cai["version"] == 3
+        assert cai["shape"] == X.shape
+        assert cai["typestr"] == X.dtype.str
+        assert cai["stream"] == t.stream_ptr()
+
+    ctx.finalize()
+
+
 if __name__ == "__main__":
     test_ctx3()
