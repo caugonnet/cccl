@@ -142,3 +142,51 @@ C2H_TEST("host_launch with graph context", "[host_launch]")
 
   cudaFreeHost(host_data);
 }
+
+C2H_TEST("host_launch with stackable context", "[host_launch][stackable]")
+{
+  const size_t N = 1024;
+
+  stf_ctx_handle ctx;
+  stf_stackable_ctx_create(&ctx);
+
+  double* host_data;
+  cudaMallocHost(&host_data, N * sizeof(double));
+  for (size_t i = 0; i < N; i++)
+  {
+    host_data[i] = 0.0;
+  }
+
+  stf_logical_data_handle lData;
+  stf_stackable_logical_data(ctx, &lData, host_data, N * sizeof(double));
+  stf_stackable_logical_data_set_symbol(ctx, lData, "data");
+
+  // Fill data via a task
+  stf_task_handle t;
+  stf_stackable_task_create(ctx, &t);
+  stf_stackable_task_set_symbol(t, "fill");
+  stf_stackable_task_add_dep(ctx, t, lData, STF_WRITE);
+  stf_stackable_task_start(t);
+  double* dData = (double*) stf_stackable_task_get(t, 0);
+  fill_kernel<<<2, 128, 0, (cudaStream_t) stf_stackable_task_get_custream(t)>>>((int) N, dData, 42.0);
+  stf_stackable_task_end(t);
+  stf_stackable_task_destroy(t);
+
+  // Use host_launch to verify data on the host
+  bool passed = false;
+  verify_ctx vctx{host_data, N, &passed};
+
+  stf_host_launch_handle h;
+  stf_stackable_host_launch_create(ctx, &h);
+  stf_host_launch_set_symbol(h, "verify");
+  stf_stackable_host_launch_add_dep(ctx, h, lData, STF_READ);
+  stf_stackable_host_launch_submit(h, verify_callback, &vctx);
+  stf_stackable_host_launch_destroy(h);
+
+  stf_stackable_logical_data_destroy(ctx, lData);
+  stf_stackable_ctx_finalize(ctx);
+
+  REQUIRE(passed);
+
+  cudaFreeHost(host_data);
+}
