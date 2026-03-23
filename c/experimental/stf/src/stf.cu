@@ -412,6 +412,59 @@ void stf_cuda_kernel_destroy(stf_cuda_kernel_handle t)
 }
 
 // -----------------------------------------------------------------------------
+// Host launch
+// -----------------------------------------------------------------------------
+
+using host_launch_type = decltype(::std::declval<context>().host_launch());
+
+void stf_host_launch_create(stf_ctx_handle ctx, stf_host_launch_handle* h)
+{
+  _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
+  _CCCL_ASSERT(h != nullptr, "host launch handle output pointer must not be null");
+
+  auto* context_ptr = static_cast<context*>(ctx);
+  *h                = new host_launch_type{context_ptr->host_launch()};
+}
+
+void stf_host_launch_add_dep(stf_host_launch_handle h, stf_logical_data_handle ld, stf_access_mode m)
+{
+  _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
+  _CCCL_ASSERT(ld != nullptr, "logical data handle must not be null");
+
+  auto* scope_ptr = static_cast<host_launch_type*>(h);
+  auto* ld_ptr    = static_cast<logical_data_untyped*>(ld);
+  scope_ptr->add_deps(task_dep_untyped(*ld_ptr, access_mode(m)));
+}
+
+void stf_host_launch_set_symbol(stf_host_launch_handle h, const char* symbol)
+{
+  _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
+  _CCCL_ASSERT(symbol != nullptr, "symbol must not be null");
+
+  auto* scope_ptr = static_cast<host_launch_type*>(h);
+  scope_ptr->set_symbol(symbol);
+}
+
+void stf_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback, void* user_data)
+{
+  _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
+  _CCCL_ASSERT(callback != nullptr, "callback must not be null");
+
+  auto* scope_ptr = static_cast<host_launch_type*>(h);
+  (*scope_ptr)->*[callback, user_data]() {
+    callback(user_data);
+  };
+}
+
+void stf_host_launch_destroy(stf_host_launch_handle h)
+{
+  _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
+
+  auto* scope_ptr = static_cast<host_launch_type*>(h);
+  delete scope_ptr;
+}
+
+// -----------------------------------------------------------------------------
 // Composite data place and execution place grid (for Python/cuTile multi-stream)
 // -----------------------------------------------------------------------------
 

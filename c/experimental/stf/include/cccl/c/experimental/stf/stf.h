@@ -440,6 +440,22 @@ typedef void* stf_task_handle;
 
 typedef void* stf_cuda_kernel_handle;
 
+//!
+//! \brief Opaque handle for a host launch scope
+//!
+//! A host launch scope schedules a user-provided C callback on the host
+//! as a proper task graph node, with full dependency tracking.
+//! Created with stf_host_launch_create() and destroyed with stf_host_launch_destroy().
+
+typedef void* stf_host_launch_handle;
+
+//!
+//! \brief C callback type for host launch
+//!
+//! \param user_data Opaque pointer forwarded from stf_host_launch_submit()
+
+typedef void (*stf_host_callback_fn)(void* user_data);
+
 //! \}
 
 //! \defgroup Context Context Management
@@ -1274,6 +1290,63 @@ void stf_cuda_kernel_end(stf_cuda_kernel_handle k);
 //! \see stf_cuda_kernel_create()
 
 void stf_cuda_kernel_destroy(stf_cuda_kernel_handle k);
+
+//! \}
+
+//! \defgroup HostLaunch Host Launch
+//! \brief Schedule a host callback as a task graph node with dependency tracking
+//!
+//! \details
+//! Host launch provides a way to run arbitrary host-side functions as part of
+//! the task graph. Unlike generic tasks where the user manually launches work
+//! on a stream, host launch automatically schedules a C callback via
+//! `cudaLaunchHostFunc` (stream context) or `cudaGraphAddHostNode` (graph context).
+//!
+//! This is the untyped counterpart of the C++ `ctx.host_launch(deps...)->*lambda`
+//! construct, designed for use from C and Python bindings.
+//! \{
+
+//! \brief Create a host launch scope on a regular context
+//!
+//! \param ctx Context handle
+//! \param[out] h Pointer to receive host launch handle
+//!
+//! \see stf_host_launch_destroy()
+void stf_host_launch_create(stf_ctx_handle ctx, stf_host_launch_handle* h);
+
+//! \brief Add a dependency to a host launch scope
+//!
+//! \param h Host launch handle
+//! \param ld Logical data handle
+//! \param m Access mode (STF_READ, STF_WRITE, STF_RW)
+//!
+//! \see stf_task_add_dep()
+void stf_host_launch_add_dep(stf_host_launch_handle h, stf_logical_data_handle ld, stf_access_mode m);
+
+//! \brief Set the debug symbol for a host launch scope
+//!
+//! \param h Host launch handle
+//! \param symbol Null-terminated string
+void stf_host_launch_set_symbol(stf_host_launch_handle h, const char* symbol);
+
+//! \brief Submit the host callback and finalize the scope
+//!
+//! After this call, the callback will be invoked on the host when all read/write
+//! dependencies are satisfied. The host launch handle should then be destroyed.
+//!
+//! \param h Host launch handle
+//! \param callback Function pointer invoked on the host
+//! \param user_data Opaque pointer forwarded to the callback
+//!
+//! \see stf_host_launch_create()
+void stf_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback, void* user_data);
+
+//! \brief Destroy a host launch handle
+//!
+//! \param h Host launch handle
+//!
+//! \see stf_host_launch_create()
+void stf_host_launch_destroy(stf_host_launch_handle h);
 
 //! \}
 
