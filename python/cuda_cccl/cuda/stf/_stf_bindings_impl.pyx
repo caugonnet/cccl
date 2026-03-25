@@ -18,6 +18,7 @@ from cpython.bytes cimport PyBytes_FromStringAndSize
 from cpython.pycapsule cimport (
     PyCapsule_CheckExact, PyCapsule_IsValid, PyCapsule_GetPointer
 )
+from cpython.ref cimport PyObject, Py_INCREF, Py_XDECREF
 from libc.stdint cimport uint8_t, uint32_t, uint64_t, int64_t, uintptr_t
 from libc.string cimport memset, memcpy
 
@@ -188,6 +189,29 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
         STF_READ
         STF_WRITE
         STF_RW
+
+    # Host launch
+    ctypedef void* stf_host_launch_handle
+    ctypedef void* stf_host_launch_deps_handle
+    ctypedef void (*stf_host_callback_fn)(stf_host_launch_deps_handle deps) noexcept
+
+    void stf_host_launch_create(stf_ctx_handle ctx, stf_host_launch_handle* h)
+    void stf_host_launch_add_dep(stf_host_launch_handle h, stf_logical_data_handle ld, stf_access_mode m)
+    void stf_host_launch_set_symbol(stf_host_launch_handle h, const char* symbol)
+    void stf_host_launch_set_user_data(stf_host_launch_handle h, const void* data, size_t size, void (*dtor)(void*))
+    void stf_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback)
+    void stf_host_launch_destroy(stf_host_launch_handle h)
+    void* stf_host_launch_deps_get(stf_host_launch_deps_handle deps, size_t index)
+    size_t stf_host_launch_deps_get_size(stf_host_launch_deps_handle deps, size_t index)
+    size_t stf_host_launch_deps_size(stf_host_launch_deps_handle deps)
+    void* stf_host_launch_deps_get_user_data(stf_host_launch_deps_handle deps)
+
+    # Stackable host launch
+    void stf_stackable_host_launch_create(stf_ctx_handle ctx, stf_host_launch_handle* h)
+    void stf_stackable_host_launch_add_dep(
+        stf_ctx_handle ctx, stf_host_launch_handle h, stf_logical_data_handle ld, stf_access_mode m)
+    void stf_stackable_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback)
+    void stf_stackable_host_launch_destroy(stf_host_launch_handle h)
 
 class AccessMode(IntFlag):
     NONE  = STF_NONE
@@ -614,6 +638,40 @@ cdef class task:
         self.end()
         return False
 
+
+# ===========================================================================
+# Host launch helpers (must precede context / stackable_context classes)
+# ===========================================================================
+
+cdef void _python_payload_destructor(void* data) noexcept with gil:
+    """Release the Python payload tuple when C++ destroys the host_launch_deps."""
+    cdef PyObject* obj = (<PyObject**>data)[0]
+    Py_XDECREF(obj)
+
+cdef void _host_launch_trampoline(stf_host_launch_deps_handle deps_h) noexcept with gil:
+    """C callback that auto-unpacks deps as numpy arrays and calls the Python fn."""
+    cdef PyObject** payload_ptr_ptr = <PyObject**>stf_host_launch_deps_get_user_data(deps_h)
+    cdef object payload = <object>(payload_ptr_ptr[0])
+    fn, user_args, dep_meta = payload
+
+    cdef size_t ndeps = stf_host_launch_deps_size(deps_h)
+    dep_arrays = []
+    cdef size_t i
+    cdef void* ptr
+    cdef size_t nbytes
+    for i in range(ndeps):
+        ptr = stf_host_launch_deps_get(deps_h, i)
+        nbytes = stf_host_launch_deps_get_size(deps_h, i)
+        shape, dtype = dep_meta[i]
+        dt = np.dtype(dtype)
+        import ctypes
+        cbuf = (ctypes.c_char * nbytes).from_address(<uintptr_t>ptr)
+        arr = np.frombuffer(cbuf, dtype=dt).reshape(shape)
+        dep_arrays.append(arr)
+
+    fn(*dep_arrays, *user_args)
+
+
 cdef class context:
     cdef stf_ctx_handle _ctx
     # Is this a context that we have borrowed ?
@@ -892,6 +950,51 @@ cdef class context:
                     "Arguments must be dependency objects or an exec_place"
                 )
         return t
+
+    def host_launch(self, *deps, fn, args=None, symbol=None):
+        """Schedule a host callback with dependency tracking.
+
+        Deps (positional) are auto-unpacked as numpy arrays and passed as
+        the first N arguments to ``fn``.  Extra user data goes through
+        ``args`` and is appended after the dep arrays.
+
+        Example::
+
+            ctx.host_launch(lX.read(), fn=lambda x: print(x.sum()))
+            ctx.host_launch(lX.read(), lY.read(), fn=check, args=[result])
+        """
+        if args is None:
+            user_args = ()
+        else:
+            user_args = tuple(args)
+
+        dep_meta = []
+        for d in deps:
+            if not isinstance(d, dep):
+                raise TypeError(
+                    "Positional arguments must be dep objects "
+                    "(use ld.read(), ld.write(), or ld.rw())")
+            ld_obj = d.ld
+            dep_meta.append((ld_obj._shape, ld_obj._dtype))
+
+        payload = (fn, user_args, dep_meta)
+        Py_INCREF(payload)
+        cdef PyObject* payload_ptr = <PyObject*>payload
+
+        cdef stf_host_launch_handle h
+        stf_host_launch_create(self._ctx, &h)
+        if symbol is not None:
+            sym_bytes = symbol.encode("utf-8")
+            stf_host_launch_set_symbol(h, sym_bytes)
+        cdef int mode_ce
+        for d in deps:
+            ld_obj = d.ld
+            mode_ce = <int>d.mode
+            stf_host_launch_add_dep(h, ld_obj._ld, <stf_access_mode>mode_ce)
+        stf_host_launch_set_user_data(
+            h, &payload_ptr, sizeof(PyObject*), _python_payload_destructor)
+        stf_host_launch_submit(h, _host_launch_trampoline)
+        stf_host_launch_destroy(h)
 
 
 # ===========================================================================
@@ -1328,3 +1431,49 @@ cdef class stackable_context:
     def repeat(self, size_t count):
         """Return a context manager that repeats the body count times (CUDA 12.4+)."""
         return _RepeatScope(self, count)
+
+    def host_launch(self, *deps, fn, args=None, symbol=None):
+        """Schedule a host callback with dependency tracking.
+
+        Deps (positional) are auto-unpacked as numpy arrays and passed as
+        the first N arguments to ``fn``.  Extra user data goes through
+        ``args`` and is appended after the dep arrays.
+
+        Example::
+
+            ctx.host_launch(lX.read(), fn=lambda x: print(x.sum()))
+            ctx.host_launch(lX.read(), lY.read(), fn=check, args=[result])
+        """
+        if args is None:
+            user_args = ()
+        else:
+            user_args = tuple(args)
+
+        dep_meta = []
+        for d in deps:
+            if not isinstance(d, dep):
+                raise TypeError(
+                    "Positional arguments must be dep objects "
+                    "(use ld.read(), ld.write(), or ld.rw())")
+            ld_obj = d.ld
+            dep_meta.append((ld_obj._shape, ld_obj._dtype))
+
+        payload = (fn, user_args, dep_meta)
+        Py_INCREF(payload)
+        cdef PyObject* payload_ptr = <PyObject*>payload
+
+        cdef stf_host_launch_handle h
+        stf_stackable_host_launch_create(self._ctx, &h)
+        if symbol is not None:
+            sym_bytes = symbol.encode("utf-8")
+            stf_host_launch_set_symbol(h, sym_bytes)
+        cdef int mode_ce
+        for d in deps:
+            ld_obj = d.ld
+            mode_ce = <int>d.mode
+            stf_stackable_host_launch_add_dep(
+                self._ctx, h, ld_obj._ld, <stf_access_mode>mode_ce)
+        stf_host_launch_set_user_data(
+            h, &payload_ptr, sizeof(PyObject*), _python_payload_destructor)
+        stf_host_launch_submit(h, _host_launch_trampoline)
+        stf_stackable_host_launch_destroy(h)

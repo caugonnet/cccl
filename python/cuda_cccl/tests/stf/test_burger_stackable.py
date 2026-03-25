@@ -27,7 +27,6 @@ NOTE: All scalar writes use slice ops / .copy_() / .fill_() instead of
       use cudaMemcpyAsync which is incompatible with CUDA graph capture.
 """
 
-import ctypes
 import os
 
 import numpy as np
@@ -37,15 +36,6 @@ from pytorch_task import pytorch_task
 import cuda.stf as stf
 
 BURGER_PLOT = os.environ.get("BURGER_PLOT", "") != ""
-
-_cudart = None
-
-def _sync_stream(stream_ptr):
-    """cudaStreamSynchronize via ctypes (no dependency beyond the CTK)."""
-    global _cudart
-    if _cudart is None:
-        _cudart = ctypes.CDLL("libcudart.so")
-    _cudart.cudaStreamSynchronize(ctypes.c_void_p(stream_ptr))
 
 
 # ---------------------------------------------------------------------------
@@ -363,12 +353,14 @@ def test_burger():
                     max_newton=20, newton_tol=1e-10, max_cg=100,
                 )
 
-        # Fence + sync to read U_host back for snapshot
-        _sync_stream(ctx.fence())
         timestep = (outer + 1) * substeps
-        snapshots.append((timestep, U_host.copy()))
-        print(f"Timestep {timestep}, t={timestep * dt:.4e}, "
-              f"max(U)={np.max(U_host):.6f}")
+
+        def _snapshot(u_arr, step, snaps):
+            snaps.append((step, u_arr.copy()))
+            print(f"Timestep {step}, t={step * dt:.4e}, "
+                  f"max(U)={np.max(u_arr):.6f}")
+
+        ctx.host_launch(lU.read(), fn=_snapshot, args=[timestep, snapshots])
 
     ctx.finalize()
 

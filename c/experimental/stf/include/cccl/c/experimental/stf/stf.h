@@ -450,11 +450,19 @@ typedef void* stf_cuda_kernel_handle;
 typedef void* stf_host_launch_handle;
 
 //!
+//! \brief Opaque handle for host launch dependency data
+//!
+//! Passed to the host callback at invocation time.  Provides indexed
+//! access to the data of each dependency and to optional user data.
+
+typedef void* stf_host_launch_deps_handle;
+
+//!
 //! \brief C callback type for host launch
 //!
-//! \param user_data Opaque pointer forwarded from stf_host_launch_submit()
+//! \param deps Opaque handle to dependency data and user data
 
-typedef void (*stf_host_callback_fn)(void* user_data);
+typedef void (*stf_host_callback_fn)(stf_host_launch_deps_handle deps);
 
 //! \}
 
@@ -1329,17 +1337,30 @@ void stf_host_launch_add_dep(stf_host_launch_handle h, stf_logical_data_handle l
 //! \param symbol Null-terminated string
 void stf_host_launch_set_symbol(stf_host_launch_handle h, const char* symbol);
 
+//! \brief Copy user data into the host launch scope
+//!
+//! The data is copied and later accessible via
+//! stf_host_launch_deps_get_user_data() inside the callback.
+//! An optional destructor is called on the copied buffer when the
+//! dependency handle is destroyed.
+//!
+//! \param h Host launch handle
+//! \param data Pointer to user data
+//! \param size Size of user data in bytes
+//! \param dtor Optional destructor for the copied data (may be NULL)
+void stf_host_launch_set_user_data(stf_host_launch_handle h, const void* data, size_t size, void (*dtor)(void*));
+
 //! \brief Submit the host callback and finalize the scope
 //!
-//! After this call, the callback will be invoked on the host when all read/write
-//! dependencies are satisfied. The host launch handle should then be destroyed.
+//! After this call, the callback will be invoked on the host when all
+//! read/write dependencies are satisfied.  The callback receives an
+//! opaque deps handle for accessing dependency data and user data.
 //!
 //! \param h Host launch handle
 //! \param callback Function pointer invoked on the host
-//! \param user_data Opaque pointer forwarded to the callback
 //!
 //! \see stf_host_launch_create()
-void stf_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback, void* user_data);
+void stf_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback);
 
 //! \brief Destroy a host launch handle
 //!
@@ -1347,6 +1368,35 @@ void stf_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callb
 //!
 //! \see stf_host_launch_create()
 void stf_host_launch_destroy(stf_host_launch_handle h);
+
+//! \brief Get the raw data pointer for a dependency
+//!
+//! Returns the host-side pointer to the data of the dependency at \p index.
+//! The pointer is valid only during the callback execution.
+//!
+//! \param deps Dependency handle
+//! \param index Zero-based dependency index
+//! \return Pointer to the data (as `slice<char>` data handle)
+void* stf_host_launch_deps_get(stf_host_launch_deps_handle deps, size_t index);
+
+//! \brief Get the byte size of a dependency
+//!
+//! \param deps Dependency handle
+//! \param index Zero-based dependency index
+//! \return Size in bytes
+size_t stf_host_launch_deps_get_size(stf_host_launch_deps_handle deps, size_t index);
+
+//! \brief Get the number of dependencies
+//!
+//! \param deps Dependency handle
+//! \return Number of dependencies
+size_t stf_host_launch_deps_size(stf_host_launch_deps_handle deps);
+
+//! \brief Get the user data pointer
+//!
+//! \param deps Dependency handle
+//! \return Pointer to the copied user data, or NULL if none was set
+void* stf_host_launch_deps_get_user_data(stf_host_launch_deps_handle deps);
 
 //! \}
 
@@ -1529,8 +1579,7 @@ void stf_stackable_task_create(stf_ctx_handle ctx, stf_task_handle* t);
 //! \param t Task handle
 //! \param ld Stackable logical data handle
 //! \param m Access mode
-void stf_stackable_task_add_dep(
-  stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m);
+void stf_stackable_task_add_dep(stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m);
 
 //! \brief Add dependency with data place to a stackable task
 //!
@@ -1540,11 +1589,7 @@ void stf_stackable_task_add_dep(
 //! \param m Access mode
 //! \param data_p Data place specification
 void stf_stackable_task_add_dep_with_dplace(
-  stf_ctx_handle ctx,
-  stf_task_handle t,
-  stf_logical_data_handle ld,
-  stf_access_mode m,
-  stf_data_place* data_p);
+  stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m, stf_data_place* data_p);
 
 //! \brief Create a host launch scope on a stackable context
 //!
@@ -1570,8 +1615,7 @@ void stf_stackable_host_launch_add_dep(
 //!
 //! \param h Host launch handle
 //! \param callback Function pointer invoked on the host
-//! \param user_data Opaque pointer forwarded to the callback
-void stf_stackable_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback, void* user_data);
+void stf_stackable_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback);
 
 //! \brief Destroy a stackable host launch handle
 //!

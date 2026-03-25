@@ -8,13 +8,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cccl/c/experimental/stf/stf.h>
 #include <cuda/experimental/__stf/places/places.cuh>
 #include <cuda/experimental/__stf/stackable/stackable_ctx.cuh>
 #include <cuda/experimental/stf.cuh>
 
 #include <cstddef>
 #include <vector>
+
+#include <cccl/c/experimental/stf/stf.h>
 
 using namespace cuda::experimental::stf;
 
@@ -445,14 +446,22 @@ void stf_host_launch_set_symbol(stf_host_launch_handle h, const char* symbol)
   scope_ptr->set_symbol(symbol);
 }
 
-void stf_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback, void* user_data)
+void stf_host_launch_set_user_data(stf_host_launch_handle h, const void* data, size_t size, void (*dtor)(void*))
+{
+  _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
+
+  auto* scope_ptr = static_cast<host_launch_type*>(h);
+  scope_ptr->set_user_data(data, size, dtor);
+}
+
+void stf_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback)
 {
   _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
   _CCCL_ASSERT(callback != nullptr, "callback must not be null");
 
   auto* scope_ptr = static_cast<host_launch_type*>(h);
-  (*scope_ptr)->*[callback, user_data]() {
-    callback(user_data);
+  (*scope_ptr)->*[callback](reserved::host_launch_deps& deps) {
+    callback(static_cast<stf_host_launch_deps_handle>(&deps));
   };
 }
 
@@ -462,6 +471,38 @@ void stf_host_launch_destroy(stf_host_launch_handle h)
 
   auto* scope_ptr = static_cast<host_launch_type*>(h);
   delete scope_ptr;
+}
+
+void* stf_host_launch_deps_get(stf_host_launch_deps_handle deps, size_t index)
+{
+  _CCCL_ASSERT(deps != nullptr, "deps handle must not be null");
+
+  auto* d = static_cast<reserved::host_launch_deps*>(deps);
+  return d->get<slice<char>>(index).data_handle();
+}
+
+size_t stf_host_launch_deps_get_size(stf_host_launch_deps_handle deps, size_t index)
+{
+  _CCCL_ASSERT(deps != nullptr, "deps handle must not be null");
+
+  auto* d = static_cast<reserved::host_launch_deps*>(deps);
+  return d->get<slice<char>>(index).extent(0);
+}
+
+size_t stf_host_launch_deps_size(stf_host_launch_deps_handle deps)
+{
+  _CCCL_ASSERT(deps != nullptr, "deps handle must not be null");
+
+  auto* d = static_cast<reserved::host_launch_deps*>(deps);
+  return d->size();
+}
+
+void* stf_host_launch_deps_get_user_data(stf_host_launch_deps_handle deps)
+{
+  _CCCL_ASSERT(deps != nullptr, "deps handle must not be null");
+
+  auto* d = static_cast<reserved::host_launch_deps*>(deps);
+  return d->user_data();
 }
 
 // -----------------------------------------------------------------------------
@@ -681,8 +722,7 @@ void stf_stackable_while_cond_scalar(
       while_cond_kernel<int><<<1, 1, 0, stream>>>(static_cast<const int*>(p), cond_handle, threshold, op);
       break;
     case STF_DTYPE_INT64:
-      while_cond_kernel<long long><<<1, 1, 0, stream>>>(
-        static_cast<const long long*>(p), cond_handle, threshold, op);
+      while_cond_kernel<long long><<<1, 1, 0, stream>>>(static_cast<const long long*>(p), cond_handle, threshold, op);
       break;
     default:
       _CCCL_ASSERT(false, "Unsupported dtype for while condition");
@@ -702,10 +742,10 @@ void stf_stackable_logical_data_with_place(
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
   _CCCL_ASSERT(ld != nullptr, "logical data handle pointer must not be null");
 
-  auto* sctx                            = static_cast<stackable_ctx*>(ctx);
+  auto* sctx                             = static_cast<stackable_ctx*>(ctx);
   cuda::experimental::stf::data_place dp = to_data_place(&dplace);
-  auto sld                              = sctx->logical_data(make_slice(static_cast<char*>(addr), sz), dp);
-  *ld                                   = new stackable_ld_t{mv(sld)};
+  auto sld                               = sctx->logical_data(make_slice(static_cast<char*>(addr), sz), dp);
+  *ld                                    = new stackable_ld_t{mv(sld)};
 }
 
 void stf_stackable_logical_data(stf_ctx_handle ctx, stf_logical_data_handle* ld, void* addr, size_t sz)
@@ -776,8 +816,7 @@ void stf_stackable_task_create(stf_ctx_handle ctx, stf_task_handle* t)
   *t                   = new context::unified_task<>{underlying_ctx.task()};
 }
 
-void stf_stackable_task_add_dep(
-  stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m)
+void stf_stackable_task_add_dep(stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m)
 {
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
   _CCCL_ASSERT(t != nullptr, "task handle must not be null");
@@ -799,11 +838,7 @@ void stf_stackable_task_add_dep(
 }
 
 void stf_stackable_task_add_dep_with_dplace(
-  stf_ctx_handle ctx,
-  stf_task_handle t,
-  stf_logical_data_handle ld,
-  stf_access_mode m,
-  stf_data_place* data_p)
+  stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m, stf_data_place* data_p)
 {
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
   _CCCL_ASSERT(t != nullptr, "task handle must not be null");
@@ -858,14 +893,14 @@ void stf_stackable_host_launch_add_dep(
   scope_ptr->add_deps(task_dep_untyped(ld_ut, access_mode(m)));
 }
 
-void stf_stackable_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback, void* user_data)
+void stf_stackable_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback)
 {
   _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
   _CCCL_ASSERT(callback != nullptr, "callback must not be null");
 
   auto* scope_ptr = static_cast<host_launch_type*>(h);
-  (*scope_ptr)->*[callback, user_data]() {
-    callback(user_data);
+  (*scope_ptr)->*[callback](reserved::host_launch_deps& deps) {
+    callback(static_cast<stf_host_launch_deps_handle>(&deps));
   };
 }
 

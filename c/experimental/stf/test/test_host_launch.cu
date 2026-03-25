@@ -26,17 +26,30 @@ __global__ void fill_kernel(int cnt, double* data, double value)
 
 struct verify_ctx
 {
-  double* expected;
   size_t N;
   bool* passed;
 };
 
-static void verify_callback(void* raw)
+static void verify_callback(stf_host_launch_deps_handle deps)
 {
-  auto* v = static_cast<verify_ctx*>(raw);
+  auto* v = static_cast<verify_ctx*>(stf_host_launch_deps_get_user_data(deps));
+
+  if (stf_host_launch_deps_size(deps) != 1)
+  {
+    *v->passed = false;
+    return;
+  }
+
+  if (stf_host_launch_deps_get_size(deps, 0) != v->N * sizeof(double))
+  {
+    *v->passed = false;
+    return;
+  }
+
+  auto* data = static_cast<double*>(stf_host_launch_deps_get(deps, 0));
   for (size_t i = 0; i < v->N; i++)
   {
-    if (fabs(v->expected[i] - (42.0 + i)) > 1e-10)
+    if (fabs(data[i] - (42.0 + i)) > 1e-10)
     {
       *v->passed = false;
       return;
@@ -76,13 +89,14 @@ C2H_TEST("host_launch with stream context", "[host_launch]")
 
   // Use host_launch to verify data on the host
   bool passed = false;
-  verify_ctx vctx{host_data, N, &passed};
+  verify_ctx vctx{N, &passed};
 
   stf_host_launch_handle h;
   stf_host_launch_create(ctx, &h);
   stf_host_launch_set_symbol(h, "verify");
   stf_host_launch_add_dep(h, lData, STF_READ);
-  stf_host_launch_submit(h, verify_callback, &vctx);
+  stf_host_launch_set_user_data(h, &vctx, sizeof(vctx), nullptr);
+  stf_host_launch_submit(h, verify_callback);
   stf_host_launch_destroy(h);
 
   stf_logical_data_destroy(lData);
@@ -126,13 +140,14 @@ C2H_TEST("host_launch with graph context", "[host_launch]")
 
   // Use host_launch to verify data on the host
   bool passed = false;
-  verify_ctx vctx{host_data, N, &passed};
+  verify_ctx vctx{N, &passed};
 
   stf_host_launch_handle h;
   stf_host_launch_create(ctx, &h);
   stf_host_launch_set_symbol(h, "verify");
   stf_host_launch_add_dep(h, lData, STF_READ);
-  stf_host_launch_submit(h, verify_callback, &vctx);
+  stf_host_launch_set_user_data(h, &vctx, sizeof(vctx), nullptr);
+  stf_host_launch_submit(h, verify_callback);
   stf_host_launch_destroy(h);
 
   stf_logical_data_destroy(lData);
@@ -174,13 +189,14 @@ C2H_TEST("host_launch with stackable context", "[host_launch][stackable]")
 
   // Use host_launch to verify data on the host
   bool passed = false;
-  verify_ctx vctx{host_data, N, &passed};
+  verify_ctx vctx{N, &passed};
 
   stf_host_launch_handle h;
   stf_stackable_host_launch_create(ctx, &h);
   stf_host_launch_set_symbol(h, "verify");
   stf_stackable_host_launch_add_dep(ctx, h, lData, STF_READ);
-  stf_stackable_host_launch_submit(h, verify_callback, &vctx);
+  stf_host_launch_set_user_data(h, &vctx, sizeof(vctx), nullptr);
+  stf_stackable_host_launch_submit(h, verify_callback);
   stf_stackable_host_launch_destroy(h);
 
   stf_stackable_logical_data_destroy(ctx, lData);
