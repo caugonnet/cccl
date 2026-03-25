@@ -106,6 +106,18 @@ public:
   }
 
   /**
+   * @brief Add an untyped dependency after construction.
+   *
+   * This allows C/Python bindings to build dependencies incrementally
+   * without requiring compile-time type information.
+   */
+  auto& add_deps(task_dep_untyped dep)
+  {
+    deps.push_back(mv(dep));
+    return *this;
+  }
+
+  /**
    * @brief Takes a lambda function and executes it on the host in a graph callback node.
    *
    * @tparam Fun type of lambda function
