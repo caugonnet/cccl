@@ -215,15 +215,15 @@ public:
   template <typename Fun>
   void operator->*(Fun&& f)
   {
-    // Detect whether Fun specifically targets the untyped dispatch path
-    // (i.e. takes host_launch_deps&) vs. a generic auto lambda that
-    // happens to also match host_launch_deps&.  A generic lambda accepts
-    // any type, so we test against a private canary — if the lambda
-    // accepts the canary too, it is generic and should go to the typed path.
-    struct untyped_canary_
-    {};
-    constexpr bool fun_invocable_untyped =
-      ::std::is_invocable_v<Fun, host_launch_deps&> && !::std::is_invocable_v<Fun, untyped_canary_&>;
+    // The untyped dispatch path is used by C/Python bindings where deps
+    // are added dynamically via add_deps() (Deps... is empty).  We use
+    // std::conjunction so that is_invocable is only instantiated when
+    // Deps is empty — nvcc eagerly instantiates generic-lambda bodies
+    // during is_invocable_v checks, which would cause hard errors for
+    // typed lambdas like [](auto da){ da.data_handle(); }.
+    constexpr bool fun_invocable_untyped = ::std::conjunction_v<
+      ::std::bool_constant<sizeof...(Deps) == 0>,
+      ::std::is_invocable<Fun, host_launch_deps&>>;
 
     auto& dot        = *ctx.get_dot();
     auto& statistics = reserved::task_statistics::instance();
