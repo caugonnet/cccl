@@ -42,6 +42,7 @@ BURGER_PLOT = os.environ.get("BURGER_PLOT", "") != ""
 # Linear-algebra building blocks (all pure PyTorch, graph-capture safe)
 # ---------------------------------------------------------------------------
 
+
 def stf_dot(ctx, la, lb, lres):
     """res = dot(a, b).  Graph-safe: uses copy_ instead of [0] = ..."""
     with pytorch_task(ctx, la.read(), lb.read(), lres.write()) as (tA, tB, tRes):
@@ -69,14 +70,13 @@ def stf_spmv(ctx, lA_val, lx, ly, N):
         diag = tVal[2 : 2 + 3 * interior : 3]
         upper = tVal[3 : 3 + 3 * interior : 3]
 
-        tY[1 : N - 1] = (
-            lower * tX[0 : N - 2] + diag * tX[1 : N - 1] + upper * tX[2:N]
-        )
+        tY[1 : N - 1] = lower * tX[0 : N - 2] + diag * tX[1 : N - 1] + upper * tX[2:N]
 
 
 # ---------------------------------------------------------------------------
 # Physics: Burger residual and Jacobian
 # ---------------------------------------------------------------------------
+
 
 def compute_residual(ctx, lU, lU_prev, lresidual, N, h, dt, nu):
     """
@@ -86,9 +86,11 @@ def compute_residual(ctx, lU, lU_prev, lresidual, N, h, dt, nu):
     Interior: F_i = (u_i - u_prev_i)/dt + u_i*(u_{i+1}-u_{i-1})/(2h)
                      - nu*(u_{i-1} - 2u_i + u_{i+1})/h^2
     """
-    with pytorch_task(
-        ctx, lresidual.write(), lU.read(), lU_prev.read()
-    ) as (tRes, tU, tUp):
+    with pytorch_task(ctx, lresidual.write(), lU.read(), lU_prev.read()) as (
+        tRes,
+        tU,
+        tUp,
+    ):
         # Boundary residual = U (for Dirichlet u=0, residual = u - 0)
         tRes[:] = tU
 
@@ -134,6 +136,7 @@ def assemble_jacobian(ctx, lU, lA_val, N, h, dt, nu):
 # ---------------------------------------------------------------------------
 # CG solver
 # ---------------------------------------------------------------------------
+
 
 def cg_solver(ctx, lA_val, lX, lB, N, cg_tol=1e-8, max_cg=100):
     """
@@ -192,16 +195,22 @@ def cg_solver(ctx, lA_val, lX, lB, N, cg_tol=1e-8, max_cg=100):
         stf_dot(ctx, lP, lAp, lpAp)
 
         # X += alpha*P  (alpha = rsold / pAp)
-        with pytorch_task(
-            ctx, lX.rw(), lrsold.read(), lpAp.read(), lP.read()
-        ) as (tX, tRsold, tPAp, tP):
+        with pytorch_task(ctx, lX.rw(), lrsold.read(), lpAp.read(), lP.read()) as (
+            tX,
+            tRsold,
+            tPAp,
+            tP,
+        ):
             alpha = tRsold.squeeze() / tPAp.squeeze()
             tX += alpha * tP
 
         # R -= alpha*Ap
-        with pytorch_task(
-            ctx, lR.rw(), lrsold.read(), lpAp.read(), lAp.read()
-        ) as (tR, tRsold, tPAp, tAp):
+        with pytorch_task(ctx, lR.rw(), lrsold.read(), lpAp.read(), lAp.read()) as (
+            tR,
+            tRsold,
+            tPAp,
+            tAp,
+        ):
             alpha = tRsold.squeeze() / tPAp.squeeze()
             tR -= alpha * tAp
 
@@ -209,9 +218,11 @@ def cg_solver(ctx, lA_val, lX, lB, N, cg_tol=1e-8, max_cg=100):
         stf_dot(ctx, lR, lR, lrsnew)
 
         # Compound condition: continue if (!converged && iter < max)
-        with pytorch_task(
-            ctx, lrsnew.read(), lcg_iter.rw(), lcond.write()
-        ) as (tRsnew, tIter, tCond):
+        with pytorch_task(ctx, lrsnew.read(), lcg_iter.rw(), lcond.write()) as (
+            tRsnew,
+            tIter,
+            tCond,
+        ):
             tIter += 1
             not_converged = (tRsnew.squeeze() > cg_tol_sq).to(torch.float64)
             not_max = (tIter.squeeze() < max_cg).to(torch.float64)
@@ -220,15 +231,16 @@ def cg_solver(ctx, lA_val, lX, lB, N, cg_tol=1e-8, max_cg=100):
         loop.continue_while(lcond, ">", 0.5)
 
         # P = R + (rsnew/rsold)*P
-        with pytorch_task(
-            ctx, lP.rw(), lR.read(), lrsnew.read(), lrsold.read()
-        ) as (tP, tR, tRsnew, tRsold):
+        with pytorch_task(ctx, lP.rw(), lR.read(), lrsnew.read(), lrsold.read()) as (
+            tP,
+            tR,
+            tRsnew,
+            tRsold,
+        ):
             tP[:] = tR + (tRsnew.squeeze() / tRsold.squeeze()) * tP
 
         # rsold = rsnew
-        with pytorch_task(
-            ctx, lrsold.write(), lrsnew.read()
-        ) as (tRsold, tRsnew):
+        with pytorch_task(ctx, lrsold.write(), lrsnew.read()) as (tRsold, tRsnew):
             tRsold.copy_(tRsnew)
 
 
@@ -236,8 +248,10 @@ def cg_solver(ctx, lA_val, lX, lB, N, cg_tol=1e-8, max_cg=100):
 # Newton solver
 # ---------------------------------------------------------------------------
 
-def newton_solver(ctx, lU, lA_val, N, h, dt, nu,
-                  max_newton=20, newton_tol=1e-10, max_cg=100):
+
+def newton_solver(
+    ctx, lU, lA_val, N, h, dt, nu, max_newton=20, newton_tol=1e-10, max_cg=100
+):
     """
     Newton solver for the implicit Burger time step.
 
@@ -277,14 +291,11 @@ def newton_solver(ctx, lU, lA_val, N, h, dt, nu,
         assemble_jacobian(ctx, lU, lA_val, N, h, dt, nu)
 
         # rhs = -residual
-        with pytorch_task(
-            ctx, lrhs.write(), lresidual.read()
-        ) as (tRhs, tRes):
+        with pytorch_task(ctx, lrhs.write(), lresidual.read()) as (tRhs, tRes):
             tRhs[:] = -tRes
 
         # Solve J * delta = rhs  with CG
-        cg_solver(ctx, lA_val, ldelta, lrhs, N,
-                  cg_tol=1e-8, max_cg=max_cg)
+        cg_solver(ctx, lA_val, ldelta, lrhs, N, cg_tol=1e-8, max_cg=max_cg)
 
         # U += delta
         with pytorch_task(ctx, lU.rw(), ldelta.read()) as (tU, tDelta):
@@ -305,6 +316,7 @@ def newton_solver(ctx, lU, lA_val, N, h, dt, nu,
 # ---------------------------------------------------------------------------
 # Main test
 # ---------------------------------------------------------------------------
+
 
 def test_burger():
     """
@@ -349,16 +361,23 @@ def test_burger():
         with ctx.graph_scope():
             with ctx.repeat(substeps):
                 newton_solver(
-                    ctx, lU, lA_val, N, h, dt, nu,
-                    max_newton=20, newton_tol=1e-10, max_cg=100,
+                    ctx,
+                    lU,
+                    lA_val,
+                    N,
+                    h,
+                    dt,
+                    nu,
+                    max_newton=20,
+                    newton_tol=1e-10,
+                    max_cg=100,
                 )
 
         timestep = (outer + 1) * substeps
 
         def _snapshot(u_arr, step, snaps):
             snaps.append((step, u_arr.copy()))
-            print(f"Timestep {step}, t={step * dt:.4e}, "
-                  f"max(U)={np.max(u_arr):.6f}")
+            print(f"Timestep {step}, t={step * dt:.4e}, max(U)={np.max(u_arr):.6f}")
 
         ctx.host_launch(lU.read(), fn=_snapshot, args=[timestep, snapshots])
 
@@ -367,16 +386,18 @@ def test_burger():
     # --- Validation ---
     assert not np.any(np.isnan(U_host)), "NaN detected in solution"
     assert not np.any(np.isinf(U_host)), "Inf detected in solution"
-    assert np.isclose(U_host[0], 0.0, atol=1e-10), \
-        f"Left BC violated: U[0]={U_host[0]}"
-    assert np.isclose(U_host[-1], 0.0, atol=1e-10), \
+    assert np.isclose(U_host[0], 0.0, atol=1e-10), f"Left BC violated: U[0]={U_host[0]}"
+    assert np.isclose(U_host[-1], 0.0, atol=1e-10), (
         f"Right BC violated: U[N-1]={U_host[-1]}"
-    assert np.max(np.abs(U_host)) < 2.0, \
+    )
+    assert np.max(np.abs(U_host)) < 2.0, (
         f"Solution unbounded: max|U|={np.max(np.abs(U_host))}"
+    )
 
     U_final_max = np.max(np.abs(U_host))
-    assert U_final_max < U_init_max, \
+    assert U_final_max < U_init_max, (
         f"Solution did not dissipate: initial max={U_init_max}, final max={U_final_max}"
+    )
 
     print(f"Dissipation: {U_init_max:.6f} -> {U_final_max:.6f}")
     print("Burger test PASSED")

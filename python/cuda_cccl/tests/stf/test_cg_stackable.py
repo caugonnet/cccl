@@ -35,7 +35,6 @@ from pytorch_task import pytorch_task  # noqa: E402
 
 import cuda.stf as stf  # noqa: E402
 
-
 # --- Linear-algebra building blocks (PyTorch, graph-capture safe) --------
 
 
@@ -95,16 +94,22 @@ def cg_solver(ctx, lA, lX, lB, N, tol=1e-10):
         stf_dot(ctx, lP, lAp, lpAp)
 
         # X += alpha * P  (alpha = rsold / pAp)
-        with pytorch_task(
-            ctx, lX.rw(), lrsold.read(), lpAp.read(), lP.read()
-        ) as (tX, tRsold, tPAp, tP):
+        with pytorch_task(ctx, lX.rw(), lrsold.read(), lpAp.read(), lP.read()) as (
+            tX,
+            tRsold,
+            tPAp,
+            tP,
+        ):
             alpha = tRsold.squeeze() / tPAp.squeeze()
             tX += alpha * tP
 
         # R -= alpha * Ap
-        with pytorch_task(
-            ctx, lR.rw(), lrsold.read(), lpAp.read(), lAp.read()
-        ) as (tR, tRsold, tPAp, tAp):
+        with pytorch_task(ctx, lR.rw(), lrsold.read(), lpAp.read(), lAp.read()) as (
+            tR,
+            tRsold,
+            tPAp,
+            tAp,
+        ):
             alpha = tRsold.squeeze() / tPAp.squeeze()
             tR -= alpha * tAp
 
@@ -115,9 +120,12 @@ def cg_solver(ctx, lA, lX, lB, N, tol=1e-10):
         loop.continue_while(lrsnew, ">", tol_sq)
 
         # P = R + beta * P  (beta = rsnew / rsold)
-        with pytorch_task(
-            ctx, lP.rw(), lR.read(), lrsnew.read(), lrsold.read()
-        ) as (tP, tR, tRsnew, tRsold):
+        with pytorch_task(ctx, lP.rw(), lR.read(), lrsnew.read(), lrsold.read()) as (
+            tP,
+            tR,
+            tRsnew,
+            tRsold,
+        ):
             beta = tRsnew.squeeze() / tRsold.squeeze()
             tP[:] = tR + beta * tP
 
@@ -149,7 +157,7 @@ def test_cg_solver():
 
     X_ref = np.linalg.solve(A_host, B_host)
 
-    print(f"=== CG solver (PyTorch + stackable_context) ===")
+    print("=== CG solver (PyTorch + stackable_context) ===")
     print(f"Matrix: {N}x{N} tridiagonal SPD")
 
     ctx = stf.stackable_context()
@@ -169,8 +177,9 @@ def test_cg_solver():
 
     assert not np.any(np.isnan(X_host)), "NaN in solution"
     assert not np.any(np.isinf(X_host)), "Inf in solution"
-    assert np.allclose(X_host, X_ref, atol=1e-6), \
+    assert np.allclose(X_host, X_ref, atol=1e-6), (
         f"CG solution does not match reference (max error = {error:.2e})"
+    )
 
     print("CG test PASSED")
 

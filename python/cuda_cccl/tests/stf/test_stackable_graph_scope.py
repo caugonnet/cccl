@@ -111,6 +111,7 @@ def test_multi_data_graph_scope():
         with ctx.task(lY.rw(), lX.read()) as t:
             nb_stream = cuda.external_stream(t.stream_ptr())
             from numba_helpers import get_arg_numba
+
             dY = get_arg_numba(t, 0)
             dX = get_arg_numba(t, 1)
             axpy_kernel[bpg, tpb, nb_stream](dY, 3.0, dX)

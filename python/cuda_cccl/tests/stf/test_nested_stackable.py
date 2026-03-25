@@ -257,11 +257,13 @@ def test_diffusion_timestep_nesting():
     total_steps = outer_iters * substeps
     # Analytical solution of heat equation: exp(-pi^2 * nu * t) * sin(pi*x)
     t_final = total_steps * dt
-    analytical = np.exp(-np.pi**2 * nu * t_final) * np.sin(np.pi * x)
+    analytical = np.exp(-(np.pi**2) * nu * t_final) * np.sin(np.pi * x)
 
     # Check convergence toward analytical solution (won't be exact due to discretization)
     error = np.max(np.abs(U_host - analytical))
-    print(f"Diffusion test: {total_steps} steps, t={t_final:.4f}, max error vs analytical = {error:.6e}")
+    print(
+        f"Diffusion test: {total_steps} steps, t={t_final:.4f}, max error vs analytical = {error:.6e}"
+    )
     assert error < 0.1, f"Error too large: {error}"
 
     # Snapshot should match final U
@@ -279,13 +281,13 @@ def test_nested_graph_scopes():
     tpb = 256
     bpg = (n + tpb - 1) // tpb
 
-    with ctx.graph_scope():           # level 1
+    with ctx.graph_scope():  # level 1
         with ctx.task(lX.rw()) as t:
             nb_stream = cuda.external_stream(t.stream_ptr())
             dX = numba_arguments(t)
             add_kernel[bpg, tpb, nb_stream](dX, 1.0)  # X = 2.0
 
-        with ctx.graph_scope():       # level 2 (nested graph inside graph)
+        with ctx.graph_scope():  # level 2 (nested graph inside graph)
             with ctx.task(lX.rw()) as t:
                 nb_stream = cuda.external_stream(t.stream_ptr())
                 dX = numba_arguments(t)
@@ -338,9 +340,9 @@ def test_repeat_with_while_inside():
     step = 0.25
     tol = 0.1
 
-    with ctx.graph_scope():                          # level 1
-        with ctx.repeat(3):                          # level 2
-            with ctx.while_loop() as loop:           # level 3
+    with ctx.graph_scope():  # level 1
+        with ctx.repeat(3):  # level 2
+            with ctx.while_loop() as loop:  # level 3
                 # Reset residual
                 with ctx.task(lresidual.write()) as t:
                     nb_stream = cuda.external_stream(t.stream_ptr())
@@ -372,8 +374,7 @@ def test_repeat_with_while_inside():
     ctx.finalize()
 
     # After 3 repeat iterations, X should have converged to ~3.0
-    assert np.allclose(X_host, 3.0, atol=step + tol), \
-        f"Expected ~3.0, got {X_host[0]}"
+    assert np.allclose(X_host, 3.0, atol=step + tol), f"Expected ~3.0, got {X_host[0]}"
     print(f"repeat > while test passed: X = {X_host[0]:.4f}")
 
 
@@ -424,9 +425,9 @@ def test_while_with_repeat_inside():
     step = 0.1
     tol = 0.1
 
-    with ctx.graph_scope():                              # level 1
-        with ctx.while_loop() as loop:                   # level 2
-            with ctx.repeat(5):                          # level 3
+    with ctx.graph_scope():  # level 1
+        with ctx.while_loop() as loop:  # level 2
+            with ctx.repeat(5):  # level 3
                 with ctx.task(lX.rw()) as t:
                     nb_stream = cuda.external_stream(t.stream_ptr())
                     dX = numba_arguments(t)
@@ -449,8 +450,9 @@ def test_while_with_repeat_inside():
 
     ctx.finalize()
 
-    assert np.allclose(X_host, 2.0, atol=5 * step + tol), \
+    assert np.allclose(X_host, 2.0, atol=5 * step + tol), (
         f"Expected ~2.0, got {X_host[0]}"
+    )
     print(f"while > repeat test passed: X = {X_host[0]:.4f}")
 
 
@@ -493,7 +495,9 @@ def test_repeat_with_while_inside_pytorch():
                 with pytorch_task(ctx, lX.rw()) as (tX,):
                     tX[:] += step
 
-                with pytorch_task(ctx, lX.read(), ltarget.read(), lresidual.write()) as (tX, tTarget, tRes):
+                with pytorch_task(
+                    ctx, lX.read(), ltarget.read(), lresidual.write()
+                ) as (tX, tTarget, tRes):
                     tRes[0] = torch.max(torch.abs(tX - tTarget[0]))
 
                 loop.continue_while(lresidual, ">", tol)
@@ -503,8 +507,7 @@ def test_repeat_with_while_inside_pytorch():
 
     ctx.finalize()
 
-    assert np.allclose(X_host, 3.0, atol=step + tol), \
-        f"Expected ~3.0, got {X_host[0]}"
+    assert np.allclose(X_host, 3.0, atol=step + tol), f"Expected ~3.0, got {X_host[0]}"
     print(f"repeat > while (PyTorch) passed: X = {X_host[0]:.4f}")
 
 
@@ -542,15 +545,20 @@ def test_while_with_repeat_inside_pytorch():
                 with pytorch_task(ctx, lX.rw()) as (tX,):
                     tX[:] += step
 
-            with pytorch_task(ctx, lX.read(), ltarget.read(), lresidual.write()) as (tX, tTarget, tRes):
+            with pytorch_task(ctx, lX.read(), ltarget.read(), lresidual.write()) as (
+                tX,
+                tTarget,
+                tRes,
+            ):
                 tRes[0] = torch.max(torch.abs(tX - tTarget[0]))
 
             loop.continue_while(lresidual, ">", tol)
 
     ctx.finalize()
 
-    assert np.allclose(X_host, 2.0, atol=5 * step + tol), \
+    assert np.allclose(X_host, 2.0, atol=5 * step + tol), (
         f"Expected ~2.0, got {X_host[0]}"
+    )
     print(f"while > repeat (PyTorch) passed: X = {X_host[0]:.4f}")
 
 

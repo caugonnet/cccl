@@ -28,6 +28,7 @@ class PurePythonPlace:
 
 class NotAPlace:
     """An object that does NOT implement the exec_place protocol."""
+
     pass
 
 

@@ -41,7 +41,11 @@ def test_jacobi_stackable_pytorch():
     # Iterative solve with while loop
     with ctx.while_loop() as loop:
         # Jacobi step: compute Anew from A neighbors, measure residual
-        with pytorch_task(ctx, lA.read(), lAnew.write(), lresidual.write()) as (tA, tAnew, tres):
+        with pytorch_task(ctx, lA.read(), lAnew.write(), lresidual.write()) as (
+            tA,
+            tAnew,
+            tres,
+        ):
             tAnew[1:-1, 1:-1] = 0.25 * (
                 tA[:-2, 1:-1] + tA[2:, 1:-1] + tA[1:-1, :-2] + tA[1:-1, 2:]
             )

@@ -39,6 +39,7 @@ def scale_kernel(x, alpha):
 # Regular context (stream backend)
 # ===========================================================================
 
+
 def test_context_basic():
     """host_launch on a stream context; dep auto-unpacked as numpy array."""
     n = 1024
@@ -194,6 +195,7 @@ def test_context_with_symbol():
 # Regular context (graph backend)
 # ===========================================================================
 
+
 def test_graph_ctx_basic():
     """host_launch on a graph context."""
     n = 128
@@ -241,6 +243,7 @@ def test_graph_ctx_write_back():
 # ===========================================================================
 # Stackable context
 # ===========================================================================
+
 
 def test_stackable_basic():
     """host_launch on a stackable context; dep auto-unpacked as numpy array."""

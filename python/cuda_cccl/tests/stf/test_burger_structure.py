@@ -68,9 +68,9 @@ def test_4level_nesting():
     outer_iters = 2
 
     for _outer in range(outer_iters):
-        with ctx.graph_scope():                              # level 1
-            with ctx.repeat(substeps):                       # level 2
-                with ctx.while_loop() as newton_loop:        # level 3
+        with ctx.graph_scope():  # level 1
+            with ctx.repeat(substeps):  # level 2
+                with ctx.while_loop() as newton_loop:  # level 3
                     # --- "Newton step": advance X ---
                     with pytorch_task(ctx, lX.rw()) as (tX,):
                         tX[:] += outer_step
@@ -79,13 +79,12 @@ def test_4level_nesting():
                     with pytorch_task(ctx, lY.rw()) as (tY,):
                         tY.zero_()
 
-                    with ctx.while_loop() as cg_loop:        # level 4
+                    with ctx.while_loop() as cg_loop:  # level 4
                         with pytorch_task(ctx, lY.rw()) as (tY,):
                             tY[:] += inner_step
 
                         with pytorch_task(
-                            ctx,
-                            lY.read(), linner_target.read(), linner_res.write()
+                            ctx, lY.read(), linner_target.read(), linner_res.write()
                         ) as (tY, tTgt, tRes):
                             tRes[0] = torch.max(torch.abs(tY - tTgt[0]))
 
@@ -93,8 +92,7 @@ def test_4level_nesting():
 
                     # --- outer condition ---
                     with pytorch_task(
-                        ctx,
-                        lX.read(), louter_target.read(), louter_res.write()
+                        ctx, lX.read(), louter_target.read(), louter_res.write()
                     ) as (tX, tTgt, tRes):
                         tRes[0] = torch.max(torch.abs(tX - tTgt[0]))
 
@@ -110,8 +108,9 @@ def test_4level_nesting():
     expected_X = float(total_repeats)
     print(f"X[0] = {X_host[0]:.4f}  (expected ~{expected_X})")
     print(f"Y[0] = {Y_host[0]:.4f}  (expected ~1.0)")
-    assert np.allclose(X_host, expected_X, atol=outer_step + tol), \
+    assert np.allclose(X_host, expected_X, atol=outer_step + tol), (
         f"Expected ~{expected_X}, got {X_host[0]}"
+    )
     print("4-level nesting test PASSED")
 
 
