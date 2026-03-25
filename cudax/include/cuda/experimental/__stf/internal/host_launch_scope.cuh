@@ -29,6 +29,7 @@
 
 #include <cuda/experimental/__stf/internal/backend_ctx.cuh>
 #include <cuda/experimental/__stf/internal/ctx_resource.cuh>
+#include <cuda/experimental/__stf/internal/logical_data.cuh>
 #include <cuda/experimental/__stf/internal/task_dep.cuh>
 #include <cuda/experimental/__stf/internal/task_statistics.cuh>
 #include <cuda/experimental/__stf/internal/thread_hierarchy.cuh>
