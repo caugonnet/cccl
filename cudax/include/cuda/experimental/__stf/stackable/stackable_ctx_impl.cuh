@@ -570,16 +570,26 @@ public:
         {
           // Record body graph complexity for stats (nested graphs are not
           // independently cached, so instantiate/update counts stay at 0).
+          cudaGraph_t body = ctx.to_graph_ctx().get_graph();
+
           auto* cache_stat = ctx.graph_get_cache_stat();
           if (cache_stat)
           {
-            cudaGraph_t body = ctx.to_graph_ctx().get_graph();
             cuda_safe_call(cudaGraphGetNodes(body, nullptr, &cache_stat->nnodes));
 #if _CCCL_CTK_AT_LEAST(13, 0)
             cuda_safe_call(cudaGraphGetEdges(body, nullptr, nullptr, nullptr, &cache_stat->nedges));
 #else
             cuda_safe_call(cudaGraphGetEdges(body, nullptr, nullptr, &cache_stat->nedges));
 #endif
+          }
+
+          static const bool dump_nested =
+            (getenv("CUDASTF_DUMP_GRAPHS") != nullptr) || (getenv("CUDASTF_DEBUG_STACKABLE_DOT") != nullptr);
+          if (dump_nested)
+          {
+            static ::std::atomic<int> nested_cnt{0};
+            ::std::string filename = "nested_graph" + ::std::to_string(nested_cnt++) + ".dot";
+            cuda_safe_call(cudaGraphDebugDotPrint(body, filename.c_str(), cudaGraphDebugDotFlags(0)));
           }
 
           cudaGraph_t support_graph = parent_ctx.graph();
@@ -611,14 +621,15 @@ public:
           return event_list(mv(output_node_event));
         }
 
-        // Debug: Print DOT output of the finalized graph
-        static const bool debug_stackable_dot = (getenv("CUDASTF_DEBUG_STACKABLE_DOT") != nullptr);
-        if (debug_stackable_dot)
+        // Honour CUDASTF_DUMP_GRAPHS (same env var as graph_ctx::instantiate)
+        // and the stackable-specific CUDASTF_DEBUG_STACKABLE_DOT.
+        static const bool dump_graphs =
+          (getenv("CUDASTF_DUMP_GRAPHS") != nullptr) || (getenv("CUDASTF_DEBUG_STACKABLE_DOT") != nullptr);
+        if (dump_graphs)
         {
           static ::std::atomic<int> debug_graph_cnt{0};
-          ::std::string filename = "stackable_graph_" + ::std::to_string(debug_graph_cnt++) + ".dot";
+          ::std::string filename = "instantiated_graph" + ::std::to_string(debug_graph_cnt++) + ".dot";
           cuda_safe_call(cudaGraphDebugDotPrint(graph, filename.c_str(), cudaGraphDebugDotFlags(0)));
-          ::std::cout << "Debug: Stackable graph DOT output written to " << filename << ::std::endl;
         }
 
         size_t nnodes;
