@@ -568,6 +568,20 @@ public:
         // adding input deps
         if (nested_graph)
         {
+          // Record body graph complexity for stats (nested graphs are not
+          // independently cached, so instantiate/update counts stay at 0).
+          auto* cache_stat = ctx.graph_get_cache_stat();
+          if (cache_stat)
+          {
+            cudaGraph_t body = ctx.to_graph_ctx().get_graph();
+            cuda_safe_call(cudaGraphGetNodes(body, nullptr, &cache_stat->nnodes));
+#if _CCCL_CTK_AT_LEAST(13, 0)
+            cuda_safe_call(cudaGraphGetEdges(body, nullptr, nullptr, nullptr, &cache_stat->nedges));
+#else
+            cuda_safe_call(cudaGraphGetEdges(body, nullptr, nullptr, &cache_stat->nedges));
+#endif
+          }
+
           cudaGraph_t support_graph = parent_ctx.graph();
           size_t graph_stage        = parent_ctx.stage();
 
@@ -607,7 +621,31 @@ public:
           ::std::cout << "Debug: Stackable graph DOT output written to " << filename << ::std::endl;
         }
 
-        auto [exec_graph, _] = ctx.async_resources().cached_graphs_query(graph);
+        size_t nnodes;
+        size_t nedges;
+        cuda_safe_call(cudaGraphGetNodes(graph, nullptr, &nnodes));
+#if _CCCL_CTK_AT_LEAST(13, 0)
+        cuda_safe_call(cudaGraphGetEdges(graph, nullptr, nullptr, nullptr, &nedges));
+#else
+        cuda_safe_call(cudaGraphGetEdges(graph, nullptr, nullptr, &nedges));
+#endif
+
+        auto [exec_graph, cache_hit] = ctx.async_resources().cached_graphs_query(nnodes, nedges, graph);
+
+        auto* cache_stat = ctx.graph_get_cache_stat();
+        if (cache_stat)
+        {
+          cache_stat->nnodes = nnodes;
+          cache_stat->nedges = nedges;
+          if (cache_hit)
+          {
+            cache_stat->update_cnt++;
+          }
+          else
+          {
+            cache_stat->instantiate_cnt++;
+          }
+        }
 
         // Make sure we launch after the "get" operations are done
         ctx_prereqs.sync_with_stream(ctx.get_backend(), support_stream);
