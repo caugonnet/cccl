@@ -221,9 +221,8 @@ public:
     // Deps is empty — nvcc eagerly instantiates generic-lambda bodies
     // during is_invocable_v checks, which would cause hard errors for
     // typed lambdas like [](auto da){ da.data_handle(); }.
-    constexpr bool fun_invocable_untyped = ::std::conjunction_v<
-      ::std::bool_constant<sizeof...(Deps) == 0>,
-      ::std::is_invocable<Fun, host_launch_deps&>>;
+    constexpr bool fun_invocable_untyped =
+      ::std::conjunction_v<::std::bool_constant<sizeof...(Deps) == 0>, ::std::is_invocable<Fun, host_launch_deps&>>;
 
     auto& dot        = *ctx.get_dot();
     auto& statistics = reserved::task_statistics::instance();
