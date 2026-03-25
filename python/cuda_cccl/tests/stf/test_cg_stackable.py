@@ -3,25 +3,30 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 """
-Conjugate-gradient solver using stackable context + PyTorch.
+Conjugate-gradient solver — STF with PyTorch on a stackable context.
 
-Python port of cudax/examples/stf/linear_algebra/cg_csr_stackable.cu,
-simplified to use a dense symmetric positive-definite (SPD) matrix.
+Demonstrates:
+  - **stackable_context** for nested asynchronous scopes
+  - **while_loop** for data-dependent iteration (conditional CUDA graph nodes)
+  - **pytorch_task** for expressing GPU linear algebra with PyTorch tensors
+  - **host_launch** for asynchronous host-side observation of GPU results
 
-Solves A * x = b where A is a random diagonally-dominant tridiagonal matrix.
+Solves A * x = b where A is a random diagonally-dominant tridiagonal SPD
+matrix, using the standard CG algorithm:
 
-Nesting structure:
   stackable_context
     [setup: x=0, r=b, p=r, rsold=dot(r,r)]
-    while_loop:
+    while_loop (rsnew > tol²):
       Ap    = A @ p
       pAp   = dot(p, Ap)
       x    += alpha * p        alpha = rsold / pAp
       r    -= alpha * Ap
       rsnew = dot(r, r)
-      [continue while rsnew > tol²]
       p     = r + beta * p     beta  = rsnew / rsold
       rsold = rsnew
+
+Python port of cudax/examples/stf/linear_algebra/cg_csr_stackable.cu,
+simplified to use a dense matrix.
 
 Requires CUDA 12.4+ (conditional graph nodes).
 """
@@ -35,7 +40,7 @@ from pytorch_task import pytorch_task  # noqa: E402
 
 import cuda.stf as stf  # noqa: E402
 
-# --- Linear-algebra building blocks (PyTorch, graph-capture safe) --------
+# --- Linear-algebra building blocks (PyTorch, graph-capture safe) ----------
 
 
 def stf_dot(ctx, la, lb, lres):
@@ -55,10 +60,10 @@ def stf_matvec(ctx, lA, lx, ly):
 
 def cg_solver(ctx, lA, lX, lB, N, tol=1e-10):
     """
-    Solve A * X = B using the Conjugate Gradient method.
+    Solve A * X = B with the Conjugate Gradient method.
 
-    Temporaries are created as stackable logical data.  The iteration
-    is driven by a while_loop (conditional CUDA graph node).
+    All temporaries are created as stackable logical data so they are
+    automatically managed across while_loop iterations.
     """
     lR = ctx.logical_data_empty((N,), np.float64, name="R")
     lP = ctx.logical_data_empty((N,), np.float64, name="P")
@@ -68,7 +73,7 @@ def cg_solver(ctx, lA, lX, lB, N, tol=1e-10):
     with pytorch_task(ctx, lX.write()) as (tX,):
         tX.zero_()
 
-    # R = B (residual r = b - A*0 = b)
+    # R = B  (residual r = b − A·0 = b)
     with pytorch_task(ctx, lR.write(), lB.read()) as (tR, tB):
         tR[:] = tB
 
@@ -76,12 +81,12 @@ def cg_solver(ctx, lA, lX, lB, N, tol=1e-10):
     with pytorch_task(ctx, lP.write(), lR.read()) as (tP, tR):
         tP[:] = tR
 
-    # rsold = R' * R
+    # rsold = R'R
     stf_dot(ctx, lR, lR, lrsold)
 
     tol_sq = tol * tol
 
-    # --- CG while loop (conditional CUDA graph node) ---
+    # --- CG while loop (conditional CUDA graph node) ----------------------
     with ctx.while_loop() as loop:
         lAp = ctx.logical_data_empty((N,), np.float64, name="Ap")
         lpAp = ctx.logical_data_empty((1,), np.float64, name="pAp")
@@ -90,10 +95,12 @@ def cg_solver(ctx, lA, lX, lB, N, tol=1e-10):
         # Ap = A @ P
         stf_matvec(ctx, lA, lP, lAp)
 
-        # pAp = P' * Ap
+        # pAp = P'Ap
         stf_dot(ctx, lP, lAp, lpAp)
 
-        # X += alpha * P  (alpha = rsold / pAp)
+        # X += alpha·P   (alpha = rsold / pAp)
+        # Alpha is recomputed in the R update task below because each
+        # pytorch_task is an independent graph node with its own closure.
         with pytorch_task(ctx, lX.rw(), lrsold.read(), lpAp.read(), lP.read()) as (
             tX,
             tRsold,
@@ -103,7 +110,7 @@ def cg_solver(ctx, lA, lX, lB, N, tol=1e-10):
             alpha = tRsold.squeeze() / tPAp.squeeze()
             tX += alpha * tP
 
-        # R -= alpha * Ap
+        # R -= alpha·Ap
         with pytorch_task(ctx, lR.rw(), lrsold.read(), lpAp.read(), lAp.read()) as (
             tR,
             tRsold,
@@ -113,13 +120,15 @@ def cg_solver(ctx, lA, lX, lB, N, tol=1e-10):
             alpha = tRsold.squeeze() / tPAp.squeeze()
             tR -= alpha * tAp
 
-        # rsnew = R' * R
+        # rsnew = R'R
         stf_dot(ctx, lR, lR, lrsnew)
 
-        # Continue while residual norm² exceeds tolerance²
+        # Condition: continue while residual norm² exceeds tolerance².
+        # This sets the predicate for the *next* replay — the P and rsold
+        # updates below still execute in the current iteration.
         loop.continue_while(lrsnew, ">", tol_sq)
 
-        # P = R + beta * P  (beta = rsnew / rsold)
+        # P = R + beta·P   (beta = rsnew / rsold)
         with pytorch_task(ctx, lP.rw(), lR.read(), lrsnew.read(), lrsold.read()) as (
             tP,
             tR,
@@ -139,10 +148,10 @@ def cg_solver(ctx, lA, lX, lB, N, tol=1e-10):
 
 def test_cg_solver():
     """Solve a random dense SPD system with CG; verify against numpy."""
-    N = 256
+    N = 2560
 
-    # Random diagonally-dominant tridiagonal SPD matrix
-    # (same structure as genTridiag in cg_csr_stackable.cu)
+    # Random diagonally-dominant tridiagonal SPD matrix (same structure as
+    # genTridiag in the C++ cg_csr_stackable.cu example).
     rng = np.random.default_rng(42)
     A_host = np.zeros((N, N), dtype=np.float64)
     for i in range(N):
@@ -157,9 +166,6 @@ def test_cg_solver():
 
     X_ref = np.linalg.solve(A_host, B_host)
 
-    print("=== CG solver (PyTorch + stackable_context) ===")
-    print(f"Matrix: {N}x{N} tridiagonal SPD")
-
     ctx = stf.stackable_context()
     lA = ctx.logical_data(A_host, name="A")
     lB = ctx.logical_data(B_host, name="B")
@@ -173,6 +179,8 @@ def test_cg_solver():
     ctx.finalize()
 
     error = np.max(np.abs(X_host - X_ref))
+    print("=== CG solver (PyTorch + stackable_context) ===")
+    print(f"Matrix: {N}x{N} tridiagonal SPD")
     print(f"Max error vs numpy.linalg.solve: {error:.2e}")
 
     assert not np.any(np.isnan(X_host)), "NaN in solution"
@@ -181,7 +189,7 @@ def test_cg_solver():
         f"CG solution does not match reference (max error = {error:.2e})"
     )
 
-    print("CG test PASSED")
+    print("PASSED")
 
 
 if __name__ == "__main__":
