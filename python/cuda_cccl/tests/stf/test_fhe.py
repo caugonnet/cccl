@@ -28,13 +28,7 @@ class Plaintext:
         return Ciphertext(self.ctx, values=encrypted, key=self.key)
 
     def print_values(self):
-        with self.ctx.task(
-            stf.exec_place.host(), self.l.read(stf.data_place.managed())
-        ) as t:
-            nb_stream = cuda.external_stream(t.stream_ptr())
-            nb_stream.synchronize()
-            hvalues = numba_arguments(t)
-            print([v for v in hvalues])
+        self.ctx.host_launch(self.l.read(), fn=lambda x: print(list(x)))
 
 
 @cuda.jit
@@ -124,13 +118,8 @@ def test_fhe():
     encrypted_out = circuit(eA, eB)
     decrypted_out = encrypted_out.decrypt(num_operands=2)
 
-    with ctx.task(
-        stf.exec_place.host(), decrypted_out.l.read(stf.data_place.managed())
-    ) as t:
-        nb_stream = cuda.external_stream(t.stream_ptr())
-        nb_stream.synchronize()
-        hvalues = numba_arguments(t)
-        actual = [int(v) for v in hvalues]
+    actual = []
+    ctx.host_launch(decrypted_out.l.read(), fn=lambda x, out: out.extend(int(v) for v in x), args=[actual])
 
     ctx.finalize()
 
