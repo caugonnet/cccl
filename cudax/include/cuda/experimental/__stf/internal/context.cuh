@@ -141,6 +141,14 @@ private:
       };
     }
 
+    auto& set_user_data(const void* data, size_t sz, void (*dtor)(void*) = nullptr)
+    {
+      payload->*[&](auto& self) {
+        self.set_user_data(data, sz, dtor);
+      };
+      return *this;
+    }
+
     template <typename... Args>
     auto& add_deps(Args&&... args)
     {

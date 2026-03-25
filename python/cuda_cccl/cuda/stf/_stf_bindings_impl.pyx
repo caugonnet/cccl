@@ -968,14 +968,15 @@ cdef class context:
         else:
             user_args = tuple(args)
 
+        cdef logical_data ldata
         dep_meta = []
         for d in deps:
             if not isinstance(d, dep):
                 raise TypeError(
                     "Positional arguments must be dep objects "
                     "(use ld.read(), ld.write(), or ld.rw())")
-            ld_obj = d.ld
-            dep_meta.append((ld_obj._shape, ld_obj._dtype))
+            ldata = <logical_data>d.ld
+            dep_meta.append((ldata._shape, ldata._dtype))
 
         payload = (fn, user_args, dep_meta)
         Py_INCREF(payload)
@@ -988,9 +989,9 @@ cdef class context:
             stf_host_launch_set_symbol(h, sym_bytes)
         cdef int mode_ce
         for d in deps:
-            ld_obj = d.ld
+            ldata = <logical_data>d.ld
             mode_ce = <int>d.mode
-            stf_host_launch_add_dep(h, ld_obj._ld, <stf_access_mode>mode_ce)
+            stf_host_launch_add_dep(h, ldata._ld, <stf_access_mode>mode_ce)
         stf_host_launch_set_user_data(
             h, &payload_ptr, sizeof(PyObject*), _python_payload_destructor)
         stf_host_launch_submit(h, _host_launch_trampoline)
@@ -1449,14 +1450,15 @@ cdef class stackable_context:
         else:
             user_args = tuple(args)
 
+        cdef stackable_logical_data sldata
         dep_meta = []
         for d in deps:
             if not isinstance(d, dep):
                 raise TypeError(
                     "Positional arguments must be dep objects "
                     "(use ld.read(), ld.write(), or ld.rw())")
-            ld_obj = d.ld
-            dep_meta.append((ld_obj._shape, ld_obj._dtype))
+            sldata = <stackable_logical_data>d.ld
+            dep_meta.append((sldata._shape, sldata._dtype))
 
         payload = (fn, user_args, dep_meta)
         Py_INCREF(payload)
@@ -1469,10 +1471,10 @@ cdef class stackable_context:
             stf_host_launch_set_symbol(h, sym_bytes)
         cdef int mode_ce
         for d in deps:
-            ld_obj = d.ld
+            sldata = <stackable_logical_data>d.ld
             mode_ce = <int>d.mode
             stf_stackable_host_launch_add_dep(
-                self._ctx, h, ld_obj._ld, <stf_access_mode>mode_ce)
+                self._ctx, h, sldata._ld, <stf_access_mode>mode_ce)
         stf_host_launch_set_user_data(
             h, &payload_ptr, sizeof(PyObject*), _python_payload_destructor)
         stf_host_launch_submit(h, _host_launch_trampoline)

@@ -272,7 +272,7 @@ public:
     if constexpr (fun_invocable_untyped)
     {
       // --- Untyped dispatch path ---
-      auto* resolved = new ::std::pair<Fun, host_launch_deps>{::std::forward<Fun>(f), {}};
+      auto* resolved = new ::std::pair<Fun, host_launch_deps>{::std::forward<Fun>(f), host_launch_deps{}};
       auto& hld      = resolved->second;
 
       const size_t ndeps = deps.size();
