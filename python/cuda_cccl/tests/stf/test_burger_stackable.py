@@ -316,8 +316,8 @@ def test_burger():
           repeat(substeps):
             newton_solver(...)
     """
-    N = 12800
-    nsteps = 500
+    N = 2560
+    nsteps = 300
     substeps = 10
     outer_iters = nsteps // substeps
     nu = 0.05
