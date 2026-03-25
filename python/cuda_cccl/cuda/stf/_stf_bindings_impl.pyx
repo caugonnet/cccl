@@ -45,7 +45,7 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     ctypedef stf_ctx_handle_t* stf_ctx_handle
     void stf_ctx_create(stf_ctx_handle* ctx)
     void stf_ctx_create_graph(stf_ctx_handle* ctx)
-    void stf_ctx_finalize(stf_ctx_handle ctx)
+    void stf_ctx_finalize(stf_ctx_handle ctx) nogil
 
     #
     # Exec places
@@ -119,7 +119,7 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
 
     # Stackable context
     void stf_stackable_ctx_create(stf_ctx_handle* ctx)
-    void stf_stackable_ctx_finalize(stf_ctx_handle ctx)
+    void stf_stackable_ctx_finalize(stf_ctx_handle ctx) nogil
     CUstream stf_stackable_ctx_fence(stf_ctx_handle ctx)
     void stf_stackable_push_graph(stf_ctx_handle ctx)
     void stf_stackable_pop(stf_ctx_handle ctx)
@@ -706,9 +706,11 @@ cdef class context:
         if self._borrowed:
             raise RuntimeError("cannot finalize borrowed context")
 
-        if self._ctx != NULL:
-                stf_ctx_finalize(self._ctx)
+        cdef stf_ctx_handle h = self._ctx
         self._ctx = NULL
+        if h != NULL:
+            with nogil:
+                stf_ctx_finalize(h)
 
     def logical_data(self, object buf, data_place dplace=None, str name=None):
         """
@@ -1318,9 +1320,11 @@ cdef class stackable_context:
         return f"stackable_context(handle={<uintptr_t>self._ctx})"
 
     def finalize(self):
-        if self._ctx != NULL:
-            stf_stackable_ctx_finalize(self._ctx)
+        cdef stf_ctx_handle h = self._ctx
         self._ctx = NULL
+        if h != NULL:
+            with nogil:
+                stf_stackable_ctx_finalize(h)
 
     def fence(self):
         """Return the fence CUDA stream as a Python int. Must be at root level."""
