@@ -237,11 +237,17 @@ def _bpg(N):
 
 def stf_spmv(ctx, l_lower, l_diag, l_upper, lx, ly, N):
     """y = tridiag(lower, diag, upper) * x."""
-    with ctx.task(l_lower.read(), l_diag.read(), l_upper.read(), lx.read(), ly.write()) as t:
+    with ctx.task(
+        l_lower.read(), l_diag.read(), l_upper.read(), lx.read(), ly.write()
+    ) as t:
         s = cuda.external_stream(t.stream_ptr())
         tridiag_spmv_kernel[_bpg(N), TPB, s](
-            get_arg_numba(t, 0), get_arg_numba(t, 1), get_arg_numba(t, 2),
-            get_arg_numba(t, 3), get_arg_numba(t, 4), N,
+            get_arg_numba(t, 0),
+            get_arg_numba(t, 1),
+            get_arg_numba(t, 2),
+            get_arg_numba(t, 3),
+            get_arg_numba(t, 4),
+            N,
         )
 
 
@@ -259,18 +265,31 @@ def stf_compute_residual(ctx, lU, lU_prev, lresidual, N, inv_dt, inv_2h, nu_inv_
     with ctx.task(lU.read(), lU_prev.read(), lresidual.write()) as t:
         s = cuda.external_stream(t.stream_ptr())
         compute_residual_kernel[_bpg(N), TPB, s](
-            get_arg_numba(t, 0), get_arg_numba(t, 1), get_arg_numba(t, 2),
-            N, inv_dt, inv_2h, nu_inv_h2,
+            get_arg_numba(t, 0),
+            get_arg_numba(t, 1),
+            get_arg_numba(t, 2),
+            N,
+            inv_dt,
+            inv_2h,
+            nu_inv_h2,
         )
 
 
-def stf_assemble_jacobian(ctx, lU, l_lower, l_diag, l_upper, N, inv_dt, inv_2h, nu_inv_h2):
+def stf_assemble_jacobian(
+    ctx, lU, l_lower, l_diag, l_upper, N, inv_dt, inv_2h, nu_inv_h2
+):
     """Fused Jacobian into band storage."""
     with ctx.task(lU.read(), l_lower.write(), l_diag.write(), l_upper.write()) as t:
         s = cuda.external_stream(t.stream_ptr())
         assemble_jacobian_kernel[_bpg(N), TPB, s](
-            get_arg_numba(t, 0), get_arg_numba(t, 1), get_arg_numba(t, 2),
-            get_arg_numba(t, 3), N, inv_dt, inv_2h, nu_inv_h2,
+            get_arg_numba(t, 0),
+            get_arg_numba(t, 1),
+            get_arg_numba(t, 2),
+            get_arg_numba(t, 3),
+            N,
+            inv_dt,
+            inv_2h,
+            nu_inv_h2,
         )
 
 
@@ -279,7 +298,9 @@ def stf_assemble_jacobian(ctx, lU, l_lower, l_diag, l_upper, N, inv_dt, inv_2h, 
 # ---------------------------------------------------------------------------
 
 
-def cg_solver(ctx, l_lower, l_diag, l_upper, lX, lB, N, ltotal_cg, cg_tol=1e-8, max_cg=100):
+def cg_solver(
+    ctx, l_lower, l_diag, l_upper, lX, lB, N, ltotal_cg, cg_tol=1e-8, max_cg=100
+):
     """CG solver: tridiag(lower,diag,upper) * X = B."""
     lR = ctx.logical_data_empty((N,), np.float64, name="R")
     lP = ctx.logical_data_empty((N,), np.float64, name="P")
@@ -333,12 +354,18 @@ def cg_solver(ctx, l_lower, l_diag, l_upper, lX, lB, N, ltotal_cg, cg_tol=1e-8, 
         stf_dot(ctx, lP, lAp, lpAp, N)
 
         # Fused: X += alpha*P, R -= alpha*Ap
-        with ctx.task(lX.rw(), lR.rw(), lP.read(), lAp.read(), lrsold.read(), lpAp.read()) as t:
+        with ctx.task(
+            lX.rw(), lR.rw(), lP.read(), lAp.read(), lrsold.read(), lpAp.read()
+        ) as t:
             s = cuda.external_stream(t.stream_ptr())
             axpy_pair_kernel[_bpg(N), TPB, s](
-                get_arg_numba(t, 0), get_arg_numba(t, 1),
-                get_arg_numba(t, 2), get_arg_numba(t, 3),
-                get_arg_numba(t, 4), get_arg_numba(t, 5), N,
+                get_arg_numba(t, 0),
+                get_arg_numba(t, 1),
+                get_arg_numba(t, 2),
+                get_arg_numba(t, 3),
+                get_arg_numba(t, 4),
+                get_arg_numba(t, 5),
+                N,
             )
 
         # rsnew = dot(R, R)
@@ -348,8 +375,11 @@ def cg_solver(ctx, l_lower, l_diag, l_upper, lX, lB, N, ltotal_cg, cg_tol=1e-8, 
         with ctx.task(lrsnew.read(), lcg_iter.rw(), lcond.write(), ltotal_cg.rw()) as t:
             s = cuda.external_stream(t.stream_ptr())
             convergence_check_kernel[1, 1, s](
-                get_arg_numba(t, 0), get_arg_numba(t, 1),
-                get_arg_numba(t, 2), cg_tol_sq, float(max_cg),
+                get_arg_numba(t, 0),
+                get_arg_numba(t, 1),
+                get_arg_numba(t, 2),
+                cg_tol_sq,
+                float(max_cg),
                 get_arg_numba(t, 3),
             )
 
@@ -359,8 +389,11 @@ def cg_solver(ctx, l_lower, l_diag, l_upper, lX, lB, N, ltotal_cg, cg_tol=1e-8, 
         with ctx.task(lP.rw(), lR.read(), lrsnew.read(), lrsold.read()) as t:
             s = cuda.external_stream(t.stream_ptr())
             p_update_kernel[_bpg(N), TPB, s](
-                get_arg_numba(t, 0), get_arg_numba(t, 1),
-                get_arg_numba(t, 2), get_arg_numba(t, 3), N,
+                get_arg_numba(t, 0),
+                get_arg_numba(t, 1),
+                get_arg_numba(t, 2),
+                get_arg_numba(t, 3),
+                N,
             )
 
         # rsold = rsnew
@@ -375,9 +408,20 @@ def cg_solver(ctx, l_lower, l_diag, l_upper, lX, lB, N, ltotal_cg, cg_tol=1e-8, 
 
 
 def newton_solver(
-    ctx, lU, l_lower, l_diag, l_upper, N, inv_dt, inv_2h, nu_inv_h2,
-    ltotal_newton, ltotal_cg,
-    max_newton=20, newton_tol=1e-10, max_cg=100,
+    ctx,
+    lU,
+    l_lower,
+    l_diag,
+    l_upper,
+    N,
+    inv_dt,
+    inv_2h,
+    nu_inv_h2,
+    ltotal_newton,
+    ltotal_cg,
+    max_newton=20,
+    newton_tol=1e-10,
+    max_cg=100,
 ):
     """Newton solver for implicit Burger time step with fused kernels."""
     lU_prev = ctx.logical_data_empty((N,), np.float64, name="U_prev")
@@ -409,7 +453,9 @@ def newton_solver(
         stf_dot(ctx, lresidual, lresidual, lnewton_norm2, N)
 
         # Jacobian J = dF/dU
-        stf_assemble_jacobian(ctx, lU, l_lower, l_diag, l_upper, N, inv_dt, inv_2h, nu_inv_h2)
+        stf_assemble_jacobian(
+            ctx, lU, l_lower, l_diag, l_upper, N, inv_dt, inv_2h, nu_inv_h2
+        )
 
         # rhs = -residual
         with ctx.task(lrhs.write(), lresidual.read()) as t:
@@ -417,7 +463,18 @@ def newton_solver(
             negate_kernel[_bpg(N), TPB, s](get_arg_numba(t, 0), get_arg_numba(t, 1), N)
 
         # CG solve: J * delta = rhs
-        cg_solver(ctx, l_lower, l_diag, l_upper, ldelta, lrhs, N, ltotal_cg, cg_tol=1e-8, max_cg=max_cg)
+        cg_solver(
+            ctx,
+            l_lower,
+            l_diag,
+            l_upper,
+            ldelta,
+            lrhs,
+            N,
+            ltotal_cg,
+            cg_tol=1e-8,
+            max_cg=max_cg,
+        )
 
         # U += delta
         with ctx.task(lU.rw(), ldelta.read()) as t:
@@ -425,11 +482,19 @@ def newton_solver(
             axpy_kernel[_bpg(N), TPB, s](get_arg_numba(t, 0), get_arg_numba(t, 1), N)
 
         # Newton convergence: iter++, cond = (norm2 > tol^2) && (iter < max)
-        with ctx.task(lnewton_norm2.read(), lnewton_iter.rw(), lnewton_cond.write(), ltotal_newton.rw()) as t:
+        with ctx.task(
+            lnewton_norm2.read(),
+            lnewton_iter.rw(),
+            lnewton_cond.write(),
+            ltotal_newton.rw(),
+        ) as t:
             s = cuda.external_stream(t.stream_ptr())
             convergence_check_kernel[1, 1, s](
-                get_arg_numba(t, 0), get_arg_numba(t, 1),
-                get_arg_numba(t, 2), newton_tol_sq, float(max_newton),
+                get_arg_numba(t, 0),
+                get_arg_numba(t, 1),
+                get_arg_numba(t, 2),
+                newton_tol_sq,
+                float(max_newton),
                 get_arg_numba(t, 3),
             )
 
@@ -501,18 +566,30 @@ def test_burger_fast():
         with ctx.graph_scope():
             with ctx.repeat(substeps):
                 newton_solver(
-                    ctx, lU, l_lower, l_diag, l_upper, N,
-                    inv_dt, inv_2h, nu_inv_h2,
-                    ltotal_newton, ltotal_cg,
-                    max_newton=20, newton_tol=1e-10, max_cg=100,
+                    ctx,
+                    lU,
+                    l_lower,
+                    l_diag,
+                    l_upper,
+                    N,
+                    inv_dt,
+                    inv_2h,
+                    nu_inv_h2,
+                    ltotal_newton,
+                    ltotal_cg,
+                    max_newton=20,
+                    newton_tol=1e-10,
+                    max_cg=100,
                 )
 
             # Snapshot: copy U into buffer row, increment counter
             with ctx.task(lSnapshots.rw(), lU.read(), lSnapIter.rw()) as t:
                 s = cuda.external_stream(t.stream_ptr())
                 snapshot_copy_kernel[_bpg(N), TPB, s](
-                    get_arg_numba(t, 0), get_arg_numba(t, 1),
-                    get_arg_numba(t, 2), N,
+                    get_arg_numba(t, 0),
+                    get_arg_numba(t, 1),
+                    get_arg_numba(t, 2),
+                    N,
                 )
 
     t_submit_end = time.perf_counter()
@@ -523,8 +600,6 @@ def test_burger_fast():
 
     submit_ms = (t_submit_end - t_submit) * 1000
     total_ms = (t_end - t_start) * 1000
-    per_step_ms = (t_end - t_start) * 1000 / nsteps
-
     total_newton = int(newton_count[0])
     total_cg = int(cg_count[0])
     avg_newton = total_newton / nsteps
@@ -555,21 +630,29 @@ def test_burger_fast():
     achieved_bw = bytes_total / (exec_ms / 1000) / 1e9
 
     print(f"Data moved:   {bytes_total / 1e9:.2f} GB")
-    print(f"Achieved BW:  {achieved_bw:.1f} GB/s ({100 * achieved_bw / peak_bw_gbs:.1f}% of {peak_bw_gbs:.0f} GB/s peak)")
+    print(
+        f"Achieved BW:  {achieved_bw:.1f} GB/s ({100 * achieved_bw / peak_bw_gbs:.1f}% of {peak_bw_gbs:.0f} GB/s peak)"
+    )
 
     # Snapshots
     snapshots = [(0, U_init_snap)]
     for i in range(outer_iters):
         step = (i + 1) * substeps
         snapshots.append((step, snapshots_host[i].copy()))
-        print(f"Timestep {step}, t={step * dt:.4e}, max(U)={np.max(snapshots_host[i]):.6f}")
+        print(
+            f"Timestep {step}, t={step * dt:.4e}, max(U)={np.max(snapshots_host[i]):.6f}"
+        )
 
     # --- Validation ---
     assert not np.any(np.isnan(U_host)), "NaN detected in solution"
     assert not np.any(np.isinf(U_host)), "Inf detected in solution"
     assert np.isclose(U_host[0], 0.0, atol=1e-10), f"Left BC violated: U[0]={U_host[0]}"
-    assert np.isclose(U_host[-1], 0.0, atol=1e-10), f"Right BC violated: U[N-1]={U_host[-1]}"
-    assert np.max(np.abs(U_host)) < 2.0, f"Solution unbounded: max|U|={np.max(np.abs(U_host))}"
+    assert np.isclose(U_host[-1], 0.0, atol=1e-10), (
+        f"Right BC violated: U[N-1]={U_host[-1]}"
+    )
+    assert np.max(np.abs(U_host)) < 2.0, (
+        f"Solution unbounded: max|U|={np.max(np.abs(U_host))}"
+    )
 
     U_final_max = np.max(np.abs(U_host))
     assert U_final_max < U_init_max, (

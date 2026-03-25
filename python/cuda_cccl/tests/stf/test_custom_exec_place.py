@@ -52,7 +52,7 @@ def test_duck_typed_place_in_task():
 
     pp = PurePythonPlace(0)
     with ctx.task(pp, ld.rw()) as t:
-        pass
+        assert t.stream_ptr() != 0
 
     ctx.finalize()
 
@@ -86,7 +86,7 @@ def test_bad_type_rejected():
     ld = ctx.logical_data(arr)
 
     try:
-        with ctx.task(NotAPlace(), ld.rw()) as t:
+        with ctx.task(NotAPlace(), ld.rw()) as _t:
             pass
         assert False, "Should have raised TypeError"
     except TypeError:

@@ -110,7 +110,11 @@ def test_fhe_decorator():
     decrypted_out = encrypted_out.decrypt(num_operands=2)
 
     actual = []
-    ctx.host_launch(decrypted_out.l.read(), fn=lambda x, out: out.extend(int(v) for v in x), args=[actual])
+    ctx.host_launch(
+        decrypted_out.l.read(),
+        fn=lambda x, out: out.extend(int(v) for v in x),
+        args=[actual],
+    )
 
     ctx.finalize()
 

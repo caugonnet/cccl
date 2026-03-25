@@ -387,9 +387,11 @@ def test_burger():
                 )
 
             # Store snapshot via GPU copy (graph-safe, no host callback)
-            with pytorch_task(
-                ctx, lU.read(), lSnapshots.rw(), lSnapIter.rw()
-            ) as (tU, tSnap, tIter):
+            with pytorch_task(ctx, lU.read(), lSnapshots.rw(), lSnapIter.rw()) as (
+                tU,
+                tSnap,
+                tIter,
+            ):
                 idx = tIter[0:1].long()
                 tSnap.index_copy_(0, idx, tU.unsqueeze(0))
                 tIter.add_(1)
@@ -401,7 +403,9 @@ def test_burger():
     for i in range(outer_iters):
         step = (i + 1) * substeps
         snapshots.append((step, snapshots_host[i].copy()))
-        print(f"Timestep {step}, t={step * dt:.4e}, max(U)={np.max(snapshots_host[i]):.6f}")
+        print(
+            f"Timestep {step}, t={step * dt:.4e}, max(U)={np.max(snapshots_host[i]):.6f}"
+        )
 
     # --- Validation ---
     assert not np.any(np.isnan(U_host)), "NaN detected in solution"
