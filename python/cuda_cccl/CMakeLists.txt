@@ -21,12 +21,17 @@ set(_cccl_root ../..)
 # Build and install C++ library first
 set(CCCL_TOPLEVEL_PROJECT ON) # Enable the developer builds
 set(CCCL_ENABLE_C_PARALLEL ON) # Build the cccl.c.parallel library
-# STF C interface and Python bindings are not compatible with MSVC; disable on Windows.
+# STF is opt-in: set CCCL_BUILD_EXPERIMENTAL_STF=1 env var to enable.
+# Not compatible with MSVC regardless of the env var.
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set(CCCL_ENABLE_C_EXPERIMENTAL_STF OFF)
   message(STATUS "STF disabled: not compatible with MSVC")
-else()
+elseif (DEFINED ENV{CCCL_BUILD_EXPERIMENTAL_STF} AND "$ENV{CCCL_BUILD_EXPERIMENTAL_STF}")
   set(CCCL_ENABLE_C_EXPERIMENTAL_STF ON)
+  message(STATUS "STF enabled via CCCL_BUILD_EXPERIMENTAL_STF env var")
+else()
+  set(CCCL_ENABLE_C_EXPERIMENTAL_STF OFF)
+  message(STATUS "STF disabled (set CCCL_BUILD_EXPERIMENTAL_STF=1 to enable)")
 endif()
 set(CCCL_ENABLE_UNSTABLE ON) # Enable unstable features
 

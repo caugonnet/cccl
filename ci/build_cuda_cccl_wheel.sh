@@ -34,6 +34,9 @@ export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_CUDA_CCCL="${package_version}"
 
 cd /workspace/python/cuda_cccl
 
+# STF is opt-in when building from source; always include it in CI-published wheels.
+export CCCL_BUILD_EXPERIMENTAL_STF=1
+
 # Determine CUDA version from nvcc
 cuda_version=$(nvcc --version | grep -oP 'release \K[0-9]+\.[0-9]+' | cut -d. -f1)
 echo "Detected CUDA version: ${cuda_version}"
