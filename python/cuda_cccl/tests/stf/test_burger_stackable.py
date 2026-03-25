@@ -9,16 +9,22 @@ Solves the viscous Burger equation using an implicit time-stepping scheme
 with Newton + CG, expressed entirely as PyTorch tensor operations inside
 pytorch_task context managers.
 
-Nesting structure (4 levels):
-  for outer in range(outer_iters):        # Python host loop
-    with ctx.graph_scope():               # level 1
-      with ctx.repeat(substeps):          # level 2
+Nesting structure (5 levels, fully graph-captured):
+  with ctx.repeat(outer_iters):           # level 1 (conditional)
+    with ctx.graph_scope():               # level 2
+      with ctx.repeat(substeps):          # level 3 (conditional)
         newton_solver(ctx, ...)
-          with ctx.while_loop():          # level 3 (Newton)
+          with ctx.while_loop():          # level 4 (Newton)
             compute_residual / assemble_jacobian / ...
             cg_solver(ctx, ...)
-              with ctx.while_loop():      # level 4 (CG)
+              with ctx.while_loop():      # level 5 (CG)
                 spmv / dot / axpy / ...
+      pytorch_task: snapshot copy
+
+Snapshots are collected via a regular GPU task (pytorch_task) that copies
+the solution into a pre-allocated buffer using index_copy_.  This avoids
+host_launch, which creates host callback nodes that are not supported
+inside CUDA conditional graph bodies (repeat / while_loop).
 
 Requires CUDA 12.4+ (conditional graph nodes).
 
@@ -348,16 +354,23 @@ def test_burger():
     U_host[1:-1] = np.sin(np.pi * x_grid[1:-1])
 
     U_init_max = np.max(np.abs(U_host))
+    U_init_snap = U_host.copy()
 
     ctx = stf.stackable_context()
     lU = ctx.logical_data(U_host, name="U")
     lA_val = ctx.logical_data_empty((nz,), np.float64, name="csr_val")
 
-    # Snapshots: initial condition + one per outer iteration
-    snapshots = [(0, U_host.copy())]
+    # Snapshot buffer: one row per outer iteration, filled by a GPU task.
+    # We use a regular pytorch_task (kernel node) instead of host_launch
+    # because host callback nodes are not supported inside CUDA conditional
+    # graph bodies (repeat / while_loop).
+    snapshots_host = np.zeros((outer_iters, N), dtype=np.float64)
+    lSnapshots = ctx.logical_data(snapshots_host, name="snapshots")
+    snap_iter_host = np.zeros(1, dtype=np.int64)
+    lSnapIter = ctx.logical_data(snap_iter_host, name="snap_iter")
 
-    # Time-stepping: for > graph_scope > repeat > newton_solver
-    for outer in range(outer_iters):
+    # Time-stepping: repeat > graph_scope > repeat > newton_solver
+    with ctx.repeat(outer_iters):
         with ctx.graph_scope():
             with ctx.repeat(substeps):
                 newton_solver(
@@ -373,15 +386,22 @@ def test_burger():
                     max_cg=100,
                 )
 
-        timestep = (outer + 1) * substeps
-
-        def _snapshot(u_arr, step, snaps):
-            snaps.append((step, u_arr.copy()))
-            print(f"Timestep {step}, t={step * dt:.4e}, max(U)={np.max(u_arr):.6f}")
-
-        ctx.host_launch(lU.read(), fn=_snapshot, args=[timestep, snapshots])
+            # Store snapshot via GPU copy (graph-safe, no host callback)
+            with pytorch_task(
+                ctx, lU.read(), lSnapshots.rw(), lSnapIter.rw()
+            ) as (tU, tSnap, tIter):
+                idx = tIter[0:1].long()
+                tSnap.index_copy_(0, idx, tU.unsqueeze(0))
+                tIter.add_(1)
 
     ctx.finalize()
+
+    # Build snapshot list from the GPU-filled buffer (after finalize)
+    snapshots = [(0, U_init_snap)]
+    for i in range(outer_iters):
+        step = (i + 1) * substeps
+        snapshots.append((step, snapshots_host[i].copy()))
+        print(f"Timestep {step}, t={step * dt:.4e}, max(U)={np.max(snapshots_host[i]):.6f}")
 
     # --- Validation ---
     assert not np.any(np.isnan(U_host)), "NaN detected in solution"
