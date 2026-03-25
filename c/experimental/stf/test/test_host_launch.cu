@@ -174,18 +174,18 @@ C2H_TEST("host_launch with stackable context", "[host_launch][stackable]")
 
   stf_logical_data_handle lData;
   stf_stackable_logical_data(ctx, &lData, host_data, N * sizeof(double));
-  stf_stackable_logical_data_set_symbol(ctx, lData, "data");
+  stf_stackable_logical_data_set_symbol(lData, "data");
 
   // Fill data via a task
   stf_task_handle t;
   stf_stackable_task_create(ctx, &t);
-  stf_stackable_task_set_symbol(t, "fill");
+  stf_task_set_symbol(t, "fill");
   stf_stackable_task_add_dep(ctx, t, lData, STF_WRITE);
-  stf_stackable_task_start(t);
-  double* dData = (double*) stf_stackable_task_get(t, 0);
-  fill_kernel<<<2, 128, 0, (cudaStream_t) stf_stackable_task_get_custream(t)>>>((int) N, dData, 42.0);
-  stf_stackable_task_end(t);
-  stf_stackable_task_destroy(t);
+  stf_task_start(t);
+  double* dData = (double*) stf_task_get(t, 0);
+  fill_kernel<<<2, 128, 0, (cudaStream_t) stf_task_get_custream(t)>>>((int) N, dData, 42.0);
+  stf_task_end(t);
+  stf_task_destroy(t);
 
   // Use host_launch to verify data on the host
   bool passed = false;
@@ -199,7 +199,7 @@ C2H_TEST("host_launch with stackable context", "[host_launch][stackable]")
   stf_stackable_host_launch_submit(h, verify_callback);
   stf_stackable_host_launch_destroy(h);
 
-  stf_stackable_logical_data_destroy(ctx, lData);
+  stf_stackable_logical_data_destroy(lData);
   stf_stackable_ctx_finalize(ctx);
 
   REQUIRE(passed);
