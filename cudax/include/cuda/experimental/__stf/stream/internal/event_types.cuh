@@ -25,7 +25,7 @@
 #include <cuda/experimental/__stf/internal/backend_ctx.cuh>
 #include <cuda/experimental/__stf/utility/getenv_cache.cuh>
 #include <cuda/experimental/__stf/utility/memory.cuh>
-#include <cuda/experimental/__stf/utility/unstable_unique.cuh>
+#include <cuda/experimental/__utility/unstable_unique.cuh>
 
 #include <mutex>
 
@@ -196,7 +196,7 @@ public:
 
     // Remove duplicates. Two events are duplicates if they have the same stream.
     // Will keep the first element of each duplicate run, which is the one with the largest id.
-    proxy.erase(unstable_unique(proxy.begin(),
+    proxy.erase(::cuda::experimental::unstable_unique(proxy.begin(),
                                 proxy.end(),
                                 [](const auto& a, const auto& b) {
                                   return a->dstream.stream == b->dstream.stream;
