@@ -5,12 +5,14 @@ Script to merge CUDA-specific wheels into a single multi-CUDA wheel.
 This script takes wheels built for different CUDA versions (cu12, cu13) and merges them
 into a single wheel that supports both CUDA versions.
 
-Each wheel contains CUDA-specific builds in versioned directories:
-- `cuda/compute/cu<version>` — cccl.c.parallel and compute bindings
-
-This script merges these directories so the final wheel contains both cu12 and cu13
-for compute. At runtime, shim modules choose the right extension from the detected
-CUDA version.
+In particular, each wheel contains a CUDA-specific build of the `cccl.c.parallel` library
+and the associated bindings. These are present in the directory `compute/cu<version>`.
+For example, for a wheel built with CUDA 12, the directory is `compute/cu12`,
+and for a wheel built with CUDA 13, the directory is `compute/cu13`.
+This script merges these directories into a single wheel that supports both CUDA versions, i.e.,
+containing both `compute/cu12` and `compute/cu13`.
+At runtime, a shim module `compute/_bindings.py` is used to import the appropriate
+CUDA-specific bindings. See `compute/_bindings.py` for more details.
 """
 
 import argparse
@@ -98,18 +100,18 @@ def merge_wheels(wheels: List[Path], output_dir: Path) -> Path:
         # Use the first wheel as the base and merge binaries from others
         base_wheel = extracted_wheels[0]
 
-        # Copy version-specific compute directories from other wheels into base
+        # now copy the version-specific directory from other wheels
+        # into the appropriate place in the base wheel
         for i, wheel_dir in enumerate(extracted_wheels):
-            if i == 0:
-                continue
             cuda_version = wheels[i].name.split(".cu")[1].split(".")[0]
-            version_dir = Path("cuda") / "compute" / f"cu{cuda_version}"
-            src = wheel_dir / version_dir
-            if not src.is_dir():
+            if i == 0:
+                # For base wheel, do nothing
                 continue
-            dst = base_wheel / version_dir
-            print(f"  Copying {version_dir} to {base_wheel}")
-            shutil.copytree(src, dst)
+            else:
+                version_dir = Path("cuda") / "compute" / f"cu{cuda_version}"
+                # Copy from other wheels
+                print(f"  Copying {version_dir} to {base_wheel}")
+                shutil.copytree(wheel_dir / version_dir, base_wheel / version_dir)
 
         # Repack the merged wheel
         output_dir.mkdir(parents=True, exist_ok=True)

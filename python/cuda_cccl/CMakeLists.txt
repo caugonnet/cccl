@@ -17,24 +17,9 @@ message(
 
 # Build cccl.c.parallel and add CCCL's install rules
 set(_cccl_root ../..)
-
-# Build and install C++ library first
 set(CCCL_TOPLEVEL_PROJECT ON) # Enable the developer builds
 set(CCCL_ENABLE_C_PARALLEL ON) # Build the cccl.c.parallel library
-set(CCCL_ENABLE_C_EXPERIMENTAL_STF OFF)
-set(CCCL_ENABLE_UNSTABLE ON) # Enable unstable features
-
-# Disable all testing, examples, and benchmarks - we only want the libraries
-set(CCCL_ENABLE_TESTING OFF)
-set(CCCL_ENABLE_EXAMPLES OFF)
-set(CCCL_ENABLE_BENCHMARKS OFF)
-set(CCCL_C_PARALLEL_ENABLE_TESTING OFF)
-set(cudax_ENABLE_TESTING OFF)
-set(cudax_ENABLE_EXAMPLES OFF)
-set(cudax_ENABLE_HEADER_TESTING OFF)
-set(cudax_ENABLE_CUFILE OFF)
 set(CCCL_C_PARALLEL_LIBRARY_OUTPUT_DIRECTORY ${SKBUILD_PROJECT_NAME})
-
 # Just install the rest:
 set(libcudacxx_ENABLE_INSTALL_RULES ON)
 set(CUB_ENABLE_INSTALL_RULES ON)
@@ -49,9 +34,10 @@ add_subdirectory(${_cccl_root} _parent_cccl)
 set(CMAKE_INSTALL_LIBDIR "${old_libdir}") # pop
 set(CMAKE_INSTALL_INCLUDEDIR "${old_includedir}") # pop
 
-# Ensure the destination directory exists
+# ensure the destination directory exists
 file(MAKE_DIRECTORY "cuda/compute/${CUDA_VERSION_DIR}/cccl")
 
+# Install version-specific binaries
 install(
   TARGETS cccl.c.parallel
   DESTINATION cuda/compute/${CUDA_VERSION_DIR}/cccl
@@ -130,7 +116,6 @@ python3_add_library(
   WITH_SOABI
   "${_generated_extension_src}"
 )
-
 add_dependencies(_bindings_impl cythonize_bindings_impl)
 target_link_libraries(
   _bindings_impl
