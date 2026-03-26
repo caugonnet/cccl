@@ -30,7 +30,7 @@ if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
   experimental_artifact_name="${wheel_artifact_name}_experimental"
   "$ci_dir/util/artifacts/download.sh" ${experimental_artifact_name} /home/coder/cccl/
 else
-  "$ci_dir/build_cuda_cccl_experimental_python.sh" -py-version "${py_version}"
+  "$ci_dir/build_cuda_cccl_experimental_python_experimental.sh" -py-version "${py_version}"
 fi
 
 # Install cuda_cccl_experimental wheel

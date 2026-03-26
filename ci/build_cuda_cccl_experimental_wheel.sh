@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Target script for `docker run` command in build_cuda_cccl_experimental_python.sh
+# Target script for `docker run` command in build_cuda_cccl_experimental_python_experimental.sh
 # The /workspace pathnames are hard-wired here.
 
 # Install GCC 13 toolset (needed for the build)
