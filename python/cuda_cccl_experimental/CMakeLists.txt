@@ -84,9 +84,7 @@ else()
   endif()
 endif()
 
-set(CYTHON_FLAGS
-    "-3 -M -t -w \"${cuda_cccl_experimental_SOURCE_DIR}\""
-)
+set(CYTHON_FLAGS "-3 -M -t -w \"${cuda_cccl_experimental_SOURCE_DIR}\"")
 string(REGEX REPLACE " " ";" CYTHON_FLAGS_LIST "${CYTHON_FLAGS}")
 
 message(STATUS "STF Using Cython ${CYTHON_VERSION}")
@@ -98,7 +96,10 @@ set(
   _stf_generated_extension_src
   "${cuda_cccl_experimental_BINARY_DIR}/_stf_bindings_impl.c"
 )
-set(_stf_depfile "${cuda_cccl_experimental_BINARY_DIR}/_stf_bindings_impl.c.dep")
+set(
+  _stf_depfile
+  "${cuda_cccl_experimental_BINARY_DIR}/_stf_bindings_impl.c.dep"
+)
 
 add_custom_command(
   OUTPUT "${_stf_generated_extension_src}"

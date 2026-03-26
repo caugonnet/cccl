@@ -25,20 +25,14 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 
-dependencies = [
-  "cuda-cccl",
-]
+dependencies = ["cuda-cccl"]
 
 dynamic = ["version"]
 readme = { file = "README.md", content-type = "text/markdown" }
 
 [project.optional-dependencies]
-cu12 = [
-  "cuda-cccl[cu12]",
-]
-cu13 = [
-  "cuda-cccl[cu13]",
-]
+cu12 = ["cuda-cccl[cu12]"]
+cu13 = ["cuda-cccl[cu13]"]
 test-cu12 = [
   "cuda-cccl-experimental[cu12]",
   "pytest",
@@ -102,9 +96,7 @@ follow_imports = "skip"
 extend = "../../pyproject.toml"
 
 [tool.ruff.lint.isort]
-known-first-party = [
-  "cuda.stf",
-]
+known-first-party = ["cuda.stf"]
 
 [tool.pytest.ini_options]
 markers = []
