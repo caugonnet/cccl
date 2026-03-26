@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Target script for `docker run` command in build_cuda_cccl_python.sh
+# Target script for `docker run` command in build_cuda_cccl_experimental_python.sh
 # The /workspace pathnames are hard-wired here.
 
 # Install GCC 13 toolset (needed for the build)
@@ -30,9 +30,9 @@ export PACKAGE_VERSION_PREFIX="0.1."
 package_version=$(/workspace/ci/generate_version.sh)
 echo "Using package version ${package_version}"
 # Override the version used by setuptools_scm to the custom version
-export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_CUDA_CCCL="${package_version}"
+export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_CUDA_CCCL_EXPERIMENTAL="${package_version}"
 
-cd /workspace/python/cuda_cccl
+cd /workspace/python/cuda_cccl_experimental
 
 # Determine CUDA version from nvcc
 cuda_version=$(nvcc --version | grep -oP 'release \K[0-9]+\.[0-9]+' | cut -d. -f1)
@@ -47,7 +47,7 @@ export CUDAHOSTCXX="$(which g++)"
 python -m pip wheel --no-deps --verbose --wheel-dir dist .
 
 # Rename wheel to include CUDA version suffix
-for wheel in dist/cuda_cccl-*.whl; do
+for wheel in dist/cuda_cccl_experimental-*.whl; do
     if [[ -f "$wheel" ]]; then
         base_name=$(basename "$wheel" .whl)
         new_name="${base_name}.cu${cuda_version}.whl"
@@ -57,5 +57,5 @@ for wheel in dist/cuda_cccl-*.whl; do
 done
 
 # Move wheel to output directory
-mkdir -p /workspace/wheelhouse
-mv dist/cuda_cccl-*.cu*.whl /workspace/wheelhouse/
+mkdir -p /workspace/wheelhouse_experimental
+mv dist/cuda_cccl_experimental-*.cu*.whl /workspace/wheelhouse_experimental/

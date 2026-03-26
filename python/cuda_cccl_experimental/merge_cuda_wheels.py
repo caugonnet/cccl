@@ -6,10 +6,10 @@ This script takes wheels built for different CUDA versions (cu12, cu13) and merg
 into a single wheel that supports both CUDA versions.
 
 Each wheel contains CUDA-specific builds in versioned directories:
-- `cuda/compute/cu<version>` — cccl.c.parallel and compute bindings
+- `cuda/stf/cu<version>` — cccl.c.experimental.stf and STF bindings
 
 This script merges these directories so the final wheel contains both cu12 and cu13
-for compute. At runtime, shim modules choose the right extension from the detected
+for stf. At runtime, shim modules choose the right extension from the detected
 CUDA version.
 """
 
@@ -98,12 +98,12 @@ def merge_wheels(wheels: List[Path], output_dir: Path) -> Path:
         # Use the first wheel as the base and merge binaries from others
         base_wheel = extracted_wheels[0]
 
-        # Copy version-specific compute directories from other wheels into base
+        # Copy version-specific stf directories from other wheels into base
         for i, wheel_dir in enumerate(extracted_wheels):
             if i == 0:
                 continue
             cuda_version = wheels[i].name.split(".cu")[1].split(".")[0]
-            version_dir = Path("cuda") / "compute" / f"cu{cuda_version}"
+            version_dir = Path("cuda") / "stf" / f"cu{cuda_version}"
             src = wheel_dir / version_dir
             if not src.is_dir():
                 continue
@@ -157,8 +157,8 @@ def main():
 
     args = parser.parse_args()
 
-    print("CUDA CCCL Wheel Merger")
-    print("======================")
+    print("CUDA CCCL Experimental Wheel Merger")
+    print("====================================")
 
     # Convert wheel paths to Path objects and validate
     wheels = []
