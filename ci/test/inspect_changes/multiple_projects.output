@@ -1,2 +1,2 @@
 FULL_BUILD=python packaging
-LITE_BUILD=
+LITE_BUILD=python_experimental
