@@ -36,7 +36,6 @@
 
 namespace cuda::experimental::stf
 {
-
 #ifndef _CCCL_DOXYGEN_INVOKED // FIXME Doxygen is lost with decltype(auto)
 /**
  * @brief Custom move function that performs checks on the argument type.
