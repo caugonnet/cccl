@@ -28,7 +28,6 @@
 
 namespace cuda::experimental
 {
-
 //! @brief Removes duplicates from a sorted range using a custom predicate.
 //!
 //! Operates from both sides of the range, moving elements from the right-hand
@@ -101,7 +100,6 @@ _CCCL_HOST_API _Iterator unstable_unique(_Iterator __first, _Iterator __last)
     return __a == __b;
   });
 }
-
 } // namespace cuda::experimental
 
 #endif // _CUDAX__UTILITY_UNSTABLE_UNIQUE
