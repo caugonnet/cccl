@@ -29,7 +29,8 @@ public:
   {
     h_addr.reset(new double[N * N]);
     cuda_safe_call(cudaHostRegister(h_addr.get(), N * N * sizeof(double), cudaHostRegisterPortable));
-    handle = ::std::make_shared<logical_data<slice<double, 2>>>(ctx.logical_data(make_slice(h_addr.get(), std::tuple{N, N}, N)));
+    handle = ::std::make_shared<logical_data<slice<double, 2>>>(
+      ctx.logical_data(make_slice(h_addr.get(), std::tuple{N, N}, N)));
   }
 
   void fill(const std::function<double(int, int)>& f)
@@ -77,8 +78,9 @@ public:
       cuda_safe_call(cudaHostRegister(h_addr.get(), N * sizeof(double), cudaHostRegisterPortable));
       for (size_t b = 0; b < nblocks; b++)
       {
-        size_t bs  = std::min(N - block_size * b, block_size);
-        handles[b] = ::std::make_shared<logical_data<slice<double>>>(ctx.logical_data(make_slice(&h_addr[block_size * b], bs)));
+        size_t bs = std::min(N - block_size * b, block_size);
+        handles[b] =
+          ::std::make_shared<logical_data<slice<double>>>(ctx.logical_data(make_slice(&h_addr[block_size * b], bs)));
       }
     }
   }
