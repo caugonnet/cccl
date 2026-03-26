@@ -338,7 +338,7 @@ public:
       t.set_symbol(symbol);
     }
 
-    bool record_time = t.schedule_task();
+    bool record_time = t.should_record_time();
     e_place          = t.get_exec_place();
 
     nvtx_range nr(t.get_symbol().c_str());

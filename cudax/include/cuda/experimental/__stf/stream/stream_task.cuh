@@ -331,7 +331,7 @@ public:
   /**
    * @brief Determine if the task's time needs to be recorded (for DOT visualization)
    */
-  bool schedule_task()
+  bool should_record_time()
   {
     return reserved::dot::instance().is_timing();
   }
@@ -488,7 +488,7 @@ public:
 
     cudaEvent_t start_event, end_event;
 
-    bool record_time = schedule_task();
+    bool record_time = should_record_time();
 
     nvtx_range nr(get_symbol().c_str());
     start();

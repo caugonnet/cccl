@@ -559,7 +559,7 @@ public:
       t.set_symbol(symbol);
     }
 
-    const bool record_time = t.schedule_task();
+    const bool record_time = t.should_record_time();
 
     nvtx_range nr(t.get_symbol().c_str());
     t.start();

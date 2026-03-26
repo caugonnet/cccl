@@ -123,7 +123,7 @@ public:
     }
 
     cudaEvent_t start_event, end_event;
-    const bool record_time = t.schedule_task();
+    const bool record_time = t.should_record_time();
 
     t.start();
 

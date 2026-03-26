@@ -251,7 +251,7 @@ public:
   /**
    * @brief Determine if the task's time needs to be recorded (for DOT visualization)
    */
-  bool schedule_task()
+  bool should_record_time()
   {
     return ctx.get_dot()->is_timing();
   }
@@ -274,7 +274,7 @@ public:
   {
     auto& dot = *ctx.get_dot();
 
-    bool record_time = schedule_task();
+    bool record_time = should_record_time();
 
     start();
 
@@ -506,7 +506,7 @@ public:
   {
     auto& dot = *ctx.get_dot();
 
-    bool record_time = schedule_task();
+    bool record_time = should_record_time();
 
     start();
 

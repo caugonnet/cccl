@@ -352,7 +352,7 @@ public:
       t.set_symbol(symbol);
     }
 
-    record_time        = t.schedule_task();
+    record_time        = t.should_record_time();
     record_time_device = -1;
 
     t.start();
