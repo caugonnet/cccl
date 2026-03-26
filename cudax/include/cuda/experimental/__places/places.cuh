@@ -28,8 +28,8 @@
 #endif // no system header
 
 #include <cuda/experimental/__stf/internal/interpreted_execution_policy.cuh>
-#include <cuda/experimental/__stf/places/data_place_impl.cuh>
-#include <cuda/experimental/__stf/places/exec/green_ctx_view.cuh>
+#include <cuda/experimental/__places/data_place_impl.cuh>
+#include <cuda/experimental/__places/exec/green_ctx_view.cuh>
 #include <cuda/experimental/__stf/utility/core.cuh>
 
 #include <typeinfo>
@@ -40,7 +40,6 @@
 #endif
 #include <cuda/experimental/__stf/utility/cuda_safe_call.cuh>
 #include <cuda/experimental/__stf/utility/dimensions.cuh>
-#include <cuda/experimental/__stf/utility/occupancy.cuh>
 #include <cuda/experimental/__stf/utility/scope_guard.cuh>
 
 // Sync only will not move data....

@@ -13,7 +13,7 @@
  * @brief Static error check: exec_place_guard should not accept data_place
  */
 
-#include <cuda/experimental/__stf/places/places.cuh>
+#include <cuda/experimental/__places/places.cuh>
 
 using namespace cuda::experimental::stf;
 

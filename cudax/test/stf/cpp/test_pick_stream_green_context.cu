@@ -11,7 +11,7 @@
 //! \file
 //! \brief Test the pick_stream functionality with green contexts
 
-#include <cuda/experimental/__stf/places/exec/green_context.cuh>
+#include <cuda/experimental/__places/exec/green_context.cuh>
 #include <cuda/experimental/stf.cuh>
 
 using namespace cuda::experimental::stf;

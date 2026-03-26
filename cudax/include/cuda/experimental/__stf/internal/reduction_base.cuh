@@ -21,7 +21,7 @@
 #endif // no system header
 
 #include <cuda/experimental/__stf/internal/async_prereq.cuh>
-#include <cuda/experimental/__stf/places/places.cuh>
+#include <cuda/experimental/__places/places.cuh>
 
 namespace cuda::experimental::stf
 {
