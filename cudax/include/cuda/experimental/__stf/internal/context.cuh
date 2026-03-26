@@ -141,6 +141,7 @@ private:
       };
     }
 
+    // Attach opaque user data to the scope; an optional destructor is called when the scope is destroyed
     auto& set_user_data(const void* data, size_t sz, void (*dtor)(void*) = nullptr)
     {
       payload->*[&](auto& self) {

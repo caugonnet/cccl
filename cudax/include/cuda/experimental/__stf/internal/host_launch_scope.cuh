@@ -60,6 +60,7 @@ public:
   host_launch_deps(host_launch_deps&&)                 = default;
   host_launch_deps& operator=(host_launch_deps&&)      = default;
 
+  // If user data was attached with a custom destructor, invoke it before freeing the buffer
   ~host_launch_deps()
   {
     if (dtor_ && !user_data_buf_.empty())
@@ -68,6 +69,7 @@ public:
     }
   }
 
+  /// Retrieve the concrete data instance for dependency at @p index
   template <typename T>
   decltype(auto) get(size_t index)
   {
@@ -80,6 +82,7 @@ public:
     return lds_.size();
   }
 
+  /// Returns a pointer to the opaque user data blob, or nullptr if none was set
   void* user_data()
   {
     return user_data_buf_.empty() ? nullptr : user_data_buf_.data();
@@ -101,8 +104,8 @@ private:
 
   ::std::vector<logical_data_untyped> lds_;
   ::std::vector<instance_id_t> ids_;
-  ::std::vector<char> user_data_buf_;
-  void (*dtor_)(void*) = nullptr;
+  ::std::vector<char> user_data_buf_; // byte-copied snapshot of the user data attached to the scope
+  void (*dtor_)(void*) = nullptr; // optional destructor for user_data_buf_ contents
 };
 
 //! \brief Resource wrapper for managing host callback arguments
