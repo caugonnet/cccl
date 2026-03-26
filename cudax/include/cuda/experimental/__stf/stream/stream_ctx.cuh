@@ -33,7 +33,6 @@
 #include <cuda/experimental/__stf/internal/host_launch_scope.cuh>
 #include <cuda/experimental/__stf/internal/launch.cuh>
 #include <cuda/experimental/__stf/internal/parallel_for_scope.cuh>
-#include <cuda/experimental/__stf/internal/reorderer.cuh>
 #include <cuda/experimental/__stf/places/blocked_partition.cuh> // for unit test!
 #include <cuda/experimental/__stf/stream/interfaces/slice.cuh> // For implicit logical_data_untyped constructors
 #include <cuda/experimental/__stf/stream/interfaces/void_interface.cuh>
@@ -186,11 +185,7 @@ public:
   deferred_stream_task<Deps...> deferred_task(exec_place e_place, task_dep<Deps>... deps)
   {
     auto result = deferred_stream_task<Deps...>(*this, mv(e_place), mv(deps)...);
-
-    int id = result.get_mapping_id();
-    state().deferred_tasks.push_back(id);
-    state().task_map.emplace(id, result);
-
+    state().deferred_tasks.push_back(result);
     return result;
   }
 
@@ -204,11 +199,7 @@ public:
   auto deferred_host_launch(task_dep<Deps>... deps)
   {
     auto result = deferred_host_launch_scope<Deps...>(this, mv(deps)...);
-    int id      = result.get_mapping_id();
-
-    state().deferred_tasks.push_back(id);
-    state().task_map.emplace(id, result);
-
+    state().deferred_tasks.push_back(result);
     return result;
   }
 
@@ -252,54 +243,14 @@ public:
         task.set_symbol(mv(s));
       }
 
-      const ::std::string& get_symbol() const override
-      {
-        return task.get_symbol();
-      }
-
-      int get_mapping_id() const override
-      {
-        return task.get_mapping_id();
-      }
-
       void run() override
       {
         todo(task);
-      }
-
-      void populate_deps_scheduling_info() override
-      {
-        // Error checking copied from acquire() in acquire_release()
-
-        int index        = 0;
-        const auto& deps = get_task_deps();
-        for (const auto& dep : deps)
-        {
-          if (!dep.get_data().is_initialized())
-          {
-            fprintf(stderr, "Error: dependency number %d is an uninitialized logical data.\n", index);
-            abort();
-          }
-          dep.set_symbol(dep.get_data().get_symbol());
-          dep.set_data_footprint(dep.get_data().get_data_interface().data_footprint());
-          index++;
-        }
-      }
-
-      const task_dep_vector_untyped& get_task_deps() const override
-      {
-        return task.get_task_deps();
-      }
-
-      void set_exec_place(exec_place e_place) override
-      {
-        task.set_exec_place(mv(e_place));
       }
     };
 
     payload_t& my_payload() const
     {
-      // Safe to do the cast because we've set the pointer earlier ourselves
       return *static_cast<payload_t*>(payload.get());
     }
 
@@ -309,12 +260,6 @@ public:
     {}
 
     ///@{
-    /**
-     * @name Set the symbol of the task. This is used for profiling and debugging.
-     *
-     * @param s
-     * @return deferred_parallel_for_scope&
-     */
     deferred_parallel_for_scope& set_symbol(::std::string s) &
     {
       payload->set_symbol(mv(s));
@@ -327,11 +272,6 @@ public:
       return mv(*this);
     }
     ///@}
-
-    void populate_deps_scheduling_info()
-    {
-      payload->populate_deps_scheduling_info();
-    }
 
     template <typename Fun>
     void operator->*(Fun fun)
@@ -359,49 +299,14 @@ public:
         task.set_symbol(s);
       }
 
-      const ::std::string& get_symbol() const override
-      {
-        return task.get_symbol();
-      }
-
-      int get_mapping_id() const override
-      {
-        return task.get_mapping_id();
-      }
-
       void run() override
       {
         todo(task);
       }
-
-      void populate_deps_scheduling_info() override
-      {
-        int index        = 0;
-        const auto& deps = get_task_deps();
-        for (const auto& dep : deps)
-        {
-          if (!dep.get_data().is_initialized())
-          {
-            fprintf(stderr, "Error: dependency number %d is an uninitialized logical data.\n", index);
-            abort();
-          }
-          dep.set_symbol(dep.get_data().get_symbol());
-          dep.set_data_footprint(dep.get_data().get_data_interface().data_footprint());
-          index++;
-        }
-      }
-
-      const task_dep_vector_untyped& get_task_deps() const override
-      {
-        return task.get_task_deps();
-      }
-
-      void set_exec_place(exec_place) override {}
     };
 
     payload_t& my_payload() const
     {
-      // Safe to do the cast because we've set the pointer earlier ourselves
       return *static_cast<payload_t*>(payload.get());
     }
 
@@ -411,12 +316,6 @@ public:
     {}
 
     ///@{
-    /**
-     * @name Set the symbol of the task. This is used for profiling and debugging.
-     *
-     * @param s
-     * @return deferred_host_launch_scope&
-     */
     deferred_host_launch_scope& set_symbol(::std::string s) &
     {
       payload->set_symbol(mv(s));
@@ -429,11 +328,6 @@ public:
       return mv(*this);
     }
     ///@}
-
-    void populate_deps_scheduling_info()
-    {
-      payload->populate_deps_scheduling_info();
-    }
 
     template <typename Fun>
     void operator->*(Fun fun)
@@ -466,59 +360,15 @@ public:
     set_phase(backend_ctx_untyped::phase::finalized);
   }
 
-  float get_submission_time_ms() const
-  {
-    assert(state().submitted_stream);
-    return state().submission_time;
-  }
-
   void submit()
   {
     auto& state = this->state();
     _CCCL_ASSERT(!state.submitted_stream, "");
     _CCCL_ASSERT(get_phase() < backend_ctx_untyped::phase::submitted, "");
 
-    cudaEvent_t startEvent = nullptr;
-    cudaEvent_t stopEvent  = nullptr;
-
-    ::std::unordered_map<int, reserved::reorderer_payload> payloads;
-    if (reordering_tasks())
+    for (auto& task : state.deferred_tasks)
     {
-      build_task_graph();
-      for (int id : state.deferred_tasks)
-      {
-        const auto& t = state.task_map.at(id);
-        payloads.emplace(id, t.get_reorderer_payload());
-      }
-      reorder_tasks(state.deferred_tasks, payloads);
-
-      for (auto& [id, payload] : payloads)
-      {
-        if (payload.device != -1)
-        {
-          state.task_map.at(id).set_exec_place(exec_place::device(payload.device));
-        }
-      }
-
-      cuda_safe_call(cudaSetDevice(0));
-      cuda_safe_call(cudaStreamSynchronize(fence()));
-      cuda_safe_call(cudaEventCreate(&startEvent));
-      cuda_safe_call(cudaEventCreate(&stopEvent));
-      cuda_safe_call(cudaEventRecord(startEvent, fence()));
-    }
-
-    for (int id : state.deferred_tasks)
-    {
-      auto& task = state.task_map.at(id);
       task.run();
-    }
-
-    if (reordering_tasks())
-    {
-      cuda_safe_call(cudaSetDevice(0));
-      cuda_safe_call(cudaEventRecord(stopEvent, fence()));
-      cuda_safe_call(cudaEventSynchronize(stopEvent));
-      cuda_safe_call(cudaEventElapsedTime(&state.submission_time, startEvent, stopEvent));
     }
 
     // Write-back data and erase automatically created data instances
@@ -538,10 +388,7 @@ public:
   auto deferred_parallel_for(exec_place e_place, S shape, task_dep<Deps>... deps)
   {
     auto result = deferred_parallel_for_scope<S, null_partition, Deps...>(*this, mv(e_place), mv(shape), mv(deps)...);
-    int id      = result.get_mapping_id();
-    state().deferred_tasks.push_back(id);
-    state().task_map.emplace(id, result);
-
+    state().deferred_tasks.push_back(result);
     return result;
   }
 
@@ -580,7 +427,6 @@ private:
     {
       // Reset this object
       deferred_tasks.clear();
-      task_map.clear();
       submitted_stream = nullptr;
       base::impl::cleanup();
     }
@@ -609,10 +455,8 @@ private:
       return true;
     }
 
-    ::std::vector<int> deferred_tasks; // vector of mapping_ids
-    ::std::unordered_map<int, deferred_stream_task<>> task_map; // maps from a mapping_id to the deferred_task
-    cudaStream_t submitted_stream = nullptr; // stream used in submit
-    float submission_time         = 0.0;
+    ::std::vector<deferred_stream_task<>> deferred_tasks;
+    cudaStream_t submitted_stream = nullptr;
 
     // If the context is attached to a user stream, we should use it for
     // finalize() or fence()
@@ -630,91 +474,6 @@ private:
   const impl& state() const
   {
     return dynamic_cast<const impl&>(get_state());
-  }
-
-  /// @brief Build the task graph by populating the predecessor and successor lists.
-  /// The logic here is copied from acquire_release.h notify_access(), although this doesn't handle redux at the
-  /// moment
-  void build_task_graph()
-  {
-    auto& state = this->state();
-
-    // Maps from a logical data to its last writer. The int is the mapping_id
-    ::std::unordered_map<::std::string, ::std::deque<int>> current_readers;
-    ::std::unordered_map<::std::string, int> current_writer, previous_writer;
-
-    for (int id : state.deferred_tasks)
-    {
-      auto& t = state.task_map.at(id);
-      assert(id == t.get_mapping_id());
-
-      for (const auto& dep : t.get_task_deps())
-      {
-        const access_mode mode = dep.get_access_mode();
-
-        const logical_data_untyped data = dep.get_data();
-        const auto& symbol              = data.get_symbol();
-        const auto it                   = current_writer.find(symbol);
-        const bool write                = mode == access_mode::rw || mode == access_mode::write;
-
-        if (write)
-        {
-          if (it == current_writer.end())
-          { // WAR
-            if (auto readers_it = current_readers.find(symbol); readers_it != current_readers.end())
-            {
-              for (auto& readers_queue = readers_it->second; !readers_queue.empty();)
-              {
-                const int reader_id = readers_queue.back();
-                readers_queue.pop_back();
-
-                auto& reader_task = state.task_map.at(reader_id);
-                t.add_predecessor(reader_id);
-                reader_task.add_successor(id);
-              }
-            }
-          }
-          else
-          { // WAW
-            const int writer_id = it->second;
-            auto& writer_task   = state.task_map.at(writer_id);
-
-            t.add_predecessor(writer_id);
-            writer_task.add_successor(id);
-
-            previous_writer[symbol] = writer_id;
-          }
-          current_writer[symbol] = id;
-        }
-        else
-        {
-          current_readers[symbol].emplace_back(id);
-          if (it == current_writer.end())
-          { // RAR
-
-            auto previous_writer_it = previous_writer.find(symbol);
-            if (previous_writer_it != previous_writer.end())
-            {
-              const int previous_writer_id = previous_writer_it->second;
-              auto& previous_writer_task   = state.task_map.at(previous_writer_id);
-
-              t.add_predecessor(previous_writer_id);
-              previous_writer_task.add_successor(id);
-            }
-          }
-          else
-          { // RAW
-            const int writer_id     = it->second;
-            auto& writer_task       = state.task_map.at(writer_id);
-            previous_writer[symbol] = writer_id;
-            current_writer.erase(symbol);
-
-            t.add_predecessor(writer_id);
-            writer_task.add_successor(id);
-          }
-        }
-      }
-    }
   }
 };
 
