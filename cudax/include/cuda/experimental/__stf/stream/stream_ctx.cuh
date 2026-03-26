@@ -177,30 +177,7 @@ public:
   template <typename... Deps>
   stream_task<Deps...> task(exec_place e_place, task_dep<Deps>... deps)
   {
-    EXPECT(state().deferred_tasks.empty(), "Mixing deferred and immediate tasks is not supported yet.");
     return stream_task<Deps...>(*this, mv(e_place), mv(deps)...);
-  }
-
-  template <typename... Deps>
-  deferred_stream_task<Deps...> deferred_task(exec_place e_place, task_dep<Deps>... deps)
-  {
-    auto result = deferred_stream_task<Deps...>(*this, mv(e_place), mv(deps)...);
-    state().deferred_tasks.push_back(result);
-    return result;
-  }
-
-  template <typename... Deps>
-  deferred_stream_task<Deps...> deferred_task(task_dep<Deps>... deps)
-  {
-    return deferred_task(exec_place::current_device(), mv(deps)...);
-  }
-
-  template <typename... Deps>
-  auto deferred_host_launch(task_dep<Deps>... deps)
-  {
-    auto result = deferred_host_launch_scope<Deps...>(this, mv(deps)...);
-    state().deferred_tasks.push_back(result);
-    return result;
   }
 
   cudaStream_t fence()
@@ -222,181 +199,33 @@ public:
     return dstream.stream;
   }
 
-  /*
-   * host_launch : launch a "kernel" in a callback
-   */
-
-  template <typename shape_t, typename P, typename... Data>
-  class deferred_parallel_for_scope : public deferred_stream_task<>
-  {
-    struct payload_t : public deferred_stream_task<>::payload_t
-    {
-      payload_t(stream_ctx& ctx, exec_place e_place, shape_t shape, task_dep<Data>... deps)
-          : task(ctx, mv(e_place), mv(shape), mv(deps)...)
-      {}
-
-      reserved::parallel_for_scope<stream_ctx, shape_t, P, Data...> task;
-      ::std::function<void(reserved::parallel_for_scope<stream_ctx, shape_t, P, Data...>&)> todo;
-
-      void set_symbol(::std::string s) override
-      {
-        task.set_symbol(mv(s));
-      }
-
-      void run() override
-      {
-        todo(task);
-      }
-    };
-
-    payload_t& my_payload() const
-    {
-      return *static_cast<payload_t*>(payload.get());
-    }
-
-  public:
-    deferred_parallel_for_scope(stream_ctx& ctx, exec_place e_place, shape_t shape, task_dep<Data>... deps)
-        : deferred_stream_task<>(::std::make_shared<payload_t>(ctx, mv(e_place), mv(shape), mv(deps)...))
-    {}
-
-    ///@{
-    deferred_parallel_for_scope& set_symbol(::std::string s) &
-    {
-      payload->set_symbol(mv(s));
-      return *this;
-    }
-
-    deferred_parallel_for_scope&& set_symbol(::std::string s) &&
-    {
-      set_symbol(mv(s));
-      return mv(*this);
-    }
-    ///@}
-
-    template <typename Fun>
-    void operator->*(Fun fun)
-    {
-      my_payload().todo = [f = mv(fun)](reserved::parallel_for_scope<stream_ctx, shape_t, P, Data...>& task) {
-        task->*f;
-      };
-    }
-  };
-
-  template <typename... Data>
-  class deferred_host_launch_scope : public deferred_stream_task<>
-  {
-    struct payload_t : public deferred_stream_task<>::payload_t
-    {
-      payload_t(stream_ctx& ctx, task_dep<Data>... deps)
-          : task(ctx, mv(deps)...)
-      {}
-
-      reserved::host_launch_scope<stream_ctx, false, Data...> task;
-      ::std::function<void(reserved::host_launch_scope<stream_ctx, false, Data...>&)> todo;
-
-      void set_symbol(::std::string s) override
-      {
-        task.set_symbol(s);
-      }
-
-      void run() override
-      {
-        todo(task);
-      }
-    };
-
-    payload_t& my_payload() const
-    {
-      return *static_cast<payload_t*>(payload.get());
-    }
-
-  public:
-    deferred_host_launch_scope(stream_ctx& ctx, task_dep<Data>... deps)
-        : deferred_stream_task<>(::std::make_shared<payload_t>(ctx, mv(deps)...))
-    {}
-
-    ///@{
-    deferred_host_launch_scope& set_symbol(::std::string s) &
-    {
-      payload->set_symbol(mv(s));
-      return *this;
-    }
-
-    deferred_host_launch_scope&& set_symbol(::std::string s) &&
-    {
-      set_symbol(mv(s));
-      return mv(*this);
-    }
-    ///@}
-
-    template <typename Fun>
-    void operator->*(Fun fun)
-    {
-      my_payload().todo = [f = mv(fun)](reserved::host_launch_scope<stream_ctx, false, Data...>& task) {
-        task->*f;
-      };
-    }
-  };
+  // no-op for stream_ctx, needed so that context (variant of stream_ctx/graph_ctx) can dispatch submit()
+  void submit() {}
 
   void finalize()
   {
     _CCCL_ASSERT(get_phase() < backend_ctx_untyped::phase::finalized, "");
     auto& state = this->state();
-    if (!state.submitted_stream)
-    {
-      // Wasn't submitted yet
-      submit();
-      assert(state.submitted_stream);
-    }
 
-    // Make sure we release resources attached to this context
-    state.release_ctx_resources(state.submitted_stream);
-
-    if (state.blocking_finalize)
-    {
-      cuda_safe_call(cudaStreamSynchronize(state.submitted_stream));
-    }
-    state.cleanup();
-    set_phase(backend_ctx_untyped::phase::finalized);
-  }
-
-  void submit()
-  {
-    auto& state = this->state();
-    _CCCL_ASSERT(!state.submitted_stream, "");
-    _CCCL_ASSERT(get_phase() < backend_ctx_untyped::phase::submitted, "");
-
-    for (auto& task : state.deferred_tasks)
-    {
-      task.run();
-    }
+    cudaStream_t submitted_stream = fence();
 
     // Write-back data and erase automatically created data instances
     state.erase_all_logical_data();
     state.detach_allocators(*this);
 
-    state.submitted_stream = fence();
-    assert(state.submitted_stream != nullptr);
+    // Make sure we release resources attached to this context
+    state.release_ctx_resources(submitted_stream);
 
-    set_phase(backend_ctx_untyped::phase::submitted);
+    if (state.blocking_finalize)
+    {
+      cuda_safe_call(cudaStreamSynchronize(submitted_stream));
+    }
+    state.cleanup();
+    set_phase(backend_ctx_untyped::phase::finalized);
   }
 
   // no-op : so that we can use the same code with stream_ctx and graph_ctx
   void change_stage() {}
-
-  template <typename S, typename... Deps>
-  auto deferred_parallel_for(exec_place e_place, S shape, task_dep<Deps>... deps)
-  {
-    auto result = deferred_parallel_for_scope<S, null_partition, Deps...>(*this, mv(e_place), mv(shape), mv(deps)...);
-    state().deferred_tasks.push_back(result);
-    return result;
-  }
-
-  template <typename S, typename... Deps>
-  auto deferred_parallel_for(S shape, task_dep<Deps>... deps)
-  {
-    return deferred_parallel_for(exec_place::current_device(), mv(shape), mv(deps)...);
-  }
 
   template <typename T>
   auto wait(cuda::experimental::stf::logical_data<T>& ldata)
@@ -425,9 +254,6 @@ private:
 
     void cleanup()
     {
-      // Reset this object
-      deferred_tasks.clear();
-      submitted_stream = nullptr;
       base::impl::cleanup();
     }
 
@@ -454,9 +280,6 @@ private:
     {
       return true;
     }
-
-    ::std::vector<deferred_stream_task<>> deferred_tasks;
-    cudaStream_t submitted_stream = nullptr;
 
     // If the context is attached to a user stream, we should use it for
     // finalize() or fence()
@@ -554,7 +377,6 @@ UNITTEST("copyable stream_ctx")
   auto t          = ctx.task();
   auto t2         = ctx2.task();
 
-  ctx2.submit();
   ctx2.finalize();
 };
 
@@ -565,7 +387,6 @@ UNITTEST("movable stream_ctx")
   stream_ctx ctx2 = mv(ctx);
   auto t2         = ctx2.task();
 
-  ctx2.submit();
   ctx2.finalize();
 };
 
