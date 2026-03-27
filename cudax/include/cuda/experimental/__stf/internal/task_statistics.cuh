@@ -33,7 +33,6 @@
 #endif // no system header
 
 #include <cuda/experimental/__stf/utility/hash.cuh>
-#include <cuda/experimental/__stf/utility/traits.cuh>
 #include <cuda/experimental/__stf/utility/unittest.cuh>
 #include <cuda/experimental/__utility/meyers_singleton.cuh>
 

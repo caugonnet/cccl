@@ -25,7 +25,6 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/experimental/__stf/utility/traits.cuh>
 #include <cuda/experimental/__utility/meyers_singleton.cuh>
 
 #include <cstdio>
