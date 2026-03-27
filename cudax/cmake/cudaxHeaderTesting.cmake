@@ -25,6 +25,7 @@ function(cudax_add_header_test label definitions)
       "cuda/experimental/cufile.cuh"
       "cuda/experimental/__cufile/*"
       # Places headers are compiled separately:
+      "cuda/experimental/places.cuh"
       "cuda/experimental/__places/*"
       # STF headers are compiled separately:
       "cuda/experimental/stf.cuh"
@@ -56,6 +57,7 @@ function(cudax_add_header_test label definitions)
       ${headertest_target}
       cudax/include
       GLOBS #
+        "cuda/experimental/places.cuh"
         "cuda/experimental/__places/*.cuh"
       HEADER_TEMPLATE "${cudax_SOURCE_DIR}/cmake/header_test.in.cu"
     )
