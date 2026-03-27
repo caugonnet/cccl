@@ -30,7 +30,7 @@
 
 #include <cuda/experimental/__places/data_place_interface.cuh>
 #include <cuda/experimental/__stf/utility/cuda_safe_call.cuh>
-#include <cuda/experimental/__stf/utility/scope_guard.cuh>
+#include <cuda/experimental/__utility/scope_exit.cuh>
 
 namespace cuda::experimental::stf
 {
@@ -258,13 +258,12 @@ public:
       cuda_safe_call(cudaSetDevice(device_id_));
     }
 
-    SCOPE(exit)
-    {
+    ::cuda::experimental::scope_exit restore_dev([&]() noexcept {
       if (prev_dev != device_id_)
       {
         cuda_safe_call(cudaSetDevice(prev_dev));
       }
-    };
+    });
 
     cuda_safe_call(cudaMallocAsync(&result, size, stream));
     return result;
@@ -279,13 +278,12 @@ public:
       cuda_safe_call(cudaSetDevice(device_id_));
     }
 
-    SCOPE(exit)
-    {
+    ::cuda::experimental::scope_exit restore_dev([&]() noexcept {
       if (prev_dev != device_id_)
       {
         cuda_safe_call(cudaSetDevice(prev_dev));
       }
-    };
+    });
 
     cuda_safe_call(cudaFreeAsync(ptr, stream));
   }
