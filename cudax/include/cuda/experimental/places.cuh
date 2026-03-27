@@ -21,5 +21,6 @@
 
 #include <cuda/experimental/__places/exec/cuda_stream.cuh>
 #include <cuda/experimental/__places/exec/green_context.cuh>
+#include <cuda/experimental/__places/machine.cuh>
 #include <cuda/experimental/__places/place_partition.cuh>
 #include <cuda/experimental/__places/places.cuh>
