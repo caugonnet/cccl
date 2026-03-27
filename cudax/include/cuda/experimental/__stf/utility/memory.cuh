@@ -1027,5 +1027,4 @@ UNITTEST("small_vector basics")
   v4.push_back(::std::make_unique<int>(5));
 };
 #endif // UNITTESTED_FILE
-
 } // namespace cuda::experimental::stf

@@ -37,7 +37,6 @@
 
 namespace cuda::experimental::stf::reserved
 {
-
 /*!
  * @brief A simple object pool with linear search for managing objects of type `T`.
  *
