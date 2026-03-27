@@ -33,47 +33,6 @@
 
 namespace cuda::experimental::stf
 {
-// Hack setenv on Windows
-#if _CCCL_COMPILER(MSVC)
-/**
- * @brief Sets an environment variable, mimicking the behavior of `std::setenv` on Windows.
- *
- * This function attempts to set the value of the environment variable `name` to `value`.
- * If `overwrite` is 0 and the variable already exists, the function does nothing.
- *
- * @param name The name of the environment variable.
- * @param value The value to assign to the environment variable.
- * @param overwrite If non-zero, the function will overwrite the existing value of the variable.
- * @return 0 on success, or -1 on failure (invalid input or memory allocation failure).
- * @note This function is designed for MSVC, which lacks a standard `setenv` function.
- */
-inline int setenv(const char* name, const char* value, int overwrite)
-{
-  if (!name || !value || !name[0])
-  {
-    // Invalid input: name or value is null, or name is an empty string
-    return -1;
-  }
-
-  // Check if the variable already exists and if overwrite is allowed
-  if (!overwrite && ::std::getenv(name) != nullptr)
-  {
-    return 0; // Variable exists, and we're not allowed to overwrite it
-  }
-
-  // Construct the string in the form "NAME=VALUE"
-  auto env_var = ::std::string(name) + "=" + value;
-
-  // Use _putenv to set the environment variable in MSVC
-  if (_putenv(env_var.c_str()) != 0)
-  {
-    return -1; // _putenv failed
-  }
-
-  return 0; // Success
-}
-#endif
-
 #ifndef _CCCL_DOXYGEN_INVOKED // FIXME Doxygen is lost with decltype(auto)
 /**
  * @brief Custom move function that performs checks on the argument type.
