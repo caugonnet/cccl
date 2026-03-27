@@ -73,9 +73,6 @@ set(
   local_stf/task_dep_copy_move_semantics.cu
   local_stf/threads_multiple_graphs.cu
   places/affinity_gc.cu
-  places/data_place_alloc.cu
-  places/data_place_vmm.cu
-  places/exec_place_guard.cu
   places/managed.cu
   places/managed_from_user.cu
   places/non_current_device.cu

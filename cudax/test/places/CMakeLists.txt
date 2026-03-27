@@ -1,4 +1,15 @@
-set(places_test_sources include_only.cu)
+set(
+  places_test_sources
+  include_only.cu
+  data_place_alloc.cu
+  data_place_vmm.cu
+  exec_place_guard.cu
+)
+
+set(
+  places_static_assert_tests
+  exec_place_guard_data_place.cu
+)
 
 set(
   places_unittested_headers
@@ -85,4 +96,30 @@ endforeach()
 # Unittested headers
 foreach (source IN LISTS places_unittested_headers)
   cudax_add_places_unittest_header(test_target "${source}")
+endforeach()
+
+## cudax_add_places_static_assert_test
+#
+# Adds an EXCLUDE_FROM_ALL build target for `source` and a ctest that
+# triggers the compilation and checks for "static assertion" in the output.
+#
+function(cudax_add_places_static_assert_test target_name_var source)
+  get_filename_component(filename ${source} NAME_WE)
+
+  set(test_target cudax.test.places.error.${filename})
+
+  cccl_add_executable(${test_target} SOURCES ${source} NO_METATARGETS)
+  cudax_places_configure_target(${test_target})
+  target_link_libraries(${test_target} PRIVATE cudax.compiler_interface)
+  cccl_add_xfail_compile_target_test(
+    ${test_target}
+    ERROR_REGEX "static_assert|static assertion"
+  )
+
+  set(${target_name_var} ${test_target} PARENT_SCOPE)
+endfunction()
+
+# Static assert tests
+foreach (source IN LISTS places_static_assert_tests)
+  cudax_add_places_static_assert_test(test_target "${source}")
 endforeach()
