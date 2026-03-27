@@ -10,7 +10,7 @@
 
 #include <cccl/c/experimental/stf/stf.h>
 // #include <cccl/c/parallel/include/cccl/c/extern_c.h>
-#include <cuda/experimental/__places/places.cuh>
+#include <cuda/experimental/places.cuh>
 #include <cuda/experimental/stf.cuh>
 
 #include <cstddef>
