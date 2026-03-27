@@ -1006,7 +1006,7 @@ place using an ``std::unordered_map`` keyed by ``exec_place``:
      auto& h = handles[ep];
      if (h == cublasHandle_t{})
      {
-       exec_place_guard guard(ep);
+       exec_place_scope scope(ep);
        cuda_safe_call(cublasCreate(&h));
      }
      return h;
@@ -2202,19 +2202,19 @@ management:
 
     gc_place.deactivate(prev);  // Restore original context
 
-**RAII guard for scoped activation:**
+**RAII scope for scoped activation:**
 
 For exception-safe code or when you want automatic restoration, use the
-``exec_place_guard`` RAII helper:
+``exec_place_scope`` RAII helper:
 
 .. code:: cpp
 
     {
-        exec_place_guard guard(exec_place::device(1));
+        exec_place_scope scope(exec_place::device(1));
         // Device 1 is now active
         // ... perform operations on device 1 ...
     }
-    // Previous device is automatically restored when guard goes out of scope
+    // Previous device is automatically restored when scope goes out of scope
 
 The guard automatically restores the previous execution place when it goes out
 of scope, making it useful for exception-safe code.

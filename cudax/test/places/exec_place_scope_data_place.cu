@@ -10,7 +10,7 @@
 
 /**
  * @file
- * @brief Static error check: exec_place_guard should not accept data_place
+ * @brief Static error check: exec_place_scope should not accept data_place
  */
 
 #include <cuda/experimental/__places/places.cuh>
@@ -19,7 +19,7 @@ using namespace cuda::experimental::stf;
 
 int main()
 {
-  // This should fail to compile: exec_place_guard only accepts exec_place, not data_place
-  exec_place_guard guard(data_place::device(0));
+  // This should fail to compile: exec_place_scope only accepts exec_place, not data_place
+  exec_place_scope scope(data_place::device(0));
   return EXIT_FAILURE;
 }

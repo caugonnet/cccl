@@ -3,13 +3,10 @@ set(
   include_only.cu
   data_place_alloc.cu
   data_place_vmm.cu
-  exec_place_guard.cu
+  exec_place_scope.cu
 )
 
-set(
-  places_static_assert_tests
-  exec_place_guard_data_place.cu
-)
+set(places_static_assert_tests exec_place_scope_data_place.cu)
 
 set(
   places_unittested_headers

@@ -117,7 +117,7 @@ int main()
 
     // create_stream() returns cudaStream_t; call with place activated so the stream is in the green context
     {
-      exec_place_guard guard(gc_place0);
+      exec_place_scope scope(gc_place0);
       cudaStream_t created = gc_place0.create_stream();
       EXPECT(created != nullptr);
       EXPECT(get_device_from_stream(created) == current_device);

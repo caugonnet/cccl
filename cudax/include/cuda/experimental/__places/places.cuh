@@ -891,9 +891,6 @@ private:
   exec_place prev_; // Previous state to restore
 };
 
-// Deprecated: Use exec_place_scope instead
-using exec_place_guard = exec_place_scope;
-
 inline exec_place_scope exec_place::activate(size_t idx) const
 {
   return exec_place_scope(*this, idx);
