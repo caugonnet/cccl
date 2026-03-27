@@ -33,6 +33,7 @@
 #ifndef _CCCL_DOXYGEN_INVOKED // do not document
 
 #  if !_CCCL_COMPILER(MSVC)
+#    include <pthread.h>
 #    define STATEFUL_CALLBACKS
 
 namespace cuda::experimental::stf
