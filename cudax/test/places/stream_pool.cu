@@ -70,7 +70,7 @@ void test_pick_stream_specific_device(int ndevs)
 
   for (int d = 0; d < ndevs && d < 2; d++)
   {
-    exec_place dev = exec_place::device(d);
+    exec_place dev      = exec_place::device(d);
     cudaStream_t stream = dev.pick_stream();
     _CCCL_ASSERT(stream != nullptr, "stream must be valid");
     _CCCL_ASSERT(get_device_from_stream(stream) == d, "stream must belong to the requested device");
@@ -81,7 +81,7 @@ void test_pick_stream_specific_device(int ndevs)
 
 void test_launch_kernel_on_picked_stream()
 {
-  exec_place place = exec_place::current_device();
+  exec_place place    = exec_place::current_device();
   cudaStream_t stream = place.pick_stream();
 
   constexpr int N = 256;
@@ -110,7 +110,7 @@ void test_round_robin_streams()
 {
   exec_place place = exec_place::current_device();
 
-  cudaStream_t first = place.pick_stream();
+  cudaStream_t first  = place.pick_stream();
   cudaStream_t second = place.pick_stream();
 
   _CCCL_ASSERT(first != nullptr, "first stream must be valid");
