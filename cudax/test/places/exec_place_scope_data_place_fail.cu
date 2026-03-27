@@ -19,7 +19,7 @@ using namespace cuda::experimental::stf;
 
 int main()
 {
-  // This should fail to compile: exec_place_scope only accepts exec_place, not data_place
+  // expected-error {{"exec_place_scope cannot be constructed from data_place; use data_place::affine_exec_place() to get the exec_place first"}}
   exec_place_scope scope(data_place::device(0));
   return EXIT_FAILURE;
 }

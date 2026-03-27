@@ -7,7 +7,7 @@ set(
   stream_pool.cu
 )
 
-set(places_static_assert_tests exec_place_scope_data_place.cu)
+set(places_fail_tests exec_place_scope_data_place_fail.cu)
 
 set(
   places_unittested_headers
@@ -96,12 +96,13 @@ foreach (source IN LISTS places_unittested_headers)
   cudax_add_places_unittest_header(test_target "${source}")
 endforeach()
 
-## cudax_add_places_static_assert_test
+## cudax_add_places_fail_test
 #
 # Adds an EXCLUDE_FROM_ALL build target for `source` and a ctest that
-# triggers the compilation and checks for "static assertion" in the output.
+# verifies compilation fails with errors matching expected-error annotations
+# in the source file.
 #
-function(cudax_add_places_static_assert_test target_name_var source)
+function(cudax_add_places_fail_test target_name_var source)
   get_filename_component(filename ${source} NAME_WE)
 
   set(test_target cudax.test.places.error.${filename})
@@ -111,13 +112,14 @@ function(cudax_add_places_static_assert_test target_name_var source)
   target_link_libraries(${test_target} PRIVATE cudax.compiler_interface)
   cccl_add_xfail_compile_target_test(
     ${test_target}
-    ERROR_REGEX "static_assert|static assertion"
+    SOURCE_FILE "${source}"
+    ERROR_REGEX_LABEL "expected-error"
   )
 
   set(${target_name_var} ${test_target} PARENT_SCOPE)
 endfunction()
 
-# Static assert tests
-foreach (source IN LISTS places_static_assert_tests)
-  cudax_add_places_static_assert_test(test_target "${source}")
+# Expected-failure compile tests (_fail.cu convention)
+foreach (source IN LISTS places_fail_tests)
+  cudax_add_places_fail_test(test_target "${source}")
 endforeach()
