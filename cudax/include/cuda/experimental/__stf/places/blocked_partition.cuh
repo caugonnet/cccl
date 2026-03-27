@@ -25,8 +25,8 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/experimental/__stf/places/cyclic_shape.cuh>
 #include <cuda/experimental/__places/places.cuh>
+#include <cuda/experimental/__stf/places/cyclic_shape.cuh>
 #include <cuda/experimental/__stf/utility/dimensions.cuh>
 
 namespace cuda::experimental::stf

@@ -1,7 +1,4 @@
-set(
-  places_test_sources
-  include_only.cu
-)
+set(places_test_sources include_only.cu)
 
 set(
   places_unittested_headers

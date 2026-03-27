@@ -26,8 +26,8 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/experimental/__stf/internal/async_prereq.cuh>
 #include <cuda/experimental/__places/places.cuh>
+#include <cuda/experimental/__stf/internal/async_prereq.cuh>
 #include <cuda/experimental/__stf/utility/memory.cuh>
 #include <cuda/experimental/__stf/utility/traits.cuh>
 
