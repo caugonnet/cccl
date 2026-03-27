@@ -13,7 +13,8 @@
  * @brief Unit tests for exec_place_guard RAII helper
  */
 
-#include <cuda/experimental/__stf/stream/stream_ctx.cuh>
+#include <cuda/experimental/__places/places.cuh>
+#include <cuda/experimental/__stf/utility/cuda_safe_call.cuh>
 
 #include <thread>
 #include <vector>
