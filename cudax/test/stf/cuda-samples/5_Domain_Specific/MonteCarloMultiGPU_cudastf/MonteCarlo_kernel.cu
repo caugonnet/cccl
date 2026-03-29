@@ -195,12 +195,12 @@ void closeMonteCarloGPU(Ctx& ctx, TOptionPlan* plan)
   ctx.host_launch(plan->callValue_handle.rw()).set_symbol("compute_stats")->*[&](auto h_CallValue) {
     for (int i = 0; i < plan->optionCount; i++)
     {
-      const double RT    = plan->optionData[i].R * plan->optionData[i].T;
-      const double sum   = h_CallValue.data_handle()[i].Expected;
-      const double sum2  = h_CallValue.data_handle()[i].Confidence;
-      const double pathN = plan->pathN;
-      plan->callValue[i].Expected = (float) (exp(-RT) * sum / pathN);
-      double stdDev = sqrt((pathN * sum2 - sum * sum) / (pathN * (pathN - 1)));
+      const double RT               = plan->optionData[i].R * plan->optionData[i].T;
+      const double sum              = h_CallValue.data_handle()[i].Expected;
+      const double sum2             = h_CallValue.data_handle()[i].Confidence;
+      const double pathN            = plan->pathN;
+      plan->callValue[i].Expected   = (float) (exp(-RT) * sum / pathN);
+      double stdDev                 = sqrt((pathN * sum2 - sum * sum) / (pathN * (pathN - 1)));
       plan->callValue[i].Confidence = (float) (exp(-RT) * 1.96 * stdDev / sqrt(pathN));
     }
   };
@@ -220,11 +220,11 @@ void MonteCarloGPU(Ctx& ctx, TOptionPlan* plan)
   ctx.host_launch(plan->preproc_optionData_handle.rw()).set_symbol("preprocess")->*[&](auto h_preproc_OptionData) {
     for (int i = 0; i < plan->optionCount; i++)
     {
-      const double T        = plan->optionData[i].T;
-      const double R        = plan->optionData[i].R;
-      const double V        = plan->optionData[i].V;
-      const double MuByT    = (R - 0.5 * V * V) * T;
-      const double VBySqrtT = V * sqrt(T);
+      const double T                                 = plan->optionData[i].T;
+      const double R                                 = plan->optionData[i].R;
+      const double V                                 = plan->optionData[i].V;
+      const double MuByT                             = (R - 0.5 * V * V) * T;
+      const double VBySqrtT                          = V * sqrt(T);
       h_preproc_OptionData.data_handle()[i].S        = (real) plan->optionData[i].S;
       h_preproc_OptionData.data_handle()[i].X        = (real) plan->optionData[i].X;
       h_preproc_OptionData.data_handle()[i].MuByT    = (real) MuByT;
