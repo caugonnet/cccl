@@ -192,23 +192,24 @@ void initMonteCarloGPU(Ctx& ctx, TOptionPlan* plan)
 template <typename Ctx>
 void closeMonteCarloGPU(Ctx& ctx, TOptionPlan* plan)
 {
-  ctx.task(exec_place::host(), plan->callValue_handle.rw()).set_symbol("compute_stats")->*[&](cudaStream_t stream, auto h_CallValue) {
-    cuda_safe_call(cudaStreamSynchronize(stream));
-    for (int i = 0; i < plan->optionCount; i++)
-    {
-      const double RT    = plan->optionData[i].R * plan->optionData[i].T;
-      const double sum   = h_CallValue.data_handle()[i].Expected;
-      const double sum2  = h_CallValue.data_handle()[i].Confidence;
-      const double pathN = plan->pathN;
-      // Derive average from the total sum and discount by riskfree rate
-      plan->callValue[i].Expected = (float) (exp(-RT) * sum / pathN);
-      // Standard deviation
-      double stdDev = sqrt((pathN * sum2 - sum * sum) / (pathN * (pathN - 1)));
-      // Confidence width; in 95% of all cases theoretical value lies within these
-      // borders
-      plan->callValue[i].Confidence = (float) (exp(-RT) * 1.96 * stdDev / sqrt(pathN));
-    }
-  };
+  ctx.task(exec_place::host(), plan->callValue_handle.rw()).set_symbol("compute_stats")
+      ->*[&](cudaStream_t stream, auto h_CallValue) {
+            cuda_safe_call(cudaStreamSynchronize(stream));
+            for (int i = 0; i < plan->optionCount; i++)
+            {
+              const double RT    = plan->optionData[i].R * plan->optionData[i].T;
+              const double sum   = h_CallValue.data_handle()[i].Expected;
+              const double sum2  = h_CallValue.data_handle()[i].Confidence;
+              const double pathN = plan->pathN;
+              // Derive average from the total sum and discount by riskfree rate
+              plan->callValue[i].Expected = (float) (exp(-RT) * sum / pathN);
+              // Standard deviation
+              double stdDev = sqrt((pathN * sum2 - sum * sum) / (pathN * (pathN - 1)));
+              // Confidence width; in 95% of all cases theoretical value lies within these
+              // borders
+              plan->callValue[i].Confidence = (float) (exp(-RT) * 1.96 * stdDev / sqrt(pathN));
+            }
+          };
 }
 
 // Main computations
@@ -222,32 +223,33 @@ void MonteCarloGPU(Ctx& ctx, TOptionPlan* plan)
   }
 
   // Preprocess computations on the host
-  ctx.task(exec_place::host(), plan->preproc_optionData_handle.rw()).set_symbol("preprocess")->*[&](cudaStream_t stream, auto h_preproc_OptionData) {
-    cuda_safe_call(cudaStreamSynchronize(stream));
+  ctx.task(exec_place::host(), plan->preproc_optionData_handle.rw()).set_symbol("preprocess")
+      ->*[&](cudaStream_t stream, auto h_preproc_OptionData) {
+            cuda_safe_call(cudaStreamSynchronize(stream));
 
-    for (int i = 0; i < plan->optionCount; i++)
-    {
-      const double T                                 = plan->optionData[i].T;
-      const double R                                 = plan->optionData[i].R;
-      const double V                                 = plan->optionData[i].V;
-      const double MuByT                             = (R - 0.5 * V * V) * T;
-      const double VBySqrtT                          = V * sqrt(T);
-      h_preproc_OptionData.data_handle()[i].S        = (real) plan->optionData[i].S;
-      h_preproc_OptionData.data_handle()[i].X        = (real) plan->optionData[i].X;
-      h_preproc_OptionData.data_handle()[i].MuByT    = (real) MuByT;
-      h_preproc_OptionData.data_handle()[i].VBySqrtT = (real) VBySqrtT;
-    }
-  };
+            for (int i = 0; i < plan->optionCount; i++)
+            {
+              const double T                                 = plan->optionData[i].T;
+              const double R                                 = plan->optionData[i].R;
+              const double V                                 = plan->optionData[i].V;
+              const double MuByT                             = (R - 0.5 * V * V) * T;
+              const double VBySqrtT                          = V * sqrt(T);
+              h_preproc_OptionData.data_handle()[i].S        = (real) plan->optionData[i].S;
+              h_preproc_OptionData.data_handle()[i].X        = (real) plan->optionData[i].X;
+              h_preproc_OptionData.data_handle()[i].MuByT    = (real) MuByT;
+              h_preproc_OptionData.data_handle()[i].VBySqrtT = (real) VBySqrtT;
+            }
+          };
 
   ctx.task(plan->preproc_optionData_handle.read(), plan->callValue_handle.write(), plan->rngStates_handle.rw())
       .set_symbol("MonteCarloOneBlockPerOption")
       ->*[&](cudaStream_t stream, auto preproc_optionData, auto callValue_handle, auto rngStates) {
-    MonteCarloOneBlockPerOption<<<plan->gridSize, THREAD_N, 0, stream>>>(
-      rngStates.data_handle(),
-      preproc_optionData.data_handle(),
-      callValue_handle.data_handle(),
-      plan->pathN,
-      plan->optionCount);
-    getLastCudaError("MonteCarloOneBlockPerOption() execution failed\n");
-  };
+            MonteCarloOneBlockPerOption<<<plan->gridSize, THREAD_N, 0, stream>>>(
+              rngStates.data_handle(),
+              preproc_optionData.data_handle(),
+              callValue_handle.data_handle(),
+              plan->pathN,
+              plan->optionCount);
+            getLastCudaError("MonteCarloOneBlockPerOption() execution failed\n");
+          };
 }

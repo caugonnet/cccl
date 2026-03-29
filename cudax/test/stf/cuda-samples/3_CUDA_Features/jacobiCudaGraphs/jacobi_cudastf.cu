@@ -227,21 +227,20 @@ double JacobiMethodGpu(
              task_dep<slice<double>>(x_new_handle, x_new_mode),
              sum_handle.write())
         .set_symbol("JacobiMethod")
-        ->*
-      [&](cudaStream_t stream, auto A, auto b, auto x, auto x_new, auto d_sum) {
-        cuda_try(cudaMemsetAsync(d_sum.addr, 0, sizeof(double), stream));
+        ->*[&](cudaStream_t stream, auto A, auto b, auto x, auto x_new, auto d_sum) {
+              cuda_try(cudaMemsetAsync(d_sum.addr, 0, sizeof(double), stream));
 
-        if ((k & 1) == 0)
-        {
-          JacobiMethod<<<nblocks, nthreads, 0, stream>>>(
-            A.data_handle(), b.data_handle(), conv_threshold, x.data_handle(), x_new.data_handle(), d_sum.addr);
-        }
-        else
-        {
-          JacobiMethod<<<nblocks, nthreads, 0, stream>>>(
-            A.data_handle(), b.data_handle(), conv_threshold, x_new.data_handle(), x.data_handle(), d_sum.addr);
-        }
-      };
+              if ((k & 1) == 0)
+              {
+                JacobiMethod<<<nblocks, nthreads, 0, stream>>>(
+                  A.data_handle(), b.data_handle(), conv_threshold, x.data_handle(), x_new.data_handle(), d_sum.addr);
+              }
+              else
+              {
+                JacobiMethod<<<nblocks, nthreads, 0, stream>>>(
+                  A.data_handle(), b.data_handle(), conv_threshold, x_new.data_handle(), x.data_handle(), d_sum.addr);
+              }
+            };
 
     if (ctx.wait(sum_handle) <= conv_threshold)
     {
@@ -250,13 +249,14 @@ double JacobiMethodGpu(
   }
 
   auto final_x_handle = ((k & 1) == 0) ? &x_new_handle : &x_handle;
-  ctx.task(sum_handle.write(), final_x_handle->read()).set_symbol("finalError")->*[&](cudaStream_t stream, auto d_sum, auto final_x) {
-    cuda_try(cudaMemsetAsync(d_sum.addr, 0, sizeof(double), stream));
+  ctx.task(sum_handle.write(), final_x_handle->read()).set_symbol("finalError")
+      ->*[&](cudaStream_t stream, auto d_sum, auto final_x) {
+            cuda_try(cudaMemsetAsync(d_sum.addr, 0, sizeof(double), stream));
 
-    nblocks.x            = (N_ROWS / nthreads.x) + 1;
-    size_t sharedMemSize = ((nthreads.x / 32) + 1) * sizeof(double);
-    finalError<<<nblocks, nthreads, sharedMemSize, stream>>>(final_x.data_handle(), d_sum.addr);
-  };
+            nblocks.x            = (N_ROWS / nthreads.x) + 1;
+            size_t sharedMemSize = ((nthreads.x / 32) + 1) * sizeof(double);
+            finalError<<<nblocks, nthreads, sharedMemSize, stream>>>(final_x.data_handle(), d_sum.addr);
+          };
 
   return ctx.wait(sum_handle);
 }
