@@ -13,6 +13,9 @@ set(
   places_unittested_headers
   cuda/experimental/__places/places.cuh
   cuda/experimental/__places/exec/green_context.cuh
+  cuda/experimental/__places/partitions/blocked_partition.cuh
+  cuda/experimental/__places/partitions/cyclic_shape.cuh
+  cuda/experimental/__places/partitions/tiled_partition.cuh
 )
 
 cccl_get_cudatoolkit()

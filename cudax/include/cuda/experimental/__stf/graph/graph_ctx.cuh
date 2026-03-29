@@ -34,7 +34,7 @@
 #include <cuda/experimental/__stf/internal/host_launch_scope.cuh>
 #include <cuda/experimental/__stf/internal/launch.cuh>
 #include <cuda/experimental/__stf/internal/parallel_for_scope.cuh>
-#include <cuda/experimental/__stf/places/blocked_partition.cuh> // for unit test!
+#include <cuda/experimental/__places/partitions/blocked_partition.cuh> // for unit test!
 
 #include <mutex>
 

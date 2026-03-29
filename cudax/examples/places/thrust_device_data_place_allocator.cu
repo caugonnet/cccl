@@ -30,7 +30,7 @@
 #include <thrust/mr/memory_resource.h>
 #include <thrust/transform.h>
 
-#include <cuda/experimental/__stf/places/blocked_partition.cuh>
+#include <cuda/experimental/__places/partitions/blocked_partition.cuh>
 
 #include <cstdio>
 

@@ -16,7 +16,7 @@
  */
 
 #include <cuda/experimental/__stf/graph/graph_ctx.cuh>
-#include <cuda/experimental/__stf/places/tiled_partition.cuh>
+#include <cuda/experimental/__places/partitions/tiled_partition.cuh>
 #include <cuda/experimental/__stf/stream/stream_ctx.cuh>
 
 using namespace cuda::experimental::stf;
