@@ -168,20 +168,17 @@ void initMonteCarloGPU(Ctx& ctx, TOptionPlan* plan)
     cudaHostRegister(plan->h_CallValue, plan->optionCount * sizeof(__TOptionValue), cudaHostRegisterPortable));
 
   // Register this vector
-  plan->preproc_optionData_handle = ctx.logical_data((__TOptionData*) plan->h_OptionData, plan->optionCount);
-  plan->callValue_handle          = ctx.logical_data((__TOptionValue*) plan->h_CallValue, plan->optionCount);
-  plan->rngStates_handle          = ctx.logical_data(shape_of<slice<curandState>>(plan->gridSize * THREAD_N));
-
-  plan->preproc_optionData_handle.set_symbol("preproc_optionData");
-  plan->callValue_handle.set_symbol("callValue");
-  plan->rngStates_handle.set_symbol("rngStates");
+  plan->preproc_optionData_handle =
+    ctx.logical_data((__TOptionData*) plan->h_OptionData, plan->optionCount).set_symbol("preproc_optionData");
+  plan->callValue_handle =
+    ctx.logical_data((__TOptionValue*) plan->h_CallValue, plan->optionCount).set_symbol("callValue");
+  plan->rngStates_handle =
+    ctx.logical_data(shape_of<slice<curandState>>(plan->gridSize * THREAD_N)).set_symbol("rngStates");
 
   cuda_safe_call(cudaSetDevice(plan->device));
 
   // Allocate states for pseudo random number generators
-  auto t = ctx.task(plan->rngStates_handle.write());
-  t.set_symbol("rngSetupStates");
-  t->*[&](cudaStream_t stream, auto rngStates) {
+  ctx.task(plan->rngStates_handle.write()).set_symbol("rngSetupStates")->*[&](cudaStream_t stream, auto rngStates) {
     // fprintf(stderr, "MEMSET on %zu\n", plan->gridSize * THREAD_N * sizeof(curandState));
     cuda_safe_call(
       cudaMemsetAsync(rngStates.data_handle(), 0, plan->gridSize * THREAD_N * sizeof(curandState), stream));
@@ -198,9 +195,7 @@ void initMonteCarloGPU(Ctx& ctx, TOptionPlan* plan)
 template <typename Ctx>
 void closeMonteCarloGPU(Ctx& ctx, TOptionPlan* plan)
 {
-  auto t = ctx.task(exec_place::host(), plan->callValue_handle.rw());
-  t.set_symbol("compute_stats");
-  t->*[&](cudaStream_t stream, auto h_CallValue) {
+  ctx.task(exec_place::host(), plan->callValue_handle.rw()).set_symbol("compute_stats")->*[&](cudaStream_t stream, auto h_CallValue) {
     cuda_safe_call(cudaStreamSynchronize(stream));
     for (int i = 0; i < plan->optionCount; i++)
     {
@@ -230,9 +225,7 @@ void MonteCarloGPU(Ctx& ctx, TOptionPlan* plan, cudaStream_t /*unused*/ = 0)
   }
 
   // Preprocess computations on the host
-  auto t_host = ctx.task(exec_place::host(), plan->preproc_optionData_handle.rw());
-  t_host.set_symbol("preprocess");
-  t_host->*[&](cudaStream_t stream, auto h_preproc_OptionData) {
+  ctx.task(exec_place::host(), plan->preproc_optionData_handle.rw()).set_symbol("preprocess")->*[&](cudaStream_t stream, auto h_preproc_OptionData) {
     cuda_safe_call(cudaStreamSynchronize(stream));
 
     for (int i = 0; i < plan->optionCount; i++)
@@ -249,10 +242,9 @@ void MonteCarloGPU(Ctx& ctx, TOptionPlan* plan, cudaStream_t /*unused*/ = 0)
     }
   };
 
-  auto t =
-    ctx.task(plan->preproc_optionData_handle.read(), plan->callValue_handle.write(), plan->rngStates_handle.rw());
-  t.set_symbol("MonteCarloOneBlockPerOption");
-  t->*[&](cudaStream_t stream, auto preproc_optionData, auto callValue_handle, auto rngStates) {
+  ctx.task(plan->preproc_optionData_handle.read(), plan->callValue_handle.write(), plan->rngStates_handle.rw())
+      .set_symbol("MonteCarloOneBlockPerOption")
+      ->*[&](cudaStream_t stream, auto preproc_optionData, auto callValue_handle, auto rngStates) {
     MonteCarloOneBlockPerOption<<<plan->gridSize, THREAD_N, 0, stream>>>(
       rngStates.data_handle(),
       preproc_optionData.data_handle(),
