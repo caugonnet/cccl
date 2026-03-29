@@ -135,6 +135,8 @@ static void* solverThread(void* solver_args)
   // Shut down this GPU
   closeMonteCarloGPU(ctx, plan);
 
+  ctx.finalize();
+
   cudaStreamSynchronize(0);
 
   // printf("solverThread() finished - GPU Device %d: %s\n", plan->device, deviceProp.name);
