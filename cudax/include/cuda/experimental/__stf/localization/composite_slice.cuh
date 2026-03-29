@@ -30,6 +30,7 @@
 #include <cuda/experimental/__stf/internal/async_prereq.cuh>
 #include <cuda/experimental/__stf/utility/traits.cuh>
 
+#include <array>
 #include <list>
 #include <random>
 #include <unordered_map>
@@ -168,6 +169,10 @@ public:
       , data_dims(data_dims)
       , elemsize(elemsize)
   {
+    // Ensure a CUDA context exists so cuCtxGetDevice() and other driver
+    // APIs succeed (e.g. when called outside of a stream_ctx).
+    cuda_safe_call(cudaFree(nullptr));
+
     // Regardless of the grid, we allow all devices to access that localized array
     const int ndevs = cuda_try<cudaGetDeviceCount>();
     CUdevice dev    = cuda_try<cuCtxGetDevice>();
@@ -563,4 +568,29 @@ public:
 private:
   reserved::linear_pool<localized_array> cache;
 };
+// Registry that maps base pointers to their localized_array for composite allocate/deallocate.
+inline ::std::unordered_map<void*, ::std::unique_ptr<localized_array>>& get_composite_alloc_registry()
+{
+  static ::std::unordered_map<void*, ::std::unique_ptr<localized_array>> reg;
+  return reg;
+}
+
+inline void* allocate_composite_data_place(const data_place_composite& p, ::std::ptrdiff_t size)
+{
+  const size_t size_u               = static_cast<size_t>(size);
+  const exec_place& grid            = p.get_grid();
+  const partition_fn_t& mapper      = p.get_partitioner();
+  auto delinearize_1d               = [](size_t i) {
+    return pos4(static_cast<ssize_t>(i), 0, 0, 0);
+  };
+  auto arr  = ::std::make_unique<localized_array>(grid, mapper, delinearize_1d, size_u, 1, dim4(size_u));
+  void* ptr = arr->get_base_ptr();
+  get_composite_alloc_registry()[ptr] = ::std::move(arr);
+  return ptr;
+}
+
+inline void deallocate_composite_data_place(void* ptr)
+{
+  get_composite_alloc_registry().erase(ptr);
+}
 } // end namespace cuda::experimental::stf::reserved
