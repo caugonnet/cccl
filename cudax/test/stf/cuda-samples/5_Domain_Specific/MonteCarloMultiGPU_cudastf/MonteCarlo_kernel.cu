@@ -179,13 +179,10 @@ void initMonteCarloGPU(Ctx& ctx, TOptionPlan* plan)
 
   // Allocate states for pseudo random number generators
   ctx.task(plan->rngStates_handle.write()).set_symbol("rngSetupStates")->*[&](cudaStream_t stream, auto rngStates) {
-    // fprintf(stderr, "MEMSET on %zu\n", plan->gridSize * THREAD_N * sizeof(curandState));
     cuda_safe_call(
       cudaMemsetAsync(rngStates.data_handle(), 0, plan->gridSize * THREAD_N * sizeof(curandState), stream));
     getLastCudaError("cudaMemsetAsync failed.\n");
 
-    // place each device pathN random numbers apart on the random number sequence
-    // fprintf(stderr, "rngSetupStates => rngStates %p\n", rngStates.data_handle());
     rngSetupStates<<<plan->gridSize, THREAD_N, 0, stream>>>(rngStates.data_handle(), plan->device);
     getLastCudaError("rngSetupStates kernel failed.\n");
   };
@@ -216,7 +213,7 @@ void closeMonteCarloGPU(Ctx& ctx, TOptionPlan* plan)
 
 // Main computations
 template <typename Ctx>
-void MonteCarloGPU(Ctx& ctx, TOptionPlan* plan, cudaStream_t /*unused*/ = 0)
+void MonteCarloGPU(Ctx& ctx, TOptionPlan* plan)
 {
   if (plan->optionCount <= 0 || plan->optionCount > MAX_OPTIONS)
   {
