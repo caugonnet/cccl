@@ -96,7 +96,8 @@ bool run_with_place(const data_place& place, const char* label)
   thrust::copy(d_vec.begin(), d_vec.begin() + 4, h_sample.begin());
 
   bool ok = (h_sample[0] == 0.0 && h_sample[1] == 2.0 && h_sample[2] == 4.0 && h_sample[3] == 6.0);
-  printf("thrust_device_data_place_allocator: %s (%s): %s\n", label, place.to_string().c_str(), ok ? "PASSED" : "FAILED");
+  printf(
+    "thrust_device_data_place_allocator: %s (%s): %s\n", label, place.to_string().c_str(), ok ? "PASSED" : "FAILED");
   return ok;
 }
 

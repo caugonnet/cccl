@@ -577,10 +577,10 @@ inline ::std::unordered_map<void*, ::std::unique_ptr<localized_array>>& get_comp
 
 inline void* allocate_composite_data_place(const data_place_composite& p, ::std::ptrdiff_t size)
 {
-  const size_t size_u               = static_cast<size_t>(size);
-  const exec_place& grid            = p.get_grid();
-  const partition_fn_t& mapper      = p.get_partitioner();
-  auto delinearize_1d               = [](size_t i) {
+  const size_t size_u          = static_cast<size_t>(size);
+  const exec_place& grid       = p.get_grid();
+  const partition_fn_t& mapper = p.get_partitioner();
+  auto delinearize_1d          = [](size_t i) {
     return pos4(static_cast<ssize_t>(i), 0, 0, 0);
   };
   auto arr  = ::std::make_unique<localized_array>(grid, mapper, delinearize_1d, size_u, 1, dim4(size_u));
