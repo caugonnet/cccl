@@ -37,8 +37,14 @@
 
 #if _CCCL_CTK_AT_LEAST(12, 4)
 
-namespace cuda::experimental::stf
+namespace cuda::experimental::places
 {
+using ::cuda::experimental::stf::mv;
+using ::cuda::experimental::stf::cuda_safe_call;
+using ::cuda::experimental::stf::cuda_try;
+using ::cuda::experimental::stf::hash;
+using ::cuda::experimental::stf::hash_all;
+
 /**
  * @brief data_place_interface implementation for green contexts
  *
@@ -689,6 +695,15 @@ UNITTEST("green context exec_place as std::map key")
   EXPECT(map[ep0] == 100); // Still 100
 };
 #  endif // UNITTESTED_FILE
-} // end namespace cuda::experimental::stf
+} // end namespace cuda::experimental::places
+
+namespace cuda::experimental::stf
+{
+using ::cuda::experimental::places::green_ctx_data_place_impl;
+using ::cuda::experimental::places::make_green_ctx_data_place;
+using ::cuda::experimental::places::get_cuda_context_id;
+using ::cuda::experimental::places::green_context_helper;
+using ::cuda::experimental::places::exec_place_green_ctx_impl;
+} // namespace cuda::experimental::stf
 
 #endif // _CCCL_CTK_AT_LEAST(12, 4)

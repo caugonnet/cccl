@@ -34,8 +34,11 @@
 
 #include <cuda_runtime_api.h>
 
-namespace cuda::experimental::stf::reserved
+namespace cuda::experimental::places::reserved
 {
+
+using ::cuda::experimental::stf::cuda_safe_call;
+
 /**
  * @brief Singleton object abstracting a machine able to set up CUDA peer accesses.
  *
@@ -127,4 +130,9 @@ private:
   bool initialized_peer_accesses = false;
   int ndevices;
 };
+} // namespace cuda::experimental::places::reserved
+
+namespace cuda::experimental::stf::reserved
+{
+using ::cuda::experimental::places::reserved::machine;
 } // namespace cuda::experimental::stf::reserved

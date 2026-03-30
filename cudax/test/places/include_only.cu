@@ -17,7 +17,7 @@
 #include <cuda/experimental/__places/places.cuh>
 #include <cuda/experimental/__places/stream_pool.cuh>
 
-using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 int main()
 {

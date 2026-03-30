@@ -22,7 +22,7 @@
 
 #include <cstdio>
 
-using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 __global__ void init_kernel(int* ptr, int n, int value)
 {

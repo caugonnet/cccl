@@ -37,8 +37,12 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-namespace cuda::experimental::stf
+namespace cuda::experimental::places
 {
+using ::cuda::experimental::stf::cuda_safe_call;
+using ::cuda::experimental::stf::cuda_try;
+using ::cuda::experimental::stf::mv;
+
 class exec_place;
 
 /**
@@ -201,4 +205,13 @@ public:
     return pimpl < other.pimpl;
   }
 };
+} // namespace cuda::experimental::places
+
+namespace cuda::experimental::stf
+{
+using ::cuda::experimental::places::get_device_from_stream;
+using ::cuda::experimental::places::k_no_stream_id;
+using ::cuda::experimental::places::get_stream_id;
+using ::cuda::experimental::places::decorated_stream;
+using ::cuda::experimental::places::stream_pool;
 } // namespace cuda::experimental::stf

@@ -30,8 +30,11 @@
 #include <cuda/experimental/__places/places.cuh>
 #include <cuda/experimental/__stf/internal/async_resources_handle.cuh>
 
-namespace cuda::experimental::stf
+namespace cuda::experimental::places
 {
+using ::cuda::experimental::stf::mv;
+using ::cuda::experimental::stf::async_resources_handle;
+
 /**
  * @brief Defines a partitioning granularity
  *
@@ -323,4 +326,11 @@ auto exec_place::partition_by_scope(Args&&... args)
 {
   return place_partition(*this, ::std::forward<Args>(args)...).to_exec_place();
 }
-} // end namespace cuda::experimental::stf
+} // end namespace cuda::experimental::places
+
+namespace cuda::experimental::stf
+{
+using ::cuda::experimental::places::place_partition_scope;
+using ::cuda::experimental::places::place_partition_scope_to_string;
+using ::cuda::experimental::places::place_partition;
+} // namespace cuda::experimental::stf

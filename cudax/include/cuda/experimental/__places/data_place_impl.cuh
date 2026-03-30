@@ -32,8 +32,11 @@
 #include <cuda/experimental/__stf/utility/cuda_safe_call.cuh>
 #include <cuda/experimental/__stf/utility/scope_guard.cuh>
 
-namespace cuda::experimental::stf
+namespace cuda::experimental::places
 {
+using ::cuda::experimental::stf::cuda_safe_call;
+using ::cuda::experimental::stf::cuda_try;
+
 /**
  * @brief Implementation for the invalid data place
  */
@@ -409,4 +412,14 @@ public:
     return true;
   }
 };
-} // end namespace cuda::experimental::stf
+} // end namespace cuda::experimental::places
+
+namespace cuda::experimental::stf
+{
+using ::cuda::experimental::places::data_place_invalid;
+using ::cuda::experimental::places::data_place_host;
+using ::cuda::experimental::places::data_place_managed;
+using ::cuda::experimental::places::data_place_device;
+using ::cuda::experimental::places::data_place_affine;
+using ::cuda::experimental::places::data_place_device_auto;
+} // namespace cuda::experimental::stf

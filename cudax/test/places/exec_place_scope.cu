@@ -19,7 +19,7 @@
 #include <thread>
 #include <vector>
 
-using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 // Test 1: Basic scope functionality - single device switch
 void test_basic_scope(int ndevs)

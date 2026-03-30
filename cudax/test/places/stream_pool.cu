@@ -20,7 +20,7 @@
 #include <cuda/experimental/__places/places.cuh>
 #include <cuda/experimental/__stf/utility/cuda_safe_call.cuh>
 
-using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 __global__ void increment_kernel(int* data, int n)
 {

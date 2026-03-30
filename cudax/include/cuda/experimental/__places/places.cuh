@@ -44,22 +44,36 @@
 // Sync only will not move data....
 // Data place none?
 
-namespace cuda::experimental::stf
+namespace cuda::experimental::places
 {
+using ::cuda::experimental::stf::mv;
+using ::cuda::experimental::stf::each;
+using ::cuda::experimental::stf::pos4;
+using ::cuda::experimental::stf::dim4;
+using ::cuda::experimental::stf::box;
+using ::cuda::experimental::stf::cuda_safe_call;
+using ::cuda::experimental::stf::cuda_try;
+using ::cuda::experimental::stf::hash;
+using ::cuda::experimental::stf::hash_combine;
+using ::cuda::experimental::stf::hash_all;
+
 class exec_place;
 
 // Green contexts are only supported since CUDA 12.4
 
-//! Function type for computing executor placement from data coordinates
-using partition_fn_t = pos4 (*)(pos4, dim4, dim4);
-
 class data_place_composite;
 
-namespace reserved
+} // namespace cuda::experimental::places
+
+// Forward declarations of composite allocator functions — defined in composite_slice.cuh (stf::reserved)
+namespace cuda::experimental::stf::reserved
 {
-void* allocate_composite_data_place(const data_place_composite& p, ::std::ptrdiff_t size);
+void* allocate_composite_data_place(const ::cuda::experimental::places::data_place_composite& p, ::std::ptrdiff_t size);
 void deallocate_composite_data_place(void* ptr);
-} // namespace reserved
+} // namespace cuda::experimental::stf::reserved
+
+namespace cuda::experimental::places
+{
 
 /**
  * @brief Designates where data will be stored (CPU memory vs. on device 0 (first GPU), device 1 (second GPU), ...)
@@ -363,8 +377,10 @@ private:
   ::std::shared_ptr<data_place_interface> pimpl_;
 };
 
-/** Declaration for unqualified lookup (friend is only found via ADL when a \c data_place argument is present). */
+/** Declarations for unqualified lookup (friends are only found via ADL when a \c data_place argument is present). */
 inline data_place from_index(size_t n);
+inline size_t to_index(const data_place& p);
+inline int device_ordinal(const data_place& p);
 
 // Forward declaration
 class exec_place_scope;
@@ -1575,12 +1591,12 @@ public:
 
   void* allocate(::std::ptrdiff_t size, cudaStream_t) const override
   {
-    return reserved::allocate_composite_data_place(*this, size);
+    return ::cuda::experimental::stf::reserved::allocate_composite_data_place(*this, size);
   }
 
   void deallocate(void* ptr, size_t, cudaStream_t) const override
   {
-    reserved::deallocate_composite_data_place(ptr);
+    ::cuda::experimental::stf::reserved::deallocate_composite_data_place(ptr);
   }
 
   bool allocation_is_stream_ordered() const override
@@ -1747,33 +1763,57 @@ UNITTEST("dim4 very large total size calculation")
 
 #endif // UNITTESTED_FILE
 
+} // end namespace cuda::experimental::places
+
+// Hash specializations must be in the stf namespace (where the hash primary template is defined)
+namespace cuda::experimental::stf
+{
 /**
- * @brief Specialization of `std::hash` for `cuda::experimental::stf::data_place` to allow it to be used as a key in
- * `std::unordered_map`.
+ * @brief Specialization of `cuda::experimental::stf::hash` for `data_place`
  */
 template <>
-struct hash<data_place>
+struct hash<::cuda::experimental::places::data_place>
 {
-  ::std::size_t operator()(const data_place& k) const
+  ::std::size_t operator()(const ::cuda::experimental::places::data_place& k) const
   {
     return k.hash();
   }
 };
 
 /**
- * @brief Specialization of `std::hash` for `cuda::experimental::stf::exec_place` to allow it to be used as a key in
- * `std::unordered_map`.
+ * @brief Specialization of `cuda::experimental::stf::hash` for `exec_place`
  */
 template <>
-struct hash<exec_place>
+struct hash<::cuda::experimental::places::exec_place>
 {
-  ::std::size_t operator()(const exec_place& k) const
+  ::std::size_t operator()(const ::cuda::experimental::places::exec_place& k) const
   {
     return k.hash();
   }
 };
+
+// Backward compatibility: re-export places types into the stf namespace
+using ::cuda::experimental::places::partition_fn_t;
+using ::cuda::experimental::places::data_place;
+using ::cuda::experimental::places::data_place_composite;
+using ::cuda::experimental::places::exec_place;
+using ::cuda::experimental::places::exec_place_scope;
+using ::cuda::experimental::places::exec_place_host_impl;
+using ::cuda::experimental::places::exec_place_device_auto_impl;
+using ::cuda::experimental::places::exec_place_device;
+using ::cuda::experimental::places::exec_place_grid_impl;
+using ::cuda::experimental::places::instance_id_t;
+using ::cuda::experimental::places::make_grid;
+using ::cuda::experimental::places::partition_cyclic;
+using ::cuda::experimental::places::partition_tile;
+using ::cuda::experimental::places::to_index;
+using ::cuda::experimental::places::from_index;
+using ::cuda::experimental::places::device_ordinal;
+} // namespace cuda::experimental::stf
 
 #ifdef UNITTESTED_FILE
+namespace cuda::experimental::places
+{
 UNITTEST("Data place as unordered_map key")
 {
   ::std::unordered_map<data_place, int, hash<data_place>> map;
@@ -1901,7 +1941,7 @@ UNITTEST("Exec place as std::map key")
     EXPECT(map[exec_place::device(1)] == 3);
   }
 };
+} // namespace cuda::experimental::places
 #endif // UNITTESTED_FILE
-} // end namespace cuda::experimental::stf
 
 #include <cuda/experimental/__stf/localization/composite_slice.cuh>
