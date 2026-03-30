@@ -1437,10 +1437,10 @@ void stf_stackable_push_graph(stf_ctx_handle ctx);
 void stf_stackable_pop(stf_ctx_handle ctx);
 
 //! \brief Opaque handle for a while loop scope
-typedef void* stf_while_scope_handle;
+typedef struct stf_while_scope_handle_t* stf_while_scope_handle;
 
 //! \brief Opaque handle for a repeat scope
-typedef void* stf_repeat_scope_handle;
+typedef struct stf_repeat_scope_handle_t* stf_repeat_scope_handle;
 
 #if CUDART_VERSION >= 12040
 

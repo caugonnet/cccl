@@ -605,19 +605,20 @@ void stf_stackable_push_while(stf_ctx_handle ctx, stf_while_scope_handle* scope)
   _CCCL_ASSERT(scope != nullptr, "scope handle pointer must not be null");
   auto* sctx = reinterpret_cast<stackable_ctx*>(ctx);
   // default_launch_value=1 so the loop body executes at least once (matches the factory method)
-  *scope = new stackable_ctx::while_graph_scope_guard(*sctx, /*default_launch_value=*/1);
+  *scope = reinterpret_cast<stf_while_scope_handle>(
+    new stackable_ctx::while_graph_scope_guard(*sctx, /*default_launch_value=*/1));
 }
 
 void stf_stackable_pop_while(stf_while_scope_handle scope)
 {
   _CCCL_ASSERT(scope != nullptr, "while scope handle must not be null");
-  delete static_cast<stackable_ctx::while_graph_scope_guard*>(scope);
+  delete reinterpret_cast<stackable_ctx::while_graph_scope_guard*>(scope);
 }
 
 uint64_t stf_while_scope_get_cond_handle(stf_while_scope_handle scope)
 {
   _CCCL_ASSERT(scope != nullptr, "while scope handle must not be null");
-  auto* guard = static_cast<stackable_ctx::while_graph_scope_guard*>(scope);
+  auto* guard = reinterpret_cast<stackable_ctx::while_graph_scope_guard*>(scope);
   return static_cast<uint64_t>(guard->cond_handle());
 }
 
@@ -626,13 +627,13 @@ void stf_stackable_push_repeat(stf_ctx_handle ctx, size_t count, stf_repeat_scop
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
   _CCCL_ASSERT(scope != nullptr, "scope handle pointer must not be null");
   auto* sctx = reinterpret_cast<stackable_ctx*>(ctx);
-  *scope     = new repeat_graph_scope_guard(*sctx, count);
+  *scope     = reinterpret_cast<stf_repeat_scope_handle>(new repeat_graph_scope_guard(*sctx, count));
 }
 
 void stf_stackable_pop_repeat(stf_repeat_scope_handle scope)
 {
   _CCCL_ASSERT(scope != nullptr, "repeat scope handle must not be null");
-  delete static_cast<repeat_graph_scope_guard*>(scope);
+  delete reinterpret_cast<repeat_graph_scope_guard*>(scope);
 }
 
 } // extern "C" — close to define C++ template kernel
@@ -683,7 +684,7 @@ void stf_stackable_while_cond_scalar(
 
   auto* sctx  = reinterpret_cast<stackable_ctx*>(ctx);
   auto* sld   = reinterpret_cast<stackable_ld_t*>(ld);
-  auto* guard = static_cast<stackable_ctx::while_graph_scope_guard*>(scope);
+  auto* guard = reinterpret_cast<stackable_ctx::while_graph_scope_guard*>(scope);
 
   cudaGraphConditionalHandle cond_handle = guard->cond_handle();
 

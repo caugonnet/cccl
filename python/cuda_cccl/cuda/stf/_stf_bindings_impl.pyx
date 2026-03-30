@@ -124,8 +124,10 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     void stf_stackable_push_graph(stf_ctx_handle ctx)
     void stf_stackable_pop(stf_ctx_handle ctx)
 
-    ctypedef void* stf_while_scope_handle
-    ctypedef void* stf_repeat_scope_handle
+    ctypedef struct stf_while_scope_handle_t
+    ctypedef stf_while_scope_handle_t* stf_while_scope_handle
+    ctypedef struct stf_repeat_scope_handle_t
+    ctypedef stf_repeat_scope_handle_t* stf_repeat_scope_handle
 
     void stf_stackable_push_while(stf_ctx_handle ctx, stf_while_scope_handle* scope)
     void stf_stackable_pop_while(stf_while_scope_handle scope)
