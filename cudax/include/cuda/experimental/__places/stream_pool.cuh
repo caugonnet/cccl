@@ -206,12 +206,3 @@ public:
   }
 };
 } // namespace cuda::experimental::places
-
-namespace cuda::experimental::stf
-{
-using ::cuda::experimental::places::get_device_from_stream;
-using ::cuda::experimental::places::k_no_stream_id;
-using ::cuda::experimental::places::get_stream_id;
-using ::cuda::experimental::places::decorated_stream;
-using ::cuda::experimental::places::stream_pool;
-} // namespace cuda::experimental::stf

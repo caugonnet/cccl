@@ -192,9 +192,3 @@ public:
   }
 };
 } // end namespace cuda::experimental::places
-
-namespace cuda::experimental::stf
-{
-using ::cuda::experimental::places::partition_fn_t;
-using ::cuda::experimental::places::data_place_interface;
-} // namespace cuda::experimental::stf

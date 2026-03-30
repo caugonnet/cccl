@@ -1792,8 +1792,42 @@ struct hash<::cuda::experimental::places::exec_place>
   }
 };
 
+#if _CCCL_CTK_AT_LEAST(12, 4)
+/**
+ * @brief Specialization of `cuda::experimental::stf::hash` for `green_ctx_view`
+ */
+template <>
+struct hash<::cuda::experimental::places::green_ctx_view>
+{
+  ::std::size_t operator()(const ::cuda::experimental::places::green_ctx_view& k) const
+  {
+    return hash_all(k.g_ctx, k.devid);
+  }
+};
+#endif // _CCCL_CTK_AT_LEAST(12, 4)
+
 // Backward compatibility: re-export places types into the stf namespace
+// Types from data_place_interface.cuh
 using ::cuda::experimental::places::partition_fn_t;
+using ::cuda::experimental::places::data_place_interface;
+// Types from data_place_impl.cuh
+using ::cuda::experimental::places::data_place_invalid;
+using ::cuda::experimental::places::data_place_host;
+using ::cuda::experimental::places::data_place_managed;
+using ::cuda::experimental::places::data_place_device;
+using ::cuda::experimental::places::data_place_affine;
+using ::cuda::experimental::places::data_place_device_auto;
+// Types from stream_pool.cuh
+using ::cuda::experimental::places::get_device_from_stream;
+using ::cuda::experimental::places::k_no_stream_id;
+using ::cuda::experimental::places::get_stream_id;
+using ::cuda::experimental::places::decorated_stream;
+using ::cuda::experimental::places::stream_pool;
+// Types from green_ctx_view.cuh (requires CTK 12.4+)
+#if _CCCL_CTK_AT_LEAST(12, 4)
+using ::cuda::experimental::places::green_ctx_view;
+#endif // _CCCL_CTK_AT_LEAST(12, 4)
+// Types from places.cuh
 using ::cuda::experimental::places::data_place;
 using ::cuda::experimental::places::data_place_composite;
 using ::cuda::experimental::places::exec_place;

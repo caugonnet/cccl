@@ -413,13 +413,3 @@ public:
   }
 };
 } // end namespace cuda::experimental::places
-
-namespace cuda::experimental::stf
-{
-using ::cuda::experimental::places::data_place_invalid;
-using ::cuda::experimental::places::data_place_host;
-using ::cuda::experimental::places::data_place_managed;
-using ::cuda::experimental::places::data_place_device;
-using ::cuda::experimental::places::data_place_affine;
-using ::cuda::experimental::places::data_place_device_auto;
-} // namespace cuda::experimental::stf

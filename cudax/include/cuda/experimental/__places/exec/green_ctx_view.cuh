@@ -70,18 +70,4 @@ public:
 
 } // end namespace cuda::experimental::places
 
-namespace cuda::experimental::stf
-{
-using ::cuda::experimental::places::green_ctx_view;
-
-template <>
-struct hash<green_ctx_view>
-{
-  ::std::size_t operator()(const green_ctx_view& k) const
-  {
-    return hash_all(k.g_ctx, k.devid);
-  }
-};
-} // namespace cuda::experimental::stf
-
 #endif // _CCCL_CTK_AT_LEAST(12, 4)
