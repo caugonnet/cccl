@@ -8,14 +8,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cccl/c/experimental/stf/stf.h>
-
 #include <cuda/experimental/__stf/places/places.cuh>
 #include <cuda/experimental/__stf/stackable/stackable_ctx.cuh>
 #include <cuda/experimental/stf.cuh>
 
 #include <cstddef>
 #include <vector>
+
+#include <cccl/c/experimental/stf/stf.h>
 
 using namespace cuda::experimental::stf;
 
