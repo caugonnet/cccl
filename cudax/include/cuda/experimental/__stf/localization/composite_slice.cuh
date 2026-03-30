@@ -75,12 +75,8 @@ public:
   // ::std::function<pos4(size_t)> delinearize : translate the index in a buffer into a position in the data
   // TODO pass mv(place)
   template <typename F>
-  localized_array(exec_place_grid grid,
-                  get_executor_func_t mapper,
-                  F&& delinearize,
-                  size_t total_size,
-                  size_t elemsize,
-                  dim4 data_dims)
+  localized_array(
+    exec_place grid, partition_fn_t mapper, F&& delinearize, size_t total_size, size_t elemsize, dim4 data_dims)
       : grid(mv(grid))
       , mapper(mv(mapper))
       , total_size_bytes(total_size * elemsize)
@@ -264,7 +260,7 @@ public:
       int item_dev = device_ordinal(item.place);
 
       // Physically allocate this block on the appropriate device/place
-      // Use the data_place's mem_create which delegates to extensions for custom behavior
+      // Use the data_place's mem_create which may implement custom behavior
       cuda_safe_call(item.place.mem_create(&item.alloc_handle, item.size));
 
       _CCCL_ASSERT(item.offset + item.size <= vm_total_size_bytes, "Allocation offset out of bounds");
@@ -424,8 +420,8 @@ private:
   }
 
   event_list prereqs; // To allow reuse in a cache
-  exec_place_grid grid;
-  get_executor_func_t mapper = nullptr;
+  exec_place grid;
+  partition_fn_t mapper = nullptr;
   ::std::vector<metadata> meta;
 
   // sizes in number of elements, not bytes !! TODO rename
@@ -473,16 +469,12 @@ public:
 
   // Look if there is a matching entry. Return it if found, create otherwise
   template <typename F>
-  ::std::unique_ptr<localized_array>
-  get(const data_place& place,
-      get_executor_func_t mapper,
-      F&& delinearize,
-      size_t total_size,
-      size_t elem_size,
-      dim4 data_dims)
+  ::std::unique_ptr<localized_array> get(
+    const data_place& place, partition_fn_t mapper, F&& delinearize, size_t total_size, size_t elem_size, dim4 data_dims)
   {
     EXPECT(place.is_composite());
-    return cache.get(place.get_grid(), mapper, ::std::forward<F>(delinearize), total_size, elem_size, data_dims);
+    return cache.get(
+      place.affine_exec_place(), mapper, ::std::forward<F>(delinearize), total_size, elem_size, data_dims);
   }
 
 private:

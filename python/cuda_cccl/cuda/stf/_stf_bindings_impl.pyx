@@ -86,7 +86,8 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     #
     # Exec places
     #
-    ctypedef void* stf_exec_place_grid_handle
+    ctypedef struct stf_exec_place_grid_handle_t
+    ctypedef stf_exec_place_grid_handle_t* stf_exec_place_grid_handle
 
     ctypedef enum stf_exec_place_kind:
         STF_EXEC_PLACE_DEVICE
@@ -118,7 +119,6 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     void* stf_exec_place_opaque_wrap(const void* cpp_exec_place)
     void stf_exec_place_opaque_destroy(void* handle)
     void* stf_exec_place_to_opaque(const stf_exec_place* c_place)
-    void* stf_exec_place_dummy_create(int dev_id)
 
     #
     # Data places
@@ -523,7 +523,7 @@ cdef class exec_place:
 
         The returned object takes ownership of the handle and will destroy it
         when garbage collected. The handle should come from
-        stf_exec_place_opaque_wrap() or stf_exec_place_dummy_create().
+        stf_exec_place_opaque_wrap().
         """
         if handle == 0:
             raise ValueError("opaque handle must not be NULL")
