@@ -191,8 +191,10 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
         STF_RW
 
     # Host launch
-    ctypedef void* stf_host_launch_handle
-    ctypedef void* stf_host_launch_deps_handle
+    ctypedef struct stf_host_launch_handle_t
+    ctypedef stf_host_launch_handle_t* stf_host_launch_handle
+    ctypedef struct stf_host_launch_deps_handle_t
+    ctypedef stf_host_launch_deps_handle_t* stf_host_launch_deps_handle
     ctypedef void (*stf_host_callback_fn)(stf_host_launch_deps_handle deps) noexcept
 
     void stf_host_launch_create(stf_ctx_handle ctx, stf_host_launch_handle* h)

@@ -8,14 +8,14 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cccl/c/experimental/stf/stf.h>
+
 #include <cuda/experimental/__stf/places/places.cuh>
 #include <cuda/experimental/__stf/stackable/stackable_ctx.cuh>
 #include <cuda/experimental/stf.cuh>
 
 #include <cstddef>
 #include <vector>
-
-#include <cccl/c/experimental/stf/stf.h>
 
 using namespace cuda::experimental::stf;
 
@@ -423,8 +423,8 @@ void stf_host_launch_create(stf_ctx_handle ctx, stf_host_launch_handle* h)
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
   _CCCL_ASSERT(h != nullptr, "host launch handle output pointer must not be null");
 
-  auto* context_ptr = static_cast<context*>(ctx);
-  *h                = new host_launch_type{context_ptr->host_launch()};
+  auto* context_ptr = reinterpret_cast<context*>(ctx);
+  *h                = reinterpret_cast<stf_host_launch_handle>(new host_launch_type{context_ptr->host_launch()});
 }
 
 void stf_host_launch_add_dep(stf_host_launch_handle h, stf_logical_data_handle ld, stf_access_mode m)
@@ -432,8 +432,8 @@ void stf_host_launch_add_dep(stf_host_launch_handle h, stf_logical_data_handle l
   _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
   _CCCL_ASSERT(ld != nullptr, "logical data handle must not be null");
 
-  auto* scope_ptr = static_cast<host_launch_type*>(h);
-  auto* ld_ptr    = static_cast<logical_data_untyped*>(ld);
+  auto* scope_ptr = reinterpret_cast<host_launch_type*>(h);
+  auto* ld_ptr    = reinterpret_cast<logical_data_untyped*>(ld);
   scope_ptr->add_deps(task_dep_untyped(*ld_ptr, access_mode(m)));
 }
 
@@ -442,7 +442,7 @@ void stf_host_launch_set_symbol(stf_host_launch_handle h, const char* symbol)
   _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
   _CCCL_ASSERT(symbol != nullptr, "symbol must not be null");
 
-  auto* scope_ptr = static_cast<host_launch_type*>(h);
+  auto* scope_ptr = reinterpret_cast<host_launch_type*>(h);
   scope_ptr->set_symbol(symbol);
 }
 
@@ -450,7 +450,7 @@ void stf_host_launch_set_user_data(stf_host_launch_handle h, const void* data, s
 {
   _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
 
-  auto* scope_ptr = static_cast<host_launch_type*>(h);
+  auto* scope_ptr = reinterpret_cast<host_launch_type*>(h);
   scope_ptr->set_user_data(data, size, dtor);
 }
 
@@ -459,9 +459,9 @@ void stf_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callb
   _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
   _CCCL_ASSERT(callback != nullptr, "callback must not be null");
 
-  auto* scope_ptr = static_cast<host_launch_type*>(h);
+  auto* scope_ptr = reinterpret_cast<host_launch_type*>(h);
   (*scope_ptr)->*[callback](reserved::host_launch_deps& deps) {
-    callback(static_cast<stf_host_launch_deps_handle>(&deps));
+    callback(reinterpret_cast<stf_host_launch_deps_handle>(&deps));
   };
 }
 
@@ -469,7 +469,7 @@ void stf_host_launch_destroy(stf_host_launch_handle h)
 {
   _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
 
-  auto* scope_ptr = static_cast<host_launch_type*>(h);
+  auto* scope_ptr = reinterpret_cast<host_launch_type*>(h);
   delete scope_ptr;
 }
 
@@ -477,7 +477,7 @@ void* stf_host_launch_deps_get(stf_host_launch_deps_handle deps, size_t index)
 {
   _CCCL_ASSERT(deps != nullptr, "deps handle must not be null");
 
-  auto* d = static_cast<reserved::host_launch_deps*>(deps);
+  auto* d = reinterpret_cast<reserved::host_launch_deps*>(deps);
   return d->get<slice<char>>(index).data_handle();
 }
 
@@ -485,7 +485,7 @@ size_t stf_host_launch_deps_get_size(stf_host_launch_deps_handle deps, size_t in
 {
   _CCCL_ASSERT(deps != nullptr, "deps handle must not be null");
 
-  auto* d = static_cast<reserved::host_launch_deps*>(deps);
+  auto* d = reinterpret_cast<reserved::host_launch_deps*>(deps);
   return d->get<slice<char>>(index).extent(0);
 }
 
@@ -493,7 +493,7 @@ size_t stf_host_launch_deps_size(stf_host_launch_deps_handle deps)
 {
   _CCCL_ASSERT(deps != nullptr, "deps handle must not be null");
 
-  auto* d = static_cast<reserved::host_launch_deps*>(deps);
+  auto* d = reinterpret_cast<reserved::host_launch_deps*>(deps);
   return d->size();
 }
 
@@ -501,7 +501,7 @@ void* stf_host_launch_deps_get_user_data(stf_host_launch_deps_handle deps)
 {
   _CCCL_ASSERT(deps != nullptr, "deps handle must not be null");
 
-  auto* d = static_cast<reserved::host_launch_deps*>(deps);
+  auto* d = reinterpret_cast<reserved::host_launch_deps*>(deps);
   return d->user_data();
 }
 
@@ -565,13 +565,13 @@ using stackable_ld_t = stackable_logical_data<slice<char>>;
 void stf_stackable_ctx_create(stf_ctx_handle* ctx)
 {
   _CCCL_ASSERT(ctx != nullptr, "context handle pointer must not be null");
-  *ctx = new stackable_ctx{};
+  *ctx = reinterpret_cast<stf_ctx_handle>(new stackable_ctx{});
 }
 
 void stf_stackable_ctx_finalize(stf_ctx_handle ctx)
 {
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
-  auto* sctx = static_cast<stackable_ctx*>(ctx);
+  auto* sctx = reinterpret_cast<stackable_ctx*>(ctx);
   sctx->finalize();
   delete sctx;
 }
@@ -579,21 +579,21 @@ void stf_stackable_ctx_finalize(stf_ctx_handle ctx)
 cudaStream_t stf_stackable_ctx_fence(stf_ctx_handle ctx)
 {
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
-  auto* sctx = static_cast<stackable_ctx*>(ctx);
+  auto* sctx = reinterpret_cast<stackable_ctx*>(ctx);
   return sctx->fence();
 }
 
 void stf_stackable_push_graph(stf_ctx_handle ctx)
 {
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
-  auto* sctx = static_cast<stackable_ctx*>(ctx);
+  auto* sctx = reinterpret_cast<stackable_ctx*>(ctx);
   sctx->push();
 }
 
 void stf_stackable_pop(stf_ctx_handle ctx)
 {
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
-  auto* sctx = static_cast<stackable_ctx*>(ctx);
+  auto* sctx = reinterpret_cast<stackable_ctx*>(ctx);
   sctx->pop();
 }
 
@@ -603,7 +603,7 @@ void stf_stackable_push_while(stf_ctx_handle ctx, stf_while_scope_handle* scope)
 {
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
   _CCCL_ASSERT(scope != nullptr, "scope handle pointer must not be null");
-  auto* sctx = static_cast<stackable_ctx*>(ctx);
+  auto* sctx = reinterpret_cast<stackable_ctx*>(ctx);
   // default_launch_value=1 so the loop body executes at least once (matches the factory method)
   *scope = new stackable_ctx::while_graph_scope_guard(*sctx, /*default_launch_value=*/1);
 }
@@ -625,7 +625,7 @@ void stf_stackable_push_repeat(stf_ctx_handle ctx, size_t count, stf_repeat_scop
 {
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
   _CCCL_ASSERT(scope != nullptr, "scope handle pointer must not be null");
-  auto* sctx = static_cast<stackable_ctx*>(ctx);
+  auto* sctx = reinterpret_cast<stackable_ctx*>(ctx);
   *scope     = new repeat_graph_scope_guard(*sctx, count);
 }
 
@@ -681,8 +681,8 @@ void stf_stackable_while_cond_scalar(
   _CCCL_ASSERT(scope != nullptr, "while scope handle must not be null");
   _CCCL_ASSERT(ld != nullptr, "logical data handle must not be null");
 
-  auto* sctx  = static_cast<stackable_ctx*>(ctx);
-  auto* sld   = static_cast<stackable_ld_t*>(ld);
+  auto* sctx  = reinterpret_cast<stackable_ctx*>(ctx);
+  auto* sld   = reinterpret_cast<stackable_ld_t*>(ld);
   auto* guard = static_cast<stackable_ctx::while_graph_scope_guard*>(scope);
 
   cudaGraphConditionalHandle cond_handle = guard->cond_handle();
@@ -740,10 +740,10 @@ void stf_stackable_logical_data_with_place(
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
   _CCCL_ASSERT(ld != nullptr, "logical data handle pointer must not be null");
 
-  auto* sctx                             = static_cast<stackable_ctx*>(ctx);
+  auto* sctx                             = reinterpret_cast<stackable_ctx*>(ctx);
   cuda::experimental::stf::data_place dp = to_data_place(&dplace);
   auto sld                               = sctx->logical_data(make_slice(static_cast<char*>(addr), sz), dp);
-  *ld                                    = new stackable_ld_t{mv(sld)};
+  *ld                                    = reinterpret_cast<stf_logical_data_handle>(new stackable_ld_t{mv(sld)});
 }
 
 void stf_stackable_logical_data(stf_ctx_handle ctx, stf_logical_data_handle* ld, void* addr, size_t sz)
@@ -756,9 +756,9 @@ void stf_stackable_logical_data_empty(stf_ctx_handle ctx, size_t length, stf_log
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
   _CCCL_ASSERT(to != nullptr, "logical data output pointer must not be null");
 
-  auto* sctx = static_cast<stackable_ctx*>(ctx);
+  auto* sctx = reinterpret_cast<stackable_ctx*>(ctx);
   auto sld   = sctx->logical_data(shape_of<slice<char>>(length));
-  *to        = new stackable_ld_t{mv(sld)};
+  *to        = reinterpret_cast<stf_logical_data_handle>(new stackable_ld_t{mv(sld)});
 }
 
 void stf_stackable_token(stf_ctx_handle ctx, stf_logical_data_handle* ld)
@@ -766,38 +766,38 @@ void stf_stackable_token(stf_ctx_handle ctx, stf_logical_data_handle* ld)
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
   _CCCL_ASSERT(ld != nullptr, "logical data handle pointer must not be null");
 
-  auto* sctx = static_cast<stackable_ctx*>(ctx);
+  auto* sctx = reinterpret_cast<stackable_ctx*>(ctx);
   // Tokens use void_interface, store as a separate type
   auto token_ld = sctx->token();
-  *ld           = new stackable_logical_data<void_interface>{mv(token_ld)};
+  *ld           = reinterpret_cast<stf_logical_data_handle>(new stackable_logical_data<void_interface>{mv(token_ld)});
 }
 
 void stf_stackable_logical_data_set_symbol(stf_logical_data_handle ld, const char* symbol)
 {
   _CCCL_ASSERT(ld != nullptr, "logical data handle must not be null");
   _CCCL_ASSERT(symbol != nullptr, "symbol must not be null");
-  auto* sld = static_cast<stackable_ld_t*>(ld);
+  auto* sld = reinterpret_cast<stackable_ld_t*>(ld);
   sld->set_symbol(symbol);
 }
 
 void stf_stackable_logical_data_set_read_only(stf_logical_data_handle ld)
 {
   _CCCL_ASSERT(ld != nullptr, "logical data handle must not be null");
-  auto* sld = static_cast<stackable_ld_t*>(ld);
+  auto* sld = reinterpret_cast<stackable_ld_t*>(ld);
   sld->set_read_only();
 }
 
 void stf_stackable_logical_data_destroy(stf_logical_data_handle ld)
 {
   _CCCL_ASSERT(ld != nullptr, "logical data handle must not be null");
-  auto* sld = static_cast<stackable_ld_t*>(ld);
+  auto* sld = reinterpret_cast<stackable_ld_t*>(ld);
   delete sld;
 }
 
 void stf_stackable_token_destroy(stf_logical_data_handle ld)
 {
   _CCCL_ASSERT(ld != nullptr, "logical data handle must not be null");
-  auto* token = static_cast<stackable_logical_data<void_interface>*>(ld);
+  auto* token = reinterpret_cast<stackable_logical_data<void_interface>*>(ld);
   delete token;
 }
 
@@ -808,10 +808,10 @@ void stf_stackable_task_create(stf_ctx_handle ctx, stf_task_handle* t)
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
   _CCCL_ASSERT(t != nullptr, "task handle output pointer must not be null");
 
-  auto* sctx           = static_cast<stackable_ctx*>(ctx);
+  auto* sctx           = reinterpret_cast<stackable_ctx*>(ctx);
   int offset           = sctx->get_head_offset();
   auto& underlying_ctx = sctx->get_ctx(offset);
-  *t                   = new context::unified_task<>{underlying_ctx.task()};
+  *t                   = reinterpret_cast<stf_task_handle>(new context::unified_task<>{underlying_ctx.task()});
 }
 
 void stf_stackable_task_add_dep(stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m)
@@ -820,9 +820,9 @@ void stf_stackable_task_add_dep(stf_ctx_handle ctx, stf_task_handle t, stf_logic
   _CCCL_ASSERT(t != nullptr, "task handle must not be null");
   _CCCL_ASSERT(ld != nullptr, "logical data handle must not be null");
 
-  auto* sctx     = static_cast<stackable_ctx*>(ctx);
-  auto* task_ptr = static_cast<context::unified_task<>*>(t);
-  auto* sld      = static_cast<stackable_ld_t*>(ld);
+  auto* sctx     = reinterpret_cast<stackable_ctx*>(ctx);
+  auto* task_ptr = reinterpret_cast<context::unified_task<>*>(t);
+  auto* sld      = reinterpret_cast<stackable_ld_t*>(ld);
 
   int offset = sctx->get_head_offset();
 
@@ -843,9 +843,9 @@ void stf_stackable_task_add_dep_with_dplace(
   _CCCL_ASSERT(ld != nullptr, "logical data handle must not be null");
   _CCCL_ASSERT(data_p != nullptr, "data_place pointer must not be null");
 
-  auto* sctx     = static_cast<stackable_ctx*>(ctx);
-  auto* task_ptr = static_cast<context::unified_task<>*>(t);
-  auto* sld      = static_cast<stackable_ld_t*>(ld);
+  auto* sctx     = reinterpret_cast<stackable_ctx*>(ctx);
+  auto* task_ptr = reinterpret_cast<context::unified_task<>*>(t);
+  auto* sld      = reinterpret_cast<stackable_ld_t*>(ld);
 
   int offset = sctx->get_head_offset();
 
@@ -865,10 +865,10 @@ void stf_stackable_host_launch_create(stf_ctx_handle ctx, stf_host_launch_handle
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
   _CCCL_ASSERT(h != nullptr, "host launch handle output pointer must not be null");
 
-  auto* sctx           = static_cast<stackable_ctx*>(ctx);
+  auto* sctx           = reinterpret_cast<stackable_ctx*>(ctx);
   int offset           = sctx->get_head_offset();
   auto& underlying_ctx = sctx->get_ctx(offset);
-  *h                   = new host_launch_type{underlying_ctx.host_launch()};
+  *h                   = reinterpret_cast<stf_host_launch_handle>(new host_launch_type{underlying_ctx.host_launch()});
 }
 
 void stf_stackable_host_launch_add_dep(
@@ -878,9 +878,9 @@ void stf_stackable_host_launch_add_dep(
   _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
   _CCCL_ASSERT(ld != nullptr, "logical data handle must not be null");
 
-  auto* sctx      = static_cast<stackable_ctx*>(ctx);
-  auto* scope_ptr = static_cast<host_launch_type*>(h);
-  auto* sld       = static_cast<stackable_ld_t*>(ld);
+  auto* sctx      = reinterpret_cast<stackable_ctx*>(ctx);
+  auto* scope_ptr = reinterpret_cast<host_launch_type*>(h);
+  auto* sld       = reinterpret_cast<stackable_ld_t*>(ld);
 
   int offset = sctx->get_head_offset();
 
@@ -896,9 +896,9 @@ void stf_stackable_host_launch_submit(stf_host_launch_handle h, stf_host_callbac
   _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
   _CCCL_ASSERT(callback != nullptr, "callback must not be null");
 
-  auto* scope_ptr = static_cast<host_launch_type*>(h);
+  auto* scope_ptr = reinterpret_cast<host_launch_type*>(h);
   (*scope_ptr)->*[callback](reserved::host_launch_deps& deps) {
-    callback(static_cast<stf_host_launch_deps_handle>(&deps));
+    callback(reinterpret_cast<stf_host_launch_deps_handle>(&deps));
   };
 }
 
@@ -906,7 +906,7 @@ void stf_stackable_host_launch_destroy(stf_host_launch_handle h)
 {
   _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
 
-  auto* scope_ptr = static_cast<host_launch_type*>(h);
+  auto* scope_ptr = reinterpret_cast<host_launch_type*>(h);
   delete scope_ptr;
 }
 

@@ -24,7 +24,7 @@ __global__ void fill_kernel(int cnt, double* data, double value)
   }
 }
 
-struct verify_ctx
+struct verify_args
 {
   size_t N;
   bool* passed;
@@ -32,7 +32,7 @@ struct verify_ctx
 
 static void verify_callback(stf_host_launch_deps_handle deps)
 {
-  auto* v = static_cast<verify_ctx*>(stf_host_launch_deps_get_user_data(deps));
+  auto* v = static_cast<verify_args*>(stf_host_launch_deps_get_user_data(deps));
 
   if (stf_host_launch_deps_size(deps) != 1)
   {
@@ -89,13 +89,13 @@ C2H_TEST("host_launch with stream context", "[host_launch]")
 
   // Use host_launch to verify data on the host
   bool passed = false;
-  verify_ctx vctx{N, &passed};
+  verify_args vargs{N, &passed};
 
   stf_host_launch_handle h;
   stf_host_launch_create(ctx, &h);
   stf_host_launch_set_symbol(h, "verify");
   stf_host_launch_add_dep(h, lData, STF_READ);
-  stf_host_launch_set_user_data(h, &vctx, sizeof(vctx), nullptr);
+  stf_host_launch_set_user_data(h, &vargs, sizeof(vargs), nullptr);
   stf_host_launch_submit(h, verify_callback);
   stf_host_launch_destroy(h);
 
@@ -140,13 +140,13 @@ C2H_TEST("host_launch with graph context", "[host_launch]")
 
   // Use host_launch to verify data on the host
   bool passed = false;
-  verify_ctx vctx{N, &passed};
+  verify_args vargs{N, &passed};
 
   stf_host_launch_handle h;
   stf_host_launch_create(ctx, &h);
   stf_host_launch_set_symbol(h, "verify");
   stf_host_launch_add_dep(h, lData, STF_READ);
-  stf_host_launch_set_user_data(h, &vctx, sizeof(vctx), nullptr);
+  stf_host_launch_set_user_data(h, &vargs, sizeof(vargs), nullptr);
   stf_host_launch_submit(h, verify_callback);
   stf_host_launch_destroy(h);
 
@@ -189,13 +189,13 @@ C2H_TEST("host_launch with stackable context", "[host_launch][stackable]")
 
   // Use host_launch to verify data on the host
   bool passed = false;
-  verify_ctx vctx{N, &passed};
+  verify_args vargs{N, &passed};
 
   stf_host_launch_handle h;
   stf_stackable_host_launch_create(ctx, &h);
   stf_host_launch_set_symbol(h, "verify");
   stf_stackable_host_launch_add_dep(ctx, h, lData, STF_READ);
-  stf_host_launch_set_user_data(h, &vctx, sizeof(vctx), nullptr);
+  stf_host_launch_set_user_data(h, &vargs, sizeof(vargs), nullptr);
   stf_stackable_host_launch_submit(h, verify_callback);
   stf_stackable_host_launch_destroy(h);
 

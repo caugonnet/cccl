@@ -447,7 +447,7 @@ typedef struct stf_cuda_kernel_handle_t* stf_cuda_kernel_handle;
 //! as a proper task graph node, with full dependency tracking.
 //! Created with stf_host_launch_create() and destroyed with stf_host_launch_destroy().
 
-typedef void* stf_host_launch_handle;
+typedef struct stf_host_launch_handle_t* stf_host_launch_handle;
 
 //!
 //! \brief Opaque handle for host launch dependency data
@@ -455,7 +455,7 @@ typedef void* stf_host_launch_handle;
 //! Passed to the host callback at invocation time.  Provides indexed
 //! access to the data of each dependency and to optional user data.
 
-typedef void* stf_host_launch_deps_handle;
+typedef struct stf_host_launch_deps_handle_t* stf_host_launch_deps_handle;
 
 //!
 //! \brief C callback type for host launch
