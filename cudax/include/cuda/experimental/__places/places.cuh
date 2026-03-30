@@ -1802,7 +1802,6 @@ using ::cuda::experimental::places::data_place;
 using ::cuda::experimental::places::exec_place;
 using ::cuda::experimental::places::exec_place_scope;
 
-using ::cuda::experimental::places::make_grid;
 using ::cuda::experimental::places::partition_cyclic;
 using ::cuda::experimental::places::partition_tile;
 using ::cuda::experimental::places::to_index;
