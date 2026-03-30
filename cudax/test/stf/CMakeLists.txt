@@ -213,8 +213,6 @@ set(
   cuda/experimental/__stf/internal/context.cuh
   cuda/experimental/__stf/internal/execution_policy.cuh
   cuda/experimental/__stf/internal/interpreted_execution_policy.cuh
-  cuda/experimental/__stf/internal/logical_data.cuh
-  cuda/experimental/__stf/internal/parallel_for_scope.cuh
   cuda/experimental/__stf/internal/slice.cuh
   cuda/experimental/__stf/internal/thread_hierarchy.cuh
   cuda/experimental/__stf/internal/inner_shape.cuh
@@ -229,7 +227,6 @@ set(
   cuda/experimental/__stf/stackable/stackable_ctx.cuh
   cuda/experimental/__stf/utility/unittest.cuh
   cuda/experimental/__stf/utility/unstable_unique.cuh
-  cuda/experimental/__places/places.cuh
 )
 
 cccl_get_cudatoolkit()
