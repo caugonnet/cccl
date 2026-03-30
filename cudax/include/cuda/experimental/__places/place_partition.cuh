@@ -326,10 +326,3 @@ auto exec_place::partition_by_scope(Args&&... args)
   return place_partition(*this, ::std::forward<Args>(args)...).to_exec_place();
 }
 } // end namespace cuda::experimental::places
-
-namespace cuda::experimental::stf
-{
-using ::cuda::experimental::places::place_partition;
-using ::cuda::experimental::places::place_partition_scope;
-using ::cuda::experimental::places::place_partition_scope_to_string;
-} // namespace cuda::experimental::stf

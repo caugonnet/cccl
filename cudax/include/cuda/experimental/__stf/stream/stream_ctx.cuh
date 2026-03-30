@@ -42,8 +42,6 @@
 
 namespace cuda::experimental::stf
 {
-using places::decorated_stream;
-
 template <typename T>
 struct streamed_interface_of;
 
