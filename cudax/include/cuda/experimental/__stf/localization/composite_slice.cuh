@@ -38,6 +38,8 @@
 
 namespace cuda::experimental::stf::reserved
 {
+using places::partition_fn_t;
+
 /*!
  * @brief A simple object pool with linear search for managing objects of type `T`.
  *

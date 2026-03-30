@@ -36,6 +36,9 @@
 
 namespace cuda::experimental::stf
 {
+using places::decorated_stream;
+using places::k_no_stream_id;
+
 class stream_ctx;
 
 template <typename... Data>

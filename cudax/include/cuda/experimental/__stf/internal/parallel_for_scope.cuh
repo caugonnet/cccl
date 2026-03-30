@@ -32,6 +32,7 @@
 
 namespace cuda::experimental::stf
 {
+
 #if !defined(CUDASTF_DISABLE_CODE_GENERATION) && _CCCL_CUDA_COMPILATION()
 
 class stream_ctx;

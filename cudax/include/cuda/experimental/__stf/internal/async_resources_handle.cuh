@@ -72,7 +72,7 @@ private:
     bool validate_sync_and_update(unsigned long long dst, unsigned long long src, int event_id)
     {
       // If either of the streams has no valid id, do not skip
-      if (dst == k_no_stream_id || src == k_no_stream_id)
+      if (dst == places::k_no_stream_id || src == places::k_no_stream_id)
       {
         return false;
       }

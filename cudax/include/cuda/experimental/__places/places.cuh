@@ -1675,16 +1675,6 @@ UNITTEST("Data place equality")
 
 #endif // UNITTESTED_FILE
 
-/**
- * @brief ID of a data instance. A logical data can have multiple instances in various parts of memory
- * (CPU and several GPUs). This type identifies the index of such an instance in the internal data structures.
- *
- */
-enum class instance_id_t : size_t
-{
-  invalid = static_cast<size_t>(-1)
-};
-
 #ifdef UNITTESTED_FILE
 UNITTEST("places to_symbol")
 {
@@ -1806,37 +1796,12 @@ struct hash<::cuda::experimental::places::green_ctx_view>
 };
 #endif // _CCCL_CTK_AT_LEAST(12, 4)
 
-// Backward compatibility: re-export places types into the stf namespace
-// Types from data_place_interface.cuh
-using ::cuda::experimental::places::partition_fn_t;
-using ::cuda::experimental::places::data_place_interface;
-// Types from data_place_impl.cuh
-using ::cuda::experimental::places::data_place_invalid;
-using ::cuda::experimental::places::data_place_host;
-using ::cuda::experimental::places::data_place_managed;
-using ::cuda::experimental::places::data_place_device;
-using ::cuda::experimental::places::data_place_affine;
-using ::cuda::experimental::places::data_place_device_auto;
-// Types from stream_pool.cuh
-using ::cuda::experimental::places::get_device_from_stream;
-using ::cuda::experimental::places::k_no_stream_id;
-using ::cuda::experimental::places::get_stream_id;
+// Backward compatibility: places types re-exported into stf
 using ::cuda::experimental::places::decorated_stream;
-using ::cuda::experimental::places::stream_pool;
-// Types from green_ctx_view.cuh (requires CTK 12.4+)
-#if _CCCL_CTK_AT_LEAST(12, 4)
-using ::cuda::experimental::places::green_ctx_view;
-#endif // _CCCL_CTK_AT_LEAST(12, 4)
-// Types from places.cuh
 using ::cuda::experimental::places::data_place;
-using ::cuda::experimental::places::data_place_composite;
 using ::cuda::experimental::places::exec_place;
 using ::cuda::experimental::places::exec_place_scope;
-using ::cuda::experimental::places::exec_place_host_impl;
-using ::cuda::experimental::places::exec_place_device_auto_impl;
-using ::cuda::experimental::places::exec_place_device;
-using ::cuda::experimental::places::exec_place_grid_impl;
-using ::cuda::experimental::places::instance_id_t;
+
 using ::cuda::experimental::places::make_grid;
 using ::cuda::experimental::places::partition_cyclic;
 using ::cuda::experimental::places::partition_tile;

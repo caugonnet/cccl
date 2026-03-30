@@ -22,6 +22,7 @@
 
 #include <cuda/experimental/__places/places.cuh>
 #include <cuda/experimental/__stf/internal/async_prereq.cuh>
+#include <cuda/experimental/__stf/internal/instance_id.cuh>
 
 namespace cuda::experimental::stf
 {
