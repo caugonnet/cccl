@@ -1589,11 +1589,13 @@ public:
 
   void* allocate(::std::ptrdiff_t size, cudaStream_t) const override
   {
+    // TODO move this to the places namespace
     return ::cuda::experimental::stf::reserved::allocate_composite_data_place(*this, size);
   }
 
   void deallocate(void* ptr, size_t, cudaStream_t) const override
   {
+    // TODO move this to the places namespace
     ::cuda::experimental::stf::reserved::deallocate_composite_data_place(ptr);
   }
 
