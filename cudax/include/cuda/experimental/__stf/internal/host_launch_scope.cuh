@@ -211,7 +211,7 @@ public:
    * Two dispatch paths are supported:
    *   - **Typed** (existing): `Fun` is invocable with the typed dep instances.
    *   - **Untyped** (new): `Fun` accepts a single `host_launch_deps&`.
-   *     Used by C/Python bindings and when deps are added dynamically via `add_deps`.
+   *     Note: dynamically added dependencies (with `add_deps`) are especially useful in C/Python bindings.
    *
    * @tparam Fun type of lambda function
    * @param f Lambda function to execute
