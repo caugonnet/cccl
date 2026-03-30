@@ -32,9 +32,9 @@
 
 namespace cuda::experimental::places
 {
-using ::cuda::experimental::stf::mv;
 using ::cuda::experimental::stf::hash;
 using ::cuda::experimental::stf::hash_all;
+using ::cuda::experimental::stf::mv;
 
 // Green contexts are only supported since CUDA 12.4
 /**
@@ -67,7 +67,6 @@ public:
     return devid < other.devid;
   }
 };
-
 } // end namespace cuda::experimental::places
 
 #endif // _CCCL_CTK_AT_LEAST(12, 4)

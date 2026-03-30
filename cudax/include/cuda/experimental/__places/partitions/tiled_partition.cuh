@@ -29,7 +29,6 @@
 
 namespace cuda::experimental::places
 {
-
 namespace reserved
 {
 /*

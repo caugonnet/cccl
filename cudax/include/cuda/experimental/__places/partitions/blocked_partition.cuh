@@ -31,7 +31,6 @@
 
 namespace cuda::experimental::places
 {
-
 template <::std::ptrdiff_t which_dim = -1>
 class blocked_partition_custom
 {
@@ -167,6 +166,6 @@ UNITTEST("blocked partition with very large data arrays")
 
 namespace cuda::experimental::stf
 {
-using ::cuda::experimental::places::blocked_partition_custom;
 using ::cuda::experimental::places::blocked_partition;
+using ::cuda::experimental::places::blocked_partition_custom;
 } // namespace cuda::experimental::stf

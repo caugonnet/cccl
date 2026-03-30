@@ -29,7 +29,6 @@
 
 namespace cuda::experimental::stf
 {
-
 /**
  * @brief ID of a data instance. A logical data can have multiple instances in various parts of memory
  * (CPU and several GPUs). This type identifies the index of such an instance in the internal data structures.
@@ -39,5 +38,4 @@ enum class instance_id_t : size_t
 {
   invalid = static_cast<size_t>(-1)
 };
-
 } // namespace cuda::experimental::stf

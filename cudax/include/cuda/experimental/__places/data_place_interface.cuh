@@ -46,8 +46,8 @@
 
 namespace cuda::experimental::places
 {
-using ::cuda::experimental::stf::pos4;
 using ::cuda::experimental::stf::dim4;
+using ::cuda::experimental::stf::pos4;
 
 // Forward declarations
 class exec_place;

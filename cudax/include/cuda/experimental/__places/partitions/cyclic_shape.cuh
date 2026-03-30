@@ -29,10 +29,10 @@
 
 namespace cuda::experimental::places
 {
-using ::cuda::experimental::stf::pos4;
-using ::cuda::experimental::stf::dim4;
 using ::cuda::experimental::stf::box;
+using ::cuda::experimental::stf::dim4;
 using ::cuda::experimental::stf::each;
+using ::cuda::experimental::stf::pos4;
 
 /**
  * @brief An cyclic shape is a shape or rank 'dimensions' where the bounds are
@@ -336,6 +336,6 @@ UNITTEST("apply cyclic ")
 
 namespace cuda::experimental::stf
 {
-using ::cuda::experimental::places::cyclic_shape;
 using ::cuda::experimental::places::cyclic_partition;
+using ::cuda::experimental::places::cyclic_shape;
 } // namespace cuda::experimental::stf

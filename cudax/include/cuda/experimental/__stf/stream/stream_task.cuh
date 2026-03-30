@@ -36,9 +36,6 @@
 
 namespace cuda::experimental::stf
 {
-using places::decorated_stream;
-using places::k_no_stream_id;
-
 class stream_ctx;
 
 template <typename... Data>
@@ -152,7 +149,7 @@ public:
               auto se                    = reserved::handle<stream_and_event>(e, reserved::use_static_cast);
               decorated_stream candidate = se->get_decorated_stream();
 
-              if (candidate.id != k_no_stream_id)
+              if (candidate.id != places::k_no_stream_id)
               {
                 for (const decorated_stream& pool_s : pool)
                 {

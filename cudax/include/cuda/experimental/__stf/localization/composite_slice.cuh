@@ -577,7 +577,8 @@ inline ::std::unordered_map<void*, ::std::unique_ptr<localized_array>>& get_comp
   return reg;
 }
 
-inline void* allocate_composite_data_place(const ::cuda::experimental::places::data_place_composite& p, ::std::ptrdiff_t size)
+inline void*
+allocate_composite_data_place(const ::cuda::experimental::places::data_place_composite& p, ::std::ptrdiff_t size)
 {
   const size_t size_u          = static_cast<size_t>(size);
   const exec_place& grid       = p.get_grid();

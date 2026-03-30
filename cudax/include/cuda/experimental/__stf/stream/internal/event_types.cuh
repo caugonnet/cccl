@@ -30,7 +30,6 @@
 
 namespace cuda::experimental::stf
 {
-
 class stream_and_event;
 namespace reserved
 {

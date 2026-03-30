@@ -329,7 +329,7 @@ auto exec_place::partition_by_scope(Args&&... args)
 
 namespace cuda::experimental::stf
 {
+using ::cuda::experimental::places::place_partition;
 using ::cuda::experimental::places::place_partition_scope;
 using ::cuda::experimental::places::place_partition_scope_to_string;
-using ::cuda::experimental::places::place_partition;
 } // namespace cuda::experimental::stf

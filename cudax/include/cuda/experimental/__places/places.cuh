@@ -46,23 +46,22 @@
 
 namespace cuda::experimental::places
 {
-using ::cuda::experimental::stf::mv;
-using ::cuda::experimental::stf::each;
-using ::cuda::experimental::stf::pos4;
-using ::cuda::experimental::stf::dim4;
 using ::cuda::experimental::stf::box;
 using ::cuda::experimental::stf::cuda_safe_call;
 using ::cuda::experimental::stf::cuda_try;
+using ::cuda::experimental::stf::dim4;
+using ::cuda::experimental::stf::each;
 using ::cuda::experimental::stf::hash;
-using ::cuda::experimental::stf::hash_combine;
 using ::cuda::experimental::stf::hash_all;
+using ::cuda::experimental::stf::hash_combine;
+using ::cuda::experimental::stf::mv;
+using ::cuda::experimental::stf::pos4;
 
 class exec_place;
 
 // Green contexts are only supported since CUDA 12.4
 
 class data_place_composite;
-
 } // namespace cuda::experimental::places
 
 // Forward declarations of composite allocator functions — defined in composite_slice.cuh (stf::reserved)
@@ -74,7 +73,6 @@ void deallocate_composite_data_place(void* ptr);
 
 namespace cuda::experimental::places
 {
-
 /**
  * @brief Designates where data will be stored (CPU memory vs. on device 0 (first GPU), device 1 (second GPU), ...)
  *
@@ -1752,7 +1750,6 @@ UNITTEST("dim4 very large total size calculation")
 };
 
 #endif // UNITTESTED_FILE
-
 } // end namespace cuda::experimental::places
 
 // Hash specializations must be in the stf namespace (where the hash primary template is defined)
@@ -1797,16 +1794,16 @@ struct hash<::cuda::experimental::places::green_ctx_view>
 #endif // _CCCL_CTK_AT_LEAST(12, 4)
 
 // Backward compatibility: places types re-exported into stf
-using ::cuda::experimental::places::decorated_stream;
 using ::cuda::experimental::places::data_place;
+using ::cuda::experimental::places::decorated_stream;
 using ::cuda::experimental::places::exec_place;
 using ::cuda::experimental::places::exec_place_scope;
 
+using ::cuda::experimental::places::device_ordinal;
+using ::cuda::experimental::places::from_index;
 using ::cuda::experimental::places::partition_cyclic;
 using ::cuda::experimental::places::partition_tile;
 using ::cuda::experimental::places::to_index;
-using ::cuda::experimental::places::from_index;
-using ::cuda::experimental::places::device_ordinal;
 } // namespace cuda::experimental::stf
 
 #ifdef UNITTESTED_FILE

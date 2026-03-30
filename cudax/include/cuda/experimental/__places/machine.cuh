@@ -36,7 +36,6 @@
 
 namespace cuda::experimental::places::reserved
 {
-
 using ::cuda::experimental::stf::cuda_safe_call;
 
 /**
