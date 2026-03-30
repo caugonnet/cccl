@@ -31,9 +31,6 @@
 
 namespace cuda::experimental::places
 {
-using ::cuda::experimental::stf::pos4;
-using ::cuda::experimental::stf::dim4;
-using ::cuda::experimental::stf::box;
 
 template <::std::ptrdiff_t which_dim = -1>
 class blocked_partition_custom

@@ -39,11 +39,6 @@
 
 namespace cuda::experimental::places
 {
-using ::cuda::experimental::stf::mv;
-using ::cuda::experimental::stf::cuda_safe_call;
-using ::cuda::experimental::stf::cuda_try;
-using ::cuda::experimental::stf::hash;
-using ::cuda::experimental::stf::hash_all;
 
 /**
  * @brief data_place_interface implementation for green contexts

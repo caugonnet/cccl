@@ -29,8 +29,6 @@
 
 namespace cuda::experimental::places
 {
-using ::cuda::experimental::stf::pos4;
-using ::cuda::experimental::stf::dim4;
 
 namespace reserved
 {

@@ -32,7 +32,6 @@
 
 namespace cuda::experimental::places
 {
-using ::cuda::experimental::stf::mv;
 using ::cuda::experimental::stf::async_resources_handle;
 
 /**
