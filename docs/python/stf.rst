@@ -16,10 +16,10 @@ submits four tasks with different read/write annotations. STF orders the tasks s
 dependencies are respected (e.g. the task that writes ``Y`` runs after the one that
 reads ``X`` and writes ``Y``).
 
-.. literalinclude:: ../../python/cuda_cccl/tests/stf/test_context.py
+.. literalinclude:: ../../python/cuda_cccl_experimental/tests/stf/test_context.py
    :language: python
    :pyobject: test_ctx3
-   :caption: Context, logical data, and tasks. `View complete source on GitHub <https://github.com/NVIDIA/cccl/blob/main/python/cuda_cccl/tests/stf/test_context.py>`__
+   :caption: Context, logical data, and tasks. `View complete source on GitHub <https://github.com/NVIDIA/cccl/blob/main/python/cuda_cccl_experimental/tests/stf/test_context.py>`__
 
 Context and logical data
 -------------------------
@@ -60,9 +60,9 @@ Use ``with ctx.task(...) as t:`` to get a task handle. Inside the block:
   PyTorch (``torch.as_tensor(...)``), or CuPy (``cp.asarray(...)``).
 
 The ``cuda.stf`` package does not ship Numba/PyTorch helpers; see
-`tests/stf/numba_helpers.py <https://github.com/NVIDIA/cccl/blob/main/python/cuda_cccl/tests/stf/numba_helpers.py>`_,
-`numba_decorator.py <https://github.com/NVIDIA/cccl/blob/main/python/cuda_cccl/tests/stf/numba_decorator.py>`_,
-and `pytorch_task.py <https://github.com/NVIDIA/cccl/blob/main/python/cuda_cccl/tests/stf/pytorch_task.py>`_
+`tests/stf/numba_helpers.py <https://github.com/NVIDIA/cccl/blob/main/python/cuda_cccl_experimental/tests/stf/numba_helpers.py>`_,
+`numba_decorator.py <https://github.com/NVIDIA/cccl/blob/main/python/cuda_cccl_experimental/tests/stf/numba_decorator.py>`_,
+and `pytorch_task.py <https://github.com/NVIDIA/cccl/blob/main/python/cuda_cccl_experimental/tests/stf/pytorch_task.py>`_
 for examples.
 
 Places
@@ -76,9 +76,10 @@ Places
 
 .. _stf-data-place:
 
-* **Data place** (``data_place``) — where logical data lives: ``data_place.host()``,
-  ``data_place.device(device_id)``, ``data_place.managed()``. Use when creating
-  logical data or in a dependency, e.g. ``lZ.rw(data_place.device(1))``.
+* **Data place** (``data_place``) — where logical data lives: ``data_place.affine()``
+  (the default — lets the runtime place data near the task's execution place),
+  ``data_place.host()``, ``data_place.device(device_id)``, ``data_place.managed()``.
+  Use when creating logical data or in a dependency, e.g. ``lZ.rw(data_place.device(1))``.
 
 Tokens
 ------
@@ -91,7 +92,7 @@ Example collections
 -------------------
 
 For runnable examples (Numba kernels, PyTorch, tokens, multi-GPU, FDTD), see the
-`STF tests and examples <https://github.com/NVIDIA/cccl/tree/main/python/cuda_cccl/tests/stf>`_.
+`STF tests and examples <https://github.com/NVIDIA/cccl/tree/main/python/cuda_cccl_experimental/tests/stf>`_.
 
 For the full STF programming model, graph visualization, and C++ API, see
 :ref:`CUDASTF (C++) <stf>`.
