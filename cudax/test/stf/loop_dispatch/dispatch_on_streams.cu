@@ -28,8 +28,8 @@ int main()
     x(i) = 3 * i - 7;
   };
 
-  for (auto& sub_place :
-       place_partition(exec_place::current_device(), ctx.async_resources(), place_partition_scope::green_context))
+  for (auto& sub_place : places::place_partition(
+         exec_place::current_device(), ctx.async_resources(), places::place_partition_scope::green_context))
   {
     for (size_t i = 0; i < 4; i++)
     {
