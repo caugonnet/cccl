@@ -1578,7 +1578,7 @@ inline void unit_test_recursive_apply()
    * level */
   auto spec = par<8>(par<16>());
   ctx.launch(spec, exec_place::current_device(), lA.write())->*[] _CCCL_DEVICE(auto th, slice<size_t> A) {
-    for (auto i : th.apply_partition(shape(A), ::std::tuple<blocked_partition, cyclic_partition>()))
+    for (auto i : th.apply_partition(shape(A), ::std::tuple<places::blocked_partition, places::cyclic_partition>()))
     {
       A(i) = 2 * i + 7;
     }
@@ -1596,7 +1596,8 @@ inline void unit_test_recursive_apply()
 
   auto spec3 = par(par<8>(par<16>()));
   ctx.launch(spec3, exec_place::current_device(), lB.write())->*[] _CCCL_DEVICE(auto th, slice<size_t> B) {
-    for (auto i : th.apply_partition(shape(B), ::std::tuple<blocked_partition, blocked_partition, cyclic_partition>()))
+    for (auto i : th.apply_partition(
+           shape(B), ::std::tuple<places::blocked_partition, places::blocked_partition, places::cyclic_partition>()))
     {
       B(i) = 2 * i + 7;
     }
@@ -1636,7 +1637,7 @@ inline void unit_test_partitioner_product()
   };
 
   // Define the combination of partitioners as a product of partitioners
-  auto p = ::std::tuple<blocked_partition, cyclic_partition>();
+  auto p = ::std::tuple<places::blocked_partition, places::cyclic_partition>();
 
   auto lA = ctx.logical_data(shape_of<slice<size_t>>(1280));
 

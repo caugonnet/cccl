@@ -422,7 +422,7 @@ public:
             instance_id_t dst_node = dst_place.memory_node;
 
             // Force initialization
-            auto& machine = reserved::machine::instance();
+            auto& machine = places::reserved::machine::instance();
 
             // We iterate over nodes, in an order that is could improve locality
             for (int n = 0; n < nnodes(); n++) {

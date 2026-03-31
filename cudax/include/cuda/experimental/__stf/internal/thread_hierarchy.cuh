@@ -273,11 +273,11 @@ public:
   {
     if constexpr (depth == 1)
     {
-      return cyclic_partition::apply(s, pos4(rank(0)), dim4(size(0)));
+      return places::cyclic_partition::apply(s, pos4(rank(0)), dim4(size(0)));
     }
     else
     {
-      auto s0 = blocked_partition::apply(s, pos4(rank(0)), dim4(size(0)));
+      auto s0 = places::blocked_partition::apply(s, pos4(rank(0)), dim4(size(0)));
       return inner().apply_partition(s0);
     }
   }

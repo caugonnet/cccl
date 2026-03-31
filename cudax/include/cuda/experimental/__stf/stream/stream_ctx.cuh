@@ -1191,9 +1191,10 @@ inline void unit_test_pfor_grid()
   stream_ctx ctx;
   auto where = exec_place::all_devices();
   auto lA    = ctx.logical_data(shape_of<slice<size_t>>(64));
-  ctx.parallel_for(blocked_partition(), where, lA.shape(), lA.write())->*[] _CCCL_DEVICE(size_t i, slice<size_t> A) {
-    A(i) = 2 * i;
-  };
+  ctx.parallel_for(places::blocked_partition(), where, lA.shape(), lA.write())
+      ->*[] _CCCL_DEVICE(size_t i, slice<size_t> A) {
+            A(i) = 2 * i;
+          };
   ctx.host_launch(lA.read())->*[](auto A) {
     for (size_t i = 0; i < 64; i++)
     {
@@ -1215,9 +1216,10 @@ inline void unit_test_pfor_untyped_grid()
   exec_place where = exec_place::repeat(exec_place::current_device(), 4);
 
   auto lA = ctx.logical_data(shape_of<slice<size_t>>(64));
-  ctx.parallel_for(blocked_partition(), where, lA.shape(), lA.write())->*[] _CCCL_HOST_DEVICE(size_t i, slice<size_t> A) {
-    A(i) = 2 * i;
-  };
+  ctx.parallel_for(places::blocked_partition(), where, lA.shape(), lA.write())
+      ->*[] _CCCL_HOST_DEVICE(size_t i, slice<size_t> A) {
+            A(i) = 2 * i;
+          };
   ctx.host_launch(lA.read())->*[](auto A) {
     for (size_t i = 0; i < 64; i++)
     {

@@ -790,7 +790,7 @@ inline void unit_test_graph_stage()
 
   for (size_t k = 0; k < NITER; k++)
   {
-    ctx.parallel_for(blocked_partition(), exec_place::current_device(), lA.shape(), lA.rw())
+    ctx.parallel_for(places::blocked_partition(), exec_place::current_device(), lA.shape(), lA.rw())
         ->*[] _CCCL_HOST_DEVICE(size_t i, slice<double> A) {
               A(i) = cos(A(i));
             };
@@ -838,7 +838,7 @@ inline void unit_test_graph_empty_stage()
 
   for (size_t k = 0; k < NITER; k++)
   {
-    ctx.parallel_for(blocked_partition(), exec_place::current_device(), lA.shape(), lA.rw())
+    ctx.parallel_for(places::blocked_partition(), exec_place::current_device(), lA.shape(), lA.rw())
         ->*[] _CCCL_HOST_DEVICE(size_t i, slice<double> A) {
               A(i) = cos(A(i));
             };
@@ -890,14 +890,14 @@ inline void unit_test_graph_stage_2()
   {
     if ((k % 2) == 0)
     {
-      ctx.parallel_for(blocked_partition(), exec_place::current_device(), lA.shape(), lA.rw())
+      ctx.parallel_for(places::blocked_partition(), exec_place::current_device(), lA.shape(), lA.rw())
           ->*[] _CCCL_HOST_DEVICE(size_t i, slice<double> A) {
                 A(i) = cos(A(i));
               };
     }
     else
     {
-      ctx.parallel_for(blocked_partition(), exec_place::current_device(), lA.shape(), lA.rw())
+      ctx.parallel_for(places::blocked_partition(), exec_place::current_device(), lA.shape(), lA.rw())
           ->*[] _CCCL_HOST_DEVICE(size_t i, slice<double> A) {
                 A(i) = sin(A(i));
               };
@@ -952,14 +952,14 @@ inline void unit_test_graph_stage_3()
   {
     if ((k % 2) == 0)
     {
-      ctx.parallel_for(blocked_partition(), exec_place::current_device(), lA.shape(), lA.rw(), lB.read())
+      ctx.parallel_for(places::blocked_partition(), exec_place::current_device(), lA.shape(), lA.rw(), lB.read())
           ->*[] _CCCL_HOST_DEVICE(size_t i, slice<double> A, slice<const double> B) {
                 A(i) = cos(B(i));
               };
     }
     else
     {
-      ctx.parallel_for(blocked_partition(), exec_place::current_device(), lA.shape(), lA.read(), lB.rw())
+      ctx.parallel_for(places::blocked_partition(), exec_place::current_device(), lA.shape(), lA.read(), lB.rw())
           ->*[] _CCCL_HOST_DEVICE(size_t i, slice<const double> A, slice<double> B) {
                 B(i) = sin(A(i));
               };
