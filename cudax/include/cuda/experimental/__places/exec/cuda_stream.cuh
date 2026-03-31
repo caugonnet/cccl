@@ -106,8 +106,3 @@ inline exec_place exec_place::cuda_stream(const decorated_stream& dstream)
   return exec_place{::std::make_shared<exec_place_cuda_stream_impl>(dstream)};
 }
 } // end namespace cuda::experimental::places
-
-namespace cuda::experimental::stf
-{
-using ::cuda::experimental::places::exec_place_cuda_stream_impl;
-} // namespace cuda::experimental::stf
