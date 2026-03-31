@@ -1778,19 +1778,6 @@ struct hash<exec_place>
   }
 };
 
-#if _CCCL_CTK_AT_LEAST(12, 4)
-/**
- * @brief Specialization of `places::hash` for `green_ctx_view`
- */
-template <>
-struct hash<green_ctx_view>
-{
-  ::std::size_t operator()(const green_ctx_view& k) const
-  {
-    return hash_all(k.g_ctx, k.devid);
-  }
-};
-#endif // _CCCL_CTK_AT_LEAST(12, 4)
 } // end namespace cuda::experimental::places
 
 // Backward compatibility: places types re-exported into stf

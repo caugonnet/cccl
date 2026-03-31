@@ -32,6 +32,8 @@
 
 namespace cuda::experimental::places
 {
+template <typename T>
+struct hash;
 using ::cuda::experimental::stf::hash_all;
 using ::cuda::experimental::stf::mv;
 
@@ -64,6 +66,18 @@ public:
       return g_ctx < other.g_ctx;
     }
     return devid < other.devid;
+  }
+};
+
+/**
+ * @brief Specialization of `places::hash` for `green_ctx_view`
+ */
+template <>
+struct hash<green_ctx_view>
+{
+  ::std::size_t operator()(const green_ctx_view& k) const
+  {
+    return hash_all(k.g_ctx, k.devid);
   }
 };
 } // end namespace cuda::experimental::places
