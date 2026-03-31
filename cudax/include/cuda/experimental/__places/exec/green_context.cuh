@@ -691,13 +691,4 @@ UNITTEST("green context exec_place as std::map key")
 #  endif // UNITTESTED_FILE
 } // end namespace cuda::experimental::places
 
-namespace cuda::experimental::stf
-{
-using ::cuda::experimental::places::exec_place_green_ctx_impl;
-using ::cuda::experimental::places::get_cuda_context_id;
-using ::cuda::experimental::places::green_context_helper;
-using ::cuda::experimental::places::green_ctx_data_place_impl;
-using ::cuda::experimental::places::make_green_ctx_data_place;
-} // namespace cuda::experimental::stf
-
 #endif // _CCCL_CTK_AT_LEAST(12, 4)
