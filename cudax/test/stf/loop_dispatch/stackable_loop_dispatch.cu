@@ -12,6 +12,7 @@
 #include <cuda/experimental/stf.cuh>
 
 using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 int main()
 {
@@ -30,7 +31,7 @@ int main()
 
   for (size_t iter = 0; iter < 4; iter++)
   {
-    loop_dispatch(ctx, exec_place::all_devices(), places::place_partition_scope::green_context, 0, n, [&](size_t iter) {
+    loop_dispatch(ctx, exec_place::all_devices(), place_partition_scope::green_context, 0, n, [&](size_t iter) {
       auto lA = ctx.logical_data<int>(size_t(1024 * 1024)).set_symbol(::std::string("A") + ::std::to_string(iter));
 
       ctx.parallel_for(ctx.current_exec_place(), lA.shape(), lA.write()).set_symbol("pfor1" + ::std::to_string(iter))

@@ -12,6 +12,7 @@
 #include <cuda/experimental/stf.cuh>
 
 using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 // Green contexts are only supported since CUDA 12.4
 #if _CCCL_CTK_AT_LEAST(12, 4)
@@ -95,7 +96,7 @@ int main()
     }
   }
 
-  auto where = places::make_grid(exec_places);
+  auto where = make_grid(exec_places);
 
   for (int iter = 0; iter < NITER; iter++)
   {

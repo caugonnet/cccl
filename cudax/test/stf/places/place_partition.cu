@@ -12,15 +12,14 @@
 #include <cuda/experimental/stf.cuh>
 
 using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
-void print_partition(async_resources_handle& handle, exec_place place, places::place_partition_scope scope)
+void print_partition(async_resources_handle& handle, exec_place place, place_partition_scope scope)
 {
   fprintf(stderr, "-----------\n");
-  fprintf(stderr,
-          "PARTITION %s (scope: %s):\n",
-          place.to_string().c_str(),
-          places::place_partition_scope_to_string(scope).c_str());
-  for (auto sub_place : places::place_partition(place, handle, scope))
+  fprintf(
+    stderr, "PARTITION %s (scope: %s):\n", place.to_string().c_str(), place_partition_scope_to_string(scope).c_str());
+  for (auto sub_place : place_partition(place, handle, scope))
   {
     fprintf(stderr, "[%s] subplace: %s\n", place.to_string().c_str(), sub_place.to_string().c_str());
   }
@@ -36,21 +35,19 @@ int main()
 #else // ^^^ _CCCL_CTK_BELOW(12, 4) ^^^ / vvv _CCCL_CTK_AT_LEAST(12, 4) vvv
   async_resources_handle handle;
 
-  print_partition(handle, exec_place::all_devices(), places::place_partition_scope::cuda_device);
+  print_partition(handle, exec_place::all_devices(), place_partition_scope::cuda_device);
 
-  print_partition(handle, exec_place::all_devices(), places::place_partition_scope::cuda_stream);
+  print_partition(handle, exec_place::all_devices(), place_partition_scope::cuda_stream);
 
-  print_partition(handle, exec_place::current_device(), places::place_partition_scope::cuda_stream);
+  print_partition(handle, exec_place::current_device(), place_partition_scope::cuda_stream);
 
-  print_partition(handle, exec_place::current_device(), places::place_partition_scope::green_context);
-  print_partition(handle, exec_place::current_device(), places::place_partition_scope::green_context);
+  print_partition(handle, exec_place::current_device(), place_partition_scope::green_context);
+  print_partition(handle, exec_place::current_device(), place_partition_scope::green_context);
 
-  print_partition(
-    handle, exec_place::repeat(exec_place::current_device(), 4), places::place_partition_scope::green_context);
+  print_partition(handle, exec_place::repeat(exec_place::current_device(), 4), place_partition_scope::green_context);
 
-  print_partition(handle, exec_place::current_device(), places::place_partition_scope::cuda_device);
+  print_partition(handle, exec_place::current_device(), place_partition_scope::cuda_device);
 
-  print_partition(
-    handle, exec_place::repeat(exec_place::current_device(), 4), places::place_partition_scope::cuda_stream);
+  print_partition(handle, exec_place::repeat(exec_place::current_device(), 4), place_partition_scope::cuda_stream);
 #endif // ^^^ _CCCL_CTK_AT_LEAST(12, 4) ^^^
 }

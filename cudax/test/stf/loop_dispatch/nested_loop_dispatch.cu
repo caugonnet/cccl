@@ -14,6 +14,7 @@
 #include <cuda/experimental/stf.cuh>
 
 using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 int main()
 {
@@ -29,7 +30,7 @@ int main()
   auto grid = exec_place::repeat(exec_place::current_device(), 8);
 
   // Split the affinity into 4 parts
-  loop_dispatch(ctx, grid, places::place_partition_scope::cuda_device, 0, 4, [&](size_t) {
+  loop_dispatch(ctx, grid, place_partition_scope::cuda_device, 0, 4, [&](size_t) {
     // We should have 2 places per subplace
     EXPECT(ctx.current_affinity().size() == 2);
 

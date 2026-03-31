@@ -12,6 +12,7 @@
 #include <cuda/experimental/stf.cuh>
 
 using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 #if _CCCL_CTK_AT_LEAST(12, 4)
 /**
@@ -20,8 +21,7 @@ using namespace cuda::experimental::stf;
 void test_green_ctx_affinity()
 {
   async_resources_handle handle;
-  for (auto p :
-       places::place_partition(exec_place::current_device(), handle, places::place_partition_scope::green_context))
+  for (auto p : place_partition(exec_place::current_device(), handle, place_partition_scope::green_context))
   {
     handle.push_affinity(::std::make_shared<exec_place>(p));
     _CCCL_ASSERT(handle.current_affinity().size() == 1, "invalid value");
