@@ -1791,7 +1791,6 @@ struct hash<green_ctx_view>
   }
 };
 #endif // _CCCL_CTK_AT_LEAST(12, 4)
-
 } // end namespace cuda::experimental::places
 
 // Backward compatibility: places types re-exported into stf

@@ -375,7 +375,8 @@ protected:
   // of the connection between large blocks from the root allocator, and
   // small allocations, but we simply clear these blocks at the end.
   ::std::unordered_map<data_place, per_place_map_t, places::hash<data_place>> free_cache;
-  ::std::unordered_map<data_place, ::std::vector<::std::pair<void*, size_t>>, places::hash<data_place>> large_allocations;
+  ::std::unordered_map<data_place, ::std::vector<::std::pair<void*, size_t>>, places::hash<data_place>>
+    large_allocations;
 
   ::std::mutex allocator_mutex;
 };
