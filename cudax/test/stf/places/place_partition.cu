@@ -16,11 +16,10 @@ using namespace cuda::experimental::stf;
 void print_partition(async_resources_handle& handle, exec_place place, places::place_partition_scope scope)
 {
   fprintf(stderr, "-----------\n");
-  fprintf(
-    stderr,
-    "PARTITION %s (scope: %s):\n",
-    place.to_string().c_str(),
-    places::place_partition_scope_to_string(scope).c_str());
+  fprintf(stderr,
+          "PARTITION %s (scope: %s):\n",
+          place.to_string().c_str(),
+          places::place_partition_scope_to_string(scope).c_str());
   for (auto sub_place : places::place_partition(place, handle, scope))
   {
     fprintf(stderr, "[%s] subplace: %s\n", place.to_string().c_str(), sub_place.to_string().c_str());
