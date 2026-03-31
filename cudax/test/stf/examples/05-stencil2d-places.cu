@@ -13,6 +13,7 @@
 #include <cuda/experimental/__stf/utility/pretty_print.cuh>
 
 using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 template <typename T>
 __global__ void stencil2D_kernel(slice<T, 2> sUn, slice<const T, 2> sUn1)

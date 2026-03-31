@@ -20,6 +20,7 @@
 #include <cuda/experimental/__stf/stream/stream_ctx.cuh>
 
 using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 template <typename T>
 __global__ void axpy(size_t start, size_t cnt, T a, const T* x, T* y)

@@ -12,6 +12,7 @@
 #include <cuda/experimental/__stf/stream/stream_ctx.cuh>
 
 using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 template <typename T>
 __global__ void stencil_kernel(slice<T> Un, slice<const T> Un1)

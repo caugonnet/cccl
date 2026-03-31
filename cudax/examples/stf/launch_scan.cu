@@ -20,6 +20,7 @@
 #include <cuda/experimental/stf.cuh>
 
 using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 __host__ __device__ double X0(int)
 {
