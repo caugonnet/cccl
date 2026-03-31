@@ -24,11 +24,12 @@
 #define TILED
 
 using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 stream_ctx ctx;
 
-static std::unordered_map<exec_place, cublasHandle_t, cuda::experimental::places::hash<exec_place>> cublas_handles;
-static std::unordered_map<exec_place, cusolverDnHandle_t, cuda::experimental::places::hash<exec_place>> cusolver_handles;
+static std::unordered_map<exec_place, cublasHandle_t, hash<exec_place>> cublas_handles;
+static std::unordered_map<exec_place, cusolverDnHandle_t, hash<exec_place>> cusolver_handles;
 
 /* Get a CUBLAS handle valid on the current execution place, or initialize it lazily */
 cublasHandle_t& get_cublas_handle(const exec_place& ep = exec_place::current_device())

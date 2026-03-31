@@ -23,6 +23,7 @@
 #define TILED
 
 using namespace cuda::experimental::stf;
+using namespace cuda::experimental::places;
 
 // Global for the sake of simplicity !
 stream_ctx ctx;
@@ -30,7 +31,7 @@ stream_ctx ctx;
 /* Get a CUBLAS handle valid on the current execution place, or initialize it lazily */
 cublasHandle_t& get_cublas_handle(const exec_place& ep = exec_place::current_device())
 {
-  static std::unordered_map<exec_place, cublasHandle_t, cuda::experimental::places::hash<exec_place>> cublas_handles;
+  static std::unordered_map<exec_place, cublasHandle_t, hash<exec_place>> cublas_handles;
   auto& result = cublas_handles[ep];
   if (result == cublasHandle_t())
   { // not found, default value inserted
@@ -43,7 +44,7 @@ cublasHandle_t& get_cublas_handle(const exec_place& ep = exec_place::current_dev
 /* Get a CUSOLVER handle valid on the current execution place, or initialize it lazily */
 cusolverDnHandle_t& get_cusolver_handle(const exec_place& ep = exec_place::current_device())
 {
-  static std::unordered_map<exec_place, cusolverDnHandle_t, cuda::experimental::places::hash<exec_place>> cusolver_handles;
+  static std::unordered_map<exec_place, cusolverDnHandle_t, hash<exec_place>> cusolver_handles;
   auto& result = cusolver_handles[ep];
   if (result == cusolverDnHandle_t())
   { // not found, default value inserted
