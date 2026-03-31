@@ -1777,7 +1777,6 @@ struct hash<exec_place>
     return k.hash();
   }
 };
-
 } // end namespace cuda::experimental::places
 
 // Backward compatibility: places types re-exported into stf
