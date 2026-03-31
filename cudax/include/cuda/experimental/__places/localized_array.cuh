@@ -33,7 +33,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace cuda::experimental::stf::reserved
+namespace cuda::experimental::places
 {
 /**
  * @brief Check if localized allocation statistics should be printed
@@ -330,7 +330,7 @@ private:
       sampled_pos[sample] = index_to_grid_pos(index, delinearize);
     }
 
-    ::std::unordered_map<pos4, size_t, hash<pos4>> sample_cnt;
+    ::std::unordered_map<pos4, size_t, ::cuda::experimental::stf::hash<pos4>> sample_cnt;
     for (auto& s : sampled_pos)
     {
       ++sample_cnt[s];
@@ -401,4 +401,4 @@ inline void deallocate_composite_data_place(void* ptr)
 {
   get_composite_alloc_registry().erase(ptr);
 }
-} // namespace cuda::experimental::stf::reserved
+} // namespace cuda::experimental::places

@@ -51,26 +51,24 @@ using ::cuda::experimental::stf::cuda_safe_call;
 using ::cuda::experimental::stf::cuda_try;
 using ::cuda::experimental::stf::dim4;
 using ::cuda::experimental::stf::each;
-template <typename T>
-struct hash;
 using ::cuda::experimental::stf::hash_all;
 using ::cuda::experimental::stf::hash_combine;
 using ::cuda::experimental::stf::mv;
 using ::cuda::experimental::stf::pos4;
+
+template <typename T>
+struct hash;
 
 class exec_place;
 
 // Green contexts are only supported since CUDA 12.4
 
 class data_place_composite;
-} // namespace cuda::experimental::places
 
-// Forward declarations of composite allocator functions — defined in composite_slice.cuh (stf::reserved)
-namespace cuda::experimental::stf::reserved
-{
-void* allocate_composite_data_place(const ::cuda::experimental::places::data_place_composite& p, ::std::ptrdiff_t size);
+// Forward declarations of composite allocator functions — defined in localized_array.cuh
+void* allocate_composite_data_place(const data_place_composite& p, ::std::ptrdiff_t size);
 void deallocate_composite_data_place(void* ptr);
-} // namespace cuda::experimental::stf::reserved
+} // namespace cuda::experimental::places
 
 namespace cuda::experimental::places
 {
@@ -1590,14 +1588,12 @@ public:
 
   void* allocate(::std::ptrdiff_t size, cudaStream_t) const override
   {
-    // TODO move this to the places namespace
-    return ::cuda::experimental::stf::reserved::allocate_composite_data_place(*this, size);
+    return allocate_composite_data_place(*this, size);
   }
 
   void deallocate(void* ptr, size_t, cudaStream_t) const override
   {
-    // TODO move this to the places namespace
-    ::cuda::experimental::stf::reserved::deallocate_composite_data_place(ptr);
+    deallocate_composite_data_place(ptr);
   }
 
   bool allocation_is_stream_ordered() const override

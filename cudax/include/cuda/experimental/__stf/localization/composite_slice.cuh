@@ -33,7 +33,7 @@
 
 namespace cuda::experimental::stf::reserved
 {
-using places::partition_fn_t;
+using places::localized_array;
 
 /*!
  * @brief A simple object pool with linear search for managing objects of type `T`.
@@ -151,8 +151,13 @@ public:
   }
 
   template <typename F>
-  ::std::pair<::std::unique_ptr<localized_array>, event_list> get(
-    const data_place& place, partition_fn_t mapper, F&& delinearize, size_t total_size, size_t elem_size, dim4 data_dims)
+  ::std::pair<::std::unique_ptr<localized_array>, event_list>
+  get(const data_place& place,
+      places::partition_fn_t mapper,
+      F&& delinearize,
+      size_t total_size,
+      size_t elem_size,
+      dim4 data_dims)
   {
     EXPECT(place.is_composite());
     auto entry =
