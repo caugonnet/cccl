@@ -51,7 +51,8 @@ using ::cuda::experimental::stf::cuda_safe_call;
 using ::cuda::experimental::stf::cuda_try;
 using ::cuda::experimental::stf::dim4;
 using ::cuda::experimental::stf::each;
-using ::cuda::experimental::stf::hash;
+template <typename T>
+struct hash;
 using ::cuda::experimental::stf::hash_all;
 using ::cuda::experimental::stf::hash_combine;
 using ::cuda::experimental::stf::mv;
@@ -1752,30 +1753,26 @@ UNITTEST("dim4 very large total size calculation")
 };
 
 #endif // UNITTESTED_FILE
-} // end namespace cuda::experimental::places
 
-// Hash specializations must be in the stf namespace (where the hash primary template is defined)
-namespace cuda::experimental::stf
-{
 /**
- * @brief Specialization of `cuda::experimental::stf::hash` for `data_place`
+ * @brief Specialization of `places::hash` for `data_place`
  */
 template <>
-struct hash<::cuda::experimental::places::data_place>
+struct hash<data_place>
 {
-  ::std::size_t operator()(const ::cuda::experimental::places::data_place& k) const
+  ::std::size_t operator()(const data_place& k) const
   {
     return k.hash();
   }
 };
 
 /**
- * @brief Specialization of `cuda::experimental::stf::hash` for `exec_place`
+ * @brief Specialization of `places::hash` for `exec_place`
  */
 template <>
-struct hash<::cuda::experimental::places::exec_place>
+struct hash<exec_place>
 {
-  ::std::size_t operator()(const ::cuda::experimental::places::exec_place& k) const
+  ::std::size_t operator()(const exec_place& k) const
   {
     return k.hash();
   }
@@ -1783,19 +1780,23 @@ struct hash<::cuda::experimental::places::exec_place>
 
 #if _CCCL_CTK_AT_LEAST(12, 4)
 /**
- * @brief Specialization of `cuda::experimental::stf::hash` for `green_ctx_view`
+ * @brief Specialization of `places::hash` for `green_ctx_view`
  */
 template <>
-struct hash<::cuda::experimental::places::green_ctx_view>
+struct hash<green_ctx_view>
 {
-  ::std::size_t operator()(const ::cuda::experimental::places::green_ctx_view& k) const
+  ::std::size_t operator()(const green_ctx_view& k) const
   {
     return hash_all(k.g_ctx, k.devid);
   }
 };
 #endif // _CCCL_CTK_AT_LEAST(12, 4)
 
+} // end namespace cuda::experimental::places
+
 // Backward compatibility: places types re-exported into stf
+namespace cuda::experimental::stf
+{
 using ::cuda::experimental::places::data_place;
 using ::cuda::experimental::places::decorated_stream;
 using ::cuda::experimental::places::exec_place;

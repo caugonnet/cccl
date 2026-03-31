@@ -87,7 +87,7 @@ class constant_logical_data
     // A cache of the instances, we can use them without further
     // synchronization once they are populated. If an instance is missing, we
     // will get it in a blocking manner.
-    ::std::unordered_map<data_place, T, hash<data_place>> cached;
+    ::std::unordered_map<data_place, T, places::hash<data_place>> cached;
   };
 
 public:

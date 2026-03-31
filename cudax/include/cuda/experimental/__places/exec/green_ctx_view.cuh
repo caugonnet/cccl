@@ -32,7 +32,6 @@
 
 namespace cuda::experimental::places
 {
-using ::cuda::experimental::stf::hash;
 using ::cuda::experimental::stf::hash_all;
 using ::cuda::experimental::stf::mv;
 

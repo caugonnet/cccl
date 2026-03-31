@@ -107,7 +107,7 @@ public:
    */
   event_list deinit(backend_ctx_untyped& ctx) override
   {
-    ::std::unordered_map<data_place, per_place_map_t, hash<data_place>> free_cache_janitor;
+    ::std::unordered_map<data_place, per_place_map_t, places::hash<data_place>> free_cache_janitor;
     {
       ::std::lock_guard<::std::mutex> g(allocator_mutex);
       free_cache.swap(free_cache_janitor);
@@ -163,7 +163,7 @@ protected:
   using per_place_map_t = ::std::unordered_multimap<size_t, alloc_cache_entry>;
 
   /// Top-level cache map mapping data_place to per_place_map_t.
-  ::std::unordered_map<data_place, per_place_map_t, hash<data_place>> free_cache;
+  ::std::unordered_map<data_place, per_place_map_t, places::hash<data_place>> free_cache;
 
   ::std::mutex allocator_mutex;
 };
@@ -374,8 +374,8 @@ protected:
   // suballocations. The deallocate method only return ptr/sz so we loose track
   // of the connection between large blocks from the root allocator, and
   // small allocations, but we simply clear these blocks at the end.
-  ::std::unordered_map<data_place, per_place_map_t, hash<data_place>> free_cache;
-  ::std::unordered_map<data_place, ::std::vector<::std::pair<void*, size_t>>, hash<data_place>> large_allocations;
+  ::std::unordered_map<data_place, per_place_map_t, places::hash<data_place>> free_cache;
+  ::std::unordered_map<data_place, ::std::vector<::std::pair<void*, size_t>>, places::hash<data_place>> large_allocations;
 
   ::std::mutex allocator_mutex;
 };
