@@ -185,13 +185,3 @@ UNITTEST("tiled partition with large 1D data")
 
 #endif // UNITTESTED_FILE
 } // namespace cuda::experimental::places
-
-namespace cuda::experimental::stf
-{
-namespace reserved
-{
-using ::cuda::experimental::places::reserved::tiled_mdspan_shape;
-} // namespace reserved
-using ::cuda::experimental::places::tiled;
-using ::cuda::experimental::places::tiled_partition;
-} // namespace cuda::experimental::stf

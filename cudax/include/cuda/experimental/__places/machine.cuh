@@ -130,8 +130,3 @@ private:
   int ndevices;
 };
 } // namespace cuda::experimental::places::reserved
-
-namespace cuda::experimental::stf::reserved
-{
-using ::cuda::experimental::places::reserved::machine;
-} // namespace cuda::experimental::stf::reserved

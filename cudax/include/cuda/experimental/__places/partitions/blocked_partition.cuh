@@ -163,9 +163,3 @@ UNITTEST("blocked partition with very large data arrays")
 
 #endif // UNITTESTED_FILE
 } // namespace cuda::experimental::places
-
-namespace cuda::experimental::stf
-{
-using ::cuda::experimental::places::blocked_partition;
-using ::cuda::experimental::places::blocked_partition_custom;
-} // namespace cuda::experimental::stf

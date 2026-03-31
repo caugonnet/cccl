@@ -333,9 +333,3 @@ UNITTEST("apply cyclic ")
 };
 #endif // UNITTESTED_FILE
 } // namespace cuda::experimental::places
-
-namespace cuda::experimental::stf
-{
-using ::cuda::experimental::places::cyclic_partition;
-using ::cuda::experimental::places::cyclic_shape;
-} // namespace cuda::experimental::stf
