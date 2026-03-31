@@ -34,8 +34,6 @@ namespace cuda::experimental::places
 {
 template <typename T>
 struct hash;
-using ::cuda::experimental::stf::hash_all;
-using ::cuda::experimental::stf::mv;
 
 // Green contexts are only supported since CUDA 12.4
 /**
@@ -46,7 +44,7 @@ class green_ctx_view
 public:
   green_ctx_view(CUgreenCtx g_ctx, stream_pool pool, int devid)
       : g_ctx(g_ctx)
-      , pool(mv(pool))
+      , pool(::cuda::experimental::stf::mv(pool))
       , devid(devid)
   {}
 
@@ -77,7 +75,7 @@ struct hash<green_ctx_view>
 {
   ::std::size_t operator()(const green_ctx_view& k) const
   {
-    return hash_all(k.g_ctx, k.devid);
+    return ::cuda::experimental::stf::hash_all(k.g_ctx, k.devid);
   }
 };
 } // end namespace cuda::experimental::places
