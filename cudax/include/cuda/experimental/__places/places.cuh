@@ -1927,4 +1927,4 @@ UNITTEST("Exec place as std::map key")
 } // namespace cuda::experimental::places
 #endif // UNITTESTED_FILE
 
-#include <cuda/experimental/__stf/localization/composite_slice.cuh>
+#include <cuda/experimental/__places/localized_array.cuh>
