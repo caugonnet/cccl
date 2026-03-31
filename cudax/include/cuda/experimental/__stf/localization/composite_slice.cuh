@@ -33,7 +33,6 @@
 
 namespace cuda::experimental::stf::reserved
 {
-
 /*!
  * @brief A simple object pool with linear search for managing objects of type `T`.
  *
@@ -154,8 +153,8 @@ public:
     const data_place& place, partition_fn_t mapper, F&& delinearize, size_t total_size, size_t elem_size, dim4 data_dims)
   {
     EXPECT(place.is_composite());
-    auto entry = cache.get(
-      place.affine_exec_place(), mapper, ::std::forward<F>(delinearize), total_size, elem_size, data_dims);
+    auto entry =
+      cache.get(place.affine_exec_place(), mapper, ::std::forward<F>(delinearize), total_size, elem_size, data_dims);
     event_list prereqs = mv(entry->prereqs);
     return {mv(entry->array), mv(prereqs)};
   }
@@ -163,5 +162,4 @@ public:
 private:
   linear_pool<cached_localized_array> cache;
 };
-
 } // end namespace cuda::experimental::stf::reserved
