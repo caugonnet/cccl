@@ -11,6 +11,11 @@
 /** @file
  *
  * @brief Main include file for the CUDASTF library.
+ *
+ * STF pulls `cuda::experimental::places` into `cuda::experimental::stf` via
+ * `__stf/internal/stf_places_into_stf_core.cuh` (after `places.cuh` in STF-only
+ * headers) and `stf_places_extended_exports.cuh` (graph_ctx / stream_ctx, after
+ * `stf::hash` exists). Places headers do not include STF for that bridge.
  */
 
 #pragma once

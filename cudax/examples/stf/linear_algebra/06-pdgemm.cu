@@ -22,7 +22,6 @@
 #define TILED
 
 using namespace cuda::experimental::stf;
-using namespace cuda::experimental::places;
 
 static std::unordered_map<exec_place, cublasHandle_t, hash<exec_place>> cublas_handles;
 

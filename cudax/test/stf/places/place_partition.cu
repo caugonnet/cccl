@@ -12,7 +12,6 @@
 #include <cuda/experimental/stf.cuh>
 
 using namespace cuda::experimental::stf;
-using namespace cuda::experimental::places;
 
 void print_partition(async_resources_handle& handle, exec_place place, place_partition_scope scope)
 {

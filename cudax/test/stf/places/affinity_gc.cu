@@ -12,7 +12,6 @@
 #include <cuda/experimental/stf.cuh>
 
 using namespace cuda::experimental::stf;
-using namespace cuda::experimental::places;
 
 #if _CCCL_CTK_AT_LEAST(12, 4)
 /**

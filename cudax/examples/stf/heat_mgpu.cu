@@ -19,7 +19,6 @@
 #include <cuda/experimental/stf.cuh>
 
 using namespace cuda::experimental::stf;
-using namespace cuda::experimental::places;
 
 void dump_iter(slice<const double, 2> sUn, int iter)
 {

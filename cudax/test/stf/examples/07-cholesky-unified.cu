@@ -14,7 +14,6 @@
 #define TILED
 
 using namespace cuda::experimental::stf;
-using namespace cuda::experimental::places;
 
 // The backend used in this example only depends on that type
 using backend_type = stream_ctx;

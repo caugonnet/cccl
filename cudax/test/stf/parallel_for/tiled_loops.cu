@@ -17,7 +17,6 @@
 #include <cuda/experimental/__stf/stream/stream_ctx.cuh>
 
 using namespace cuda::experimental::stf;
-using namespace cuda::experimental::places;
 
 // Compute which part ID has the item at position "index"
 __host__ __device__ size_t ref_tiling(size_t index, size_t tile_size, size_t nparts)

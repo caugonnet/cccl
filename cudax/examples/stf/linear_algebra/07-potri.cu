@@ -24,7 +24,6 @@
 #define TILED
 
 using namespace cuda::experimental::stf;
-using namespace cuda::experimental::places;
 
 stream_ctx ctx;
 

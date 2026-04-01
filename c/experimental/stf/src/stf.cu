@@ -17,7 +17,6 @@
 #include <vector>
 
 using namespace cuda::experimental::stf;
-using namespace cuda::experimental::places;
 
 namespace
 {

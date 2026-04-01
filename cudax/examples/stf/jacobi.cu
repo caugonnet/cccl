@@ -20,7 +20,6 @@
 #include <iostream>
 
 using namespace cuda::experimental::stf;
-using namespace cuda::experimental::places;
 
 /* Implement atomicMax with a compare and swap */
 _CCCL_DEVICE double atomicMax(double* address, double val)

@@ -18,7 +18,6 @@
 #include <cuda/experimental/stf.cuh>
 
 using namespace cuda::experimental::stf;
-using namespace cuda::experimental::places;
 
 double X0(size_t i)
 {

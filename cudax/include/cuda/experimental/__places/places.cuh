@@ -12,7 +12,9 @@
  *
  * @brief Defines abstractions for places where data is stored and places where execution is carried.
  *
- * TODO Add more documentation about this file here.
+ * @note Places should not depend on STF. Remaining STF utility includes below are legacy coupling;
+ *       new code should avoid deepening it. STF pulls `places` API into `cuda::experimental::stf`
+ *       from STF-only headers (e.g. `stf_places_into_stf_core.cuh`), not the other way around.
  */
 
 #pragma once
@@ -1774,21 +1776,6 @@ struct hash<exec_place>
   }
 };
 } // end namespace cuda::experimental::places
-
-// Backward compatibility: places types re-exported into stf
-namespace cuda::experimental::stf
-{
-using ::cuda::experimental::places::data_place;
-using ::cuda::experimental::places::decorated_stream;
-using ::cuda::experimental::places::exec_place;
-using ::cuda::experimental::places::exec_place_scope;
-
-using ::cuda::experimental::places::device_ordinal;
-using ::cuda::experimental::places::from_index;
-using ::cuda::experimental::places::partition_cyclic;
-using ::cuda::experimental::places::partition_tile;
-using ::cuda::experimental::places::to_index;
-} // namespace cuda::experimental::stf
 
 #ifdef UNITTESTED_FILE
 namespace cuda::experimental::places

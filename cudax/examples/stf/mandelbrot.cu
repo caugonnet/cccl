@@ -19,7 +19,6 @@
 #include <iostream>
 
 using namespace cuda::experimental::stf;
-using namespace cuda::experimental::places;
 
 int main(int argc, char** argv)
 {

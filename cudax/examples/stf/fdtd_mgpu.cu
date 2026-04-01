@@ -19,7 +19,6 @@
 #include <stdlib.h>
 
 using namespace cuda::experimental::stf;
-using namespace cuda::experimental::places;
 
 // FIXME : MSVC has trouble with box constructors
 #if !_CCCL_COMPILER(MSVC)
