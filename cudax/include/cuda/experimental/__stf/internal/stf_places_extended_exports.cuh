@@ -18,15 +18,15 @@
 
 #pragma once
 
-#include <cuda/experimental/__places/partitions/blocked_partition.cuh>
-#include <cuda/experimental/__places/partitions/tiled_partition.cuh>
 #include <cuda/experimental/places.cuh>
 
 namespace cuda::experimental::stf
 {
 using ::cuda::experimental::places::blocked_partition;
+#if _CCCL_CTK_AT_LEAST(12, 4)
 using ::cuda::experimental::places::green_context_helper;
 using ::cuda::experimental::places::green_ctx_view;
+#endif // _CCCL_CTK_AT_LEAST(12, 4)
 using ::cuda::experimental::places::make_grid;
 using ::cuda::experimental::places::partition_fn_t;
 using ::cuda::experimental::places::place_partition;
