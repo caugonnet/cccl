@@ -34,6 +34,7 @@ using ::cuda::experimental::places::place_partition;
 using ::cuda::experimental::places::place_partition_scope;
 using ::cuda::experimental::places::place_partition_scope_to_string;
 using ::cuda::experimental::places::stream_pool;
+using ::cuda::experimental::places::tiled;
 using ::cuda::experimental::places::tiled_partition;
 
 template <>
