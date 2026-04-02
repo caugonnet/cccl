@@ -27,7 +27,6 @@
 
 #include <cuda/experimental/__stf/allocators/block_allocator.cuh>
 #include <cuda/experimental/__stf/internal/stf_places_extended_exports.cuh>
-#include <cuda/experimental/__stf/utility/hash.cuh>
 
 #include <mutex>
 

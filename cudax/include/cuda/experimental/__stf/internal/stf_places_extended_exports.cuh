@@ -12,8 +12,10 @@
  * @file
  * @brief Additional `places` names and `stf::hash` specializations for place keys.
  *
- * Pulled after `stf::hash` is declared. Do not duplicate names from
- * `stf_places_into_stf_core.cuh`.
+ * Includes `hash.cuh` first so this header stays valid under clang-format
+ * `SortIncludes` (all `<cuda/experimental/...>` lines are reordered lexically).
+ *
+ * Do not duplicate names from `stf_places_into_stf_core.cuh`.
  *
  * Does not include `place_partition.cuh` (it depends on `async_resources_handle`);
  * use `stf_places_partition_into_stf.cuh` where `place_partition` / `make_grid`
@@ -28,6 +30,7 @@
 #include <cuda/experimental/__places/partitions/tiled_partition.cuh>
 #include <cuda/experimental/__places/places.cuh>
 #include <cuda/experimental/__places/stream_pool.cuh>
+#include <cuda/experimental/__stf/utility/hash.cuh>
 #if _CCCL_CTK_AT_LEAST(12, 4)
 #  include <cuda/experimental/__places/exec/green_context.cuh>
 #endif // _CCCL_CTK_AT_LEAST(12, 4)

@@ -29,7 +29,7 @@
 #include <cuda/experimental/__places/localized_array.cuh>
 #include <cuda/experimental/__stf/internal/async_prereq.cuh>
 #include <cuda/experimental/__stf/internal/stf_places_extended_exports.cuh>
-#include <cuda/experimental/__stf/utility/hash.cuh>
+#include <cuda/experimental/__stf/internal/stf_places_into_stf_core.cuh>
 
 #include <vector>
 

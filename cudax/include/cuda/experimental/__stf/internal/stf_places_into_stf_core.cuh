@@ -12,14 +12,16 @@
  * @file
  * @brief Pulls selected `cuda::experimental::places` names into `cuda::experimental::stf`.
  *
- * Include this **only from STF headers**, immediately after
- * `#include <cuda/experimental/__places/places.cuh>` (or equivalent), and before any
- * `namespace cuda::experimental::stf { ... }` that names those types unqualified.
+ * Includes `places.cuh` so the header is self-contained (e.g. `cudax.headers.basic.stf`
+ * compiles each STF header in isolation). Other STF headers may still include
+ * `places.cuh` first; a second include is dropped by `#pragma once`.
  *
  * Places must not include STF for this bridge; dependency is STF → places only.
  */
 
 #pragma once
+
+#include <cuda/experimental/__places/places.cuh>
 
 namespace cuda::experimental::stf
 {
