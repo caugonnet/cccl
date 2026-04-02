@@ -32,7 +32,7 @@ class exec_place;
 
 namespace cuda::experimental::stf
 {
-using places::exec_place;
+using ::cuda::experimental::places::exec_place;
 
 template <auto... spec>
 class thread_hierarchy;

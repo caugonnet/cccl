@@ -45,7 +45,7 @@ class exec_place;
 
 namespace cuda::experimental::stf
 {
-using places::exec_place;
+using ::cuda::experimental::places::exec_place;
 
 /**
  * @brief Defines the current execution places associated with a context.

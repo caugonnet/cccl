@@ -69,10 +69,7 @@ class data_place_composite;
 // Forward declarations of composite allocator functions — defined in localized_array.cuh
 void* allocate_composite_data_place(const data_place_composite& p, ::std::ptrdiff_t size);
 void deallocate_composite_data_place(void* ptr);
-} // namespace cuda::experimental::places
 
-namespace cuda::experimental::places
-{
 /**
  * @brief Designates where data will be stored (CPU memory vs. on device 0 (first GPU), device 1 (second GPU), ...)
  *

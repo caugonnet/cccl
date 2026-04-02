@@ -124,7 +124,7 @@ public:
     // If needed, compute the underlying device
     if (dstream.dev_id == -1)
     {
-      dstream.dev_id = places::get_device_from_stream(dstream.stream);
+      dstream.dev_id = get_device_from_stream(dstream.stream);
     }
 
     // Save the current device

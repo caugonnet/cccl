@@ -33,6 +33,7 @@
 #include <cuda/experimental/__stf/internal/cooperative_group_system.cuh>
 #include <cuda/experimental/__stf/internal/interpreted_execution_policy.cuh>
 #include <cuda/experimental/__stf/internal/slice.cuh>
+#include <cuda/experimental/__stf/internal/stf_places_extended_exports.cuh>
 
 namespace cuda::experimental::stf
 {
@@ -273,11 +274,11 @@ public:
   {
     if constexpr (depth == 1)
     {
-      return places::cyclic_partition::apply(s, pos4(rank(0)), dim4(size(0)));
+      return cyclic_partition::apply(s, pos4(rank(0)), dim4(size(0)));
     }
     else
     {
-      auto s0 = places::blocked_partition::apply(s, pos4(rank(0)), dim4(size(0)));
+      auto s0 = blocked_partition::apply(s, pos4(rank(0)), dim4(size(0)));
       return inner().apply_partition(s0);
     }
   }

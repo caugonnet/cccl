@@ -28,6 +28,8 @@
 #include <cuda/experimental/__stf/allocators/block_allocator.cuh>
 #include <cuda/experimental/__stf/internal/async_prereq.cuh>
 #include <cuda/experimental/__stf/internal/backend_ctx.cuh>
+#include <cuda/experimental/__stf/internal/stf_places_extended_exports.cuh>
+#include <cuda/experimental/__stf/utility/hash.cuh>
 #include <cuda/experimental/__stf/utility/pretty_print.cuh>
 
 namespace cuda::experimental::stf
@@ -320,7 +322,7 @@ public:
   }
 
 private:
-  ::std::unordered_map<data_place, per_place, places::hash<data_place>> map;
+  ::std::unordered_map<data_place, per_place, hash<data_place>> map;
 
   block_allocator_untyped root_allocator;
 };

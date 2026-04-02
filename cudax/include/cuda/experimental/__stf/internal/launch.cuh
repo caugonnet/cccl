@@ -337,7 +337,7 @@ public:
     if (e_place.size() > 1)
     {
       // Create a composite data place defined by the grid of places + the partitioning function
-      t.set_affine_data_place(data_place::composite(places::blocked_partition(), e_place.as_grid()));
+      t.set_affine_data_place(data_place::composite(blocked_partition(), e_place.as_grid()));
     }
 
     t.add_deps(deps);

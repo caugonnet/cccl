@@ -28,6 +28,7 @@
 #include <cuda/experimental/__places/exec/green_context.cuh>
 #include <cuda/experimental/__stf/internal/exec_affinity.cuh>
 #include <cuda/experimental/__stf/internal/executable_graph_cache.cuh>
+#include <cuda/experimental/__stf/internal/stf_places_extended_exports.cuh>
 #include <cuda/experimental/__stf/utility/core.cuh>
 #include <cuda/experimental/__stf/utility/cuda_safe_call.cuh>
 #include <cuda/experimental/__stf/utility/hash.cuh> // for ::std::hash<::std::pair<::std::ptrdiff_t, ::std::ptrdiff_t>>
@@ -72,7 +73,7 @@ private:
     bool validate_sync_and_update(unsigned long long dst, unsigned long long src, int event_id)
     {
       // If either of the streams has no valid id, do not skip
-      if (dst == places::k_no_stream_id || src == places::k_no_stream_id)
+      if (dst == k_no_stream_id || src == k_no_stream_id)
       {
         return false;
       }
@@ -127,7 +128,7 @@ private:
     executable_graph_cache cached_graphs;
 
 #if _CCCL_CTK_AT_LEAST(12, 4)
-    ::std::vector<::std::shared_ptr<places::green_context_helper>> per_device_gc_helper;
+    ::std::vector<::std::shared_ptr<green_context_helper>> per_device_gc_helper;
 #endif // _CCCL_CTK_AT_LEAST(12, 4)
 
     mutable exec_affinity affinity;
@@ -188,20 +189,20 @@ public:
   }
 
   // Get green context helper with lazy initialization
-  ::std::shared_ptr<places::green_context_helper> get_gc_helper(int dev_id, int sm_count)
+  ::std::shared_ptr<green_context_helper> get_gc_helper(int dev_id, int sm_count)
   {
     assert(pimpl);
     assert(dev_id < int(pimpl->per_device_gc_helper.size()));
     auto& h = pimpl->per_device_gc_helper[dev_id];
     if (!h)
     {
-      h = ::std::make_shared<places::green_context_helper>(sm_count, dev_id);
+      h = ::std::make_shared<green_context_helper>(sm_count, dev_id);
     }
     return h;
   }
 
   // Register an external green context helper
-  void register_gc_helper(int dev_id, ::std::shared_ptr<places::green_context_helper> helper)
+  void register_gc_helper(int dev_id, ::std::shared_ptr<green_context_helper> helper)
   {
     assert(pimpl);
     assert(dev_id < int(pimpl->per_device_gc_helper.size()));

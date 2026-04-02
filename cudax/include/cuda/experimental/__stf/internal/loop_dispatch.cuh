@@ -27,6 +27,8 @@
 #endif // no system header
 
 #include <cuda/experimental/__places/place_partition.cuh>
+#include <cuda/experimental/__stf/internal/stf_places_extended_exports.cuh>
+#include <cuda/experimental/__stf/internal/stf_places_partition_into_stf.cuh>
 
 #include <thread>
 
@@ -65,12 +67,12 @@ template <typename context_t, typename exec_place_t, bool use_threads = true>
 inline void loop_dispatch(
   context_t& ctx,
   exec_place_t root_exec_place,
-  places::place_partition_scope scope,
+  place_partition_scope scope,
   size_t start,
   size_t end,
   ::std::function<void(size_t)> func)
 {
-  auto partition = places::place_partition(ctx.async_resources(), root_exec_place, scope);
+  auto partition = place_partition(ctx.async_resources(), root_exec_place, scope);
 
   size_t cnt = end - start;
 
@@ -157,11 +159,11 @@ inline void loop_dispatch(
   context_t& ctx, exec_place_t root_exec_place, size_t start, size_t end, ::std::function<void(size_t)> func)
 {
   // Partition among devices by default
-  places::place_partition_scope scope = places::place_partition_scope::cuda_device;
+  place_partition_scope scope = place_partition_scope::cuda_device;
 
   if (getenv("CUDASTF_GREEN_CONTEXT_SIZE"))
   {
-    scope = places::place_partition_scope::green_context;
+    scope = place_partition_scope::green_context;
   }
 
   loop_dispatch<context_t, exec_place_t, use_threads>(ctx, mv(root_exec_place), scope, start, end, mv(func));
@@ -175,11 +177,11 @@ template <typename context_t, bool use_threads = true>
 inline void loop_dispatch(context_t& ctx, size_t start, size_t end, ::std::function<void(size_t)> func)
 {
   // Partition among devices by default
-  places::place_partition_scope scope = places::place_partition_scope::cuda_device;
+  place_partition_scope scope = place_partition_scope::cuda_device;
 
   if (getenv("CUDASTF_GREEN_CONTEXT_SIZE"))
   {
-    scope = places::place_partition_scope::green_context;
+    scope = place_partition_scope::green_context;
   }
 
   // The type of the "exec_place_t" differs if we already use a vector of
