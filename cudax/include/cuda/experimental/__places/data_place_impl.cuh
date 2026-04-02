@@ -34,7 +34,6 @@
 
 namespace cuda::experimental::places
 {
-using ::cuda::experimental::stf::cuda_safe_call;
 using ::cuda::experimental::stf::cuda_try;
 
 /**
@@ -126,13 +125,13 @@ public:
   void* allocate(::std::ptrdiff_t size, cudaStream_t) const override
   {
     void* result = nullptr;
-    cuda_safe_call(cudaMallocHost(&result, size));
+    cuda_try(cudaMallocHost(&result, static_cast<size_t>(size)));
     return result;
   }
 
   void deallocate(void* ptr, size_t, cudaStream_t) const override
   {
-    cuda_safe_call(cudaFreeHost(ptr));
+    cuda_try(cudaFreeHost(ptr));
   }
 
   bool allocation_is_stream_ordered() const override
@@ -194,13 +193,13 @@ public:
   void* allocate(::std::ptrdiff_t size, cudaStream_t) const override
   {
     void* result = nullptr;
-    cuda_safe_call(cudaMallocManaged(&result, size));
+    cuda_try(cudaMallocManaged(&result, static_cast<size_t>(size)));
     return result;
   }
 
   void deallocate(void* ptr, size_t, cudaStream_t) const override
   {
-    cuda_safe_call(cudaFree(ptr));
+    cuda_try(cudaFree(ptr));
   }
 
   bool allocation_is_stream_ordered() const override
@@ -258,18 +257,18 @@ public:
 
     if (prev_dev != device_id_)
     {
-      cuda_safe_call(cudaSetDevice(device_id_));
+      cuda_try(cudaSetDevice(device_id_));
     }
 
     SCOPE(exit)
     {
       if (prev_dev != device_id_)
       {
-        cuda_safe_call(cudaSetDevice(prev_dev));
+        cuda_try(cudaSetDevice(prev_dev));
       }
     };
 
-    cuda_safe_call(cudaMallocAsync(&result, size, stream));
+    cuda_try(cudaMallocAsync(&result, static_cast<size_t>(size), stream));
     return result;
   }
 
@@ -279,18 +278,18 @@ public:
 
     if (prev_dev != device_id_)
     {
-      cuda_safe_call(cudaSetDevice(device_id_));
+      cuda_try(cudaSetDevice(device_id_));
     }
 
     SCOPE(exit)
     {
       if (prev_dev != device_id_)
       {
-        cuda_safe_call(cudaSetDevice(prev_dev));
+        cuda_try(cudaSetDevice(prev_dev));
       }
     };
 
-    cuda_safe_call(cudaFreeAsync(ptr, stream));
+    cuda_try(cudaFreeAsync(ptr, stream));
   }
 
   bool allocation_is_stream_ordered() const override

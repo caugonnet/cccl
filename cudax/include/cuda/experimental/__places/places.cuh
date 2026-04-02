@@ -49,7 +49,6 @@
 namespace cuda::experimental::places
 {
 using ::cuda::experimental::stf::box;
-using ::cuda::experimental::stf::cuda_safe_call;
 using ::cuda::experimental::stf::cuda_try;
 using ::cuda::experimental::stf::dim4;
 using ::cuda::experimental::stf::each;
@@ -150,11 +149,7 @@ public:
   /** @brief Data is placed on device with index dev_id. */
   static data_place device(int dev_id = 0)
   {
-    static int const ndevs = [] {
-      int result;
-      cuda_safe_call(cudaGetDeviceCount(&result));
-      return result;
-    }();
+    static int const ndevs = cuda_try<cudaGetDeviceCount>();
 
     EXPECT((dev_id >= 0 && dev_id < ndevs), "Invalid device ID ", dev_id);
 
@@ -933,8 +928,8 @@ inline decorated_stream stream_pool::next(const exec_place& place)
 
   if (!result.stream)
   {
-    auto active = place.activate();
-    cuda_safe_call(cudaStreamCreateWithFlags(&result.stream, cudaStreamNonBlocking));
+    auto active   = place.activate();
+    result.stream = cuda_try<cudaStreamCreateWithFlags>(cudaStreamNonBlocking);
     result.id     = get_stream_id(result.stream);
     result.dev_id = get_device_from_stream(result.stream);
   }
@@ -1091,7 +1086,7 @@ public:
       auto old_dev_id = cuda_try<cudaGetDevice>();
       if (old_dev_id != devid_)
       {
-        cuda_safe_call(cudaSetDevice(devid_));
+        cuda_try(cudaSetDevice(devid_));
       }
       return exec_place::device(old_dev_id);
     }
@@ -1103,7 +1098,7 @@ public:
       auto restored_dev_id = device_ordinal(prev.affine_data_place());
       if (current_dev_id != restored_dev_id)
       {
-        cuda_safe_call(cudaSetDevice(restored_dev_id));
+        cuda_try(cudaSetDevice(restored_dev_id));
       }
     }
 
@@ -1131,7 +1126,7 @@ inline exec_place exec_place::device(int devid)
 {
   static int ndevices;
   static exec_place_device::impl* impls = [] {
-    cuda_safe_call(cudaGetDeviceCount(&ndevices));
+    ndevices    = cuda_try<cudaGetDeviceCount>();
     auto result = static_cast<exec_place_device::impl*>(::operator new[](ndevices * sizeof(exec_place_device::impl)));
     for (int i : each(ndevices))
     {
@@ -1692,7 +1687,7 @@ UNITTEST("exec place equality")
 
   EXPECT(exec_place::host() != exec_place::current_device());
 
-  cuda_safe_call(cudaSetDevice(0)); // just in case the environment was somehow messed up
+  cuda_try(cudaSetDevice(0)); // just in case the environment was somehow messed up
   EXPECT(exec_place::device(0) == exec_place::current_device());
 };
 
