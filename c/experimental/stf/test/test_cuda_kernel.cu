@@ -8,6 +8,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cstdlib>
+#include <memory>
+
 #include <cuda_runtime.h>
 
 #include <c2h/catch2_test_helper.h>
@@ -41,8 +44,12 @@ C2H_TEST("axpy with stf cuda_kernel", "[cuda_kernel]")
   stf_ctx_handle ctx = stf_ctx_create();
   REQUIRE(ctx != nullptr);
 
-  double* X = (double*) malloc(N * sizeof(double));
-  double* Y = (double*) malloc(N * sizeof(double));
+  std::unique_ptr<void, decltype(&free)> X_owner(malloc(N * sizeof(double)), free);
+  std::unique_ptr<void, decltype(&free)> Y_owner(malloc(N * sizeof(double)), free);
+  REQUIRE(X_owner.get() != nullptr);
+  REQUIRE(Y_owner.get() != nullptr);
+  double* X = static_cast<double*>(X_owner.get());
+  double* Y = static_cast<double*>(Y_owner.get());
 
   for (size_t i = 0; i < N; i++)
   {
@@ -84,7 +91,4 @@ C2H_TEST("axpy with stf cuda_kernel", "[cuda_kernel]")
     assert(fabs(Y[i] - (Y0(i) + alpha * X0(i))) < 0.0001);
     assert(fabs(X[i] - X0(i)) < 0.0001);
   }
-
-  free(X);
-  free(Y);
 }
