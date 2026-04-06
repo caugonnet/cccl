@@ -336,13 +336,22 @@ cdef class logical_data:
         """
         Create a new logical_data from a shape and a dtype.
         """
+        try:
+            shape_tuple = tuple(int(dim) for dim in shape)
+        except TypeError:
+            raise TypeError("shape must be an iterable of integers")
+        if not shape_tuple:
+            raise ValueError("shape must contain at least one dimension")
+        for dim in shape_tuple:
+            if dim <= 0:
+                raise ValueError("all shape dimensions must be positive integers")
         cdef logical_data out = logical_data.__new__(logical_data)
         out._ctx   = ctx._ctx
         out._dtype = np.dtype(dtype)
-        out._shape = shape
-        out._ndim  = len(shape)
+        out._shape = shape_tuple
+        out._ndim  = len(shape_tuple)
         cdef size_t total_items = 1
-        for dim in shape:
+        for dim in shape_tuple:
             total_items *= dim
         out._len   = total_items * out._dtype.itemsize
         out._symbol = None
