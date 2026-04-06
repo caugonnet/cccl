@@ -171,5 +171,46 @@ def test_fence_on_null_ctx_raises():
         ctx.fence()
 
 
+def test_double_finalize_is_safe():
+    """Calling finalize() twice is a no-op: the Python guard NULLs the
+    handle before calling C++, so the second call never reaches the C API."""
+    ctx = stf.context()
+    ctx.finalize()
+    ctx.finalize()
+
+
+def test_borrowed_context_cannot_finalize():
+    """A borrowed context must raise on finalize()."""
+    ctx = stf.context()
+    ld = ctx.logical_data(np.zeros(4, dtype=np.float32))
+    borrowed = ld.borrow_ctx_handle()
+    with pytest.raises(RuntimeError, match="cannot finalize borrowed context"):
+        borrowed.finalize()
+    ctx.finalize()
+
+
+def test_finalize_then_fence_raises():
+    """Operations on a finalized context raise RuntimeError."""
+    ctx = stf.context()
+    ctx.finalize()
+    with pytest.raises(RuntimeError, match="context handle is NULL"):
+        ctx.fence()
+
+
+def test_dealloc_does_not_raise():
+    """Deleting objects should never raise, even on double cleanup.
+
+    This tests the __dealloc__ safety pattern: cleanup failures are
+    printed, not raised.  We create objects, manually NULL-out their
+    handles, and delete them — the __dealloc__ guards should skip the
+    C API call without incident.
+    """
+    ctx = stf.context()
+    ld = ctx.logical_data(np.zeros(4, dtype=np.float32))
+    ctx.finalize()
+    del ld
+    del ctx
+
+
 if __name__ == "__main__":
     test_ctx3()
