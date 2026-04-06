@@ -18,9 +18,15 @@ There's no need to manually set the current device in task bodies - just use the
 
 import sys
 
-import cupy as cp
 import numpy as np
-from cupyx.scipy import linalg as cp_linalg
+
+try:
+    import cupy as cp
+    from cupyx.scipy import linalg as cp_linalg
+except ImportError:
+    raise ImportError(
+        "This example requires CuPy. Install it with: pip install cupy-cuda12x (or cupy-cuda11x)"
+    ) from None
 
 import cuda.stf as stf
 
