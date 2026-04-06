@@ -43,6 +43,7 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     stf_ctx_handle stf_ctx_create()
     stf_ctx_handle stf_ctx_create_graph()
     void stf_ctx_finalize(stf_ctx_handle ctx) nogil
+    CUstream stf_fence(stf_ctx_handle ctx) nogil
 
     #
     # Exec places (opaque handles)
@@ -628,6 +629,37 @@ cdef class context:
                 stf_ctx_finalize(h)
         else:
             self._ctx = NULL
+
+    def fence(self):
+        """Return a CUDA stream that completes when all pending tasks finish.
+
+        Provides a non-blocking synchronization point: the returned stream
+        will be signaled once every task submitted so far has completed.
+        Unlike ``finalize()``, this does **not** destroy the context, so
+        more tasks can be submitted afterwards.
+
+        Returns
+        -------
+        int
+            Raw ``CUstream`` handle as a Python integer (suitable for
+            ``cudaStreamSynchronize`` via ctypes, PyCUDA, etc.).
+
+        Examples
+        --------
+        >>> ctx = stf.context()
+        >>> ld = ctx.logical_data(np.zeros(8, dtype=np.float32))
+        >>> with ctx.task(ld.rw()):
+        ...     pass
+        >>> stream = ctx.fence()
+        >>> # cudaStreamSynchronize(stream) to wait for completion
+        >>> ctx.finalize()
+        """
+        if self._ctx == NULL:
+            raise RuntimeError("context handle is NULL")
+        cdef CUstream s
+        with nogil:
+            s = stf_fence(self._ctx)
+        return <uintptr_t>s
 
     def logical_data(self, object buf, data_place dplace=None, str name=None):
         """

@@ -101,5 +101,75 @@ def test_logical_data_rejects_non_contiguous():
     ctx.finalize()
 
 
+def test_fence_returns_stream():
+    """fence() returns a non-zero CUDA stream handle."""
+    ctx = stf.context()
+    ld = ctx.logical_data(np.zeros(8, dtype=np.float32))
+    with ctx.task(ld.rw()):
+        pass
+    stream = ctx.fence()
+    assert isinstance(stream, int)
+    assert stream != 0, "fence() should return a valid (non-zero) CUDA stream"
+    ctx.finalize()
+
+
+def test_fence_graph_ctx():
+    """fence() works with a graph-mode context."""
+    ctx = stf.context(use_graph=True)
+    ld = ctx.logical_data(np.ones(4, dtype=np.float64))
+    with ctx.task(ld.rw()):
+        pass
+    stream = ctx.fence()
+    assert isinstance(stream, int)
+    assert stream != 0
+    ctx.finalize()
+
+
+def test_fence_then_more_tasks():
+    """Tasks can be submitted after fence()."""
+    ctx = stf.context()
+    arr = np.zeros(4, dtype=np.float32)
+    ld = ctx.logical_data(arr)
+
+    with ctx.task(ld.rw()):
+        pass
+
+    stream1 = ctx.fence()
+    assert stream1 != 0
+
+    with ctx.task(ld.rw()):
+        pass
+
+    stream2 = ctx.fence()
+    assert stream2 != 0
+
+    ctx.finalize()
+
+
+def test_fence_multiple_deps():
+    """fence() works with multiple logical data in flight."""
+    ctx = stf.context()
+    X = np.ones(8, dtype=np.float32)
+    Y = np.ones(8, dtype=np.float32)
+    lX = ctx.logical_data(X)
+    lY = ctx.logical_data(Y)
+
+    with ctx.task(lX.read(), lY.rw()):
+        pass
+
+    stream = ctx.fence()
+    assert isinstance(stream, int)
+    assert stream != 0
+    ctx.finalize()
+
+
+def test_fence_on_null_ctx_raises():
+    """fence() raises RuntimeError on an already-finalized context."""
+    ctx = stf.context()
+    ctx.finalize()
+    with pytest.raises(RuntimeError, match="context handle is NULL"):
+        ctx.fence()
+
+
 if __name__ == "__main__":
     test_ctx3()
