@@ -55,7 +55,7 @@ struct DeviceCopy
   //!    {
   //!      __host__ __device__ __forceinline__ auto operator()(uint32_t index)
   //!      {
-  //!        return thrust::make_constant_iterator(d_data_in[index]);
+  //!        return ::cuda::make_constant_iterator(d_data_in[index]);
   //!      }
   //!      int32_t *d_data_in;
   //!    };
@@ -226,7 +226,6 @@ struct DeviceCopy
   //!
   //! @param[in] env
   //!   **[optional]** Execution environment. Default is ``cuda::std::execution::env{}``.
-  //!   @endrst
   template <typename InputIt, typename OutputIt, typename SizeIteratorT, typename EnvT = ::cuda::std::execution::env<>>
   [[nodiscard]] CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE static cudaError_t
   Batched(InputIt input_it, OutputIt output_it, SizeIteratorT sizes, ::cuda::std::int64_t num_ranges, EnvT env = {})
@@ -428,7 +427,6 @@ struct DeviceCopy
   //!
   //! @param[in] env
   //!   **[optional]** Execution environment. Default is ``cuda::std::execution::env{}``.
-  //!   @endrst
   template <typename T_In,
             typename Extents_In,
             typename Layout_In,
