@@ -167,5 +167,35 @@ def test_cuda_kernel_loop_accumulate():
     np.testing.assert_allclose(Y, expected * np.ones(N), rtol=1e-12)
 
 
+def test_cuda_kernel_multi_launch():
+    """Two launch() calls inside a single cuda_kernel task.
+
+    The cuda_kernel task accumulates kernel descriptors, so calling
+    launch() twice should execute both kernels with the correct args.
+    Y = Y + alpha1*X + alpha2*X = 0 + 1*1 + 2*1 = 3.
+    """
+    N = 256
+    X = np.ones(N, dtype=np.float64)
+    Y = np.zeros(N, dtype=np.float64)
+
+    kernel = _compile_axpy()
+
+    ctx = stf.context()
+    lX = ctx.logical_data(X, name="X")
+    lY = ctx.logical_data(Y, name="Y")
+
+    with ctx.cuda_kernel(lX.read(), lY.rw()) as k:
+        dX = k.get_arg(0)
+        dY = k.get_arg(1)
+        k.launch(kernel, grid=(1,), block=(256,),
+                 args=[ctypes.c_int(N), ctypes.c_double(1.0), dX, dY])
+        k.launch(kernel, grid=(1,), block=(256,),
+                 args=[ctypes.c_int(N), ctypes.c_double(2.0), dX, dY])
+
+    ctx.finalize()
+
+    np.testing.assert_allclose(Y, 3.0 * np.ones(N), rtol=1e-12)
+
+
 if __name__ == "__main__":
     test_cuda_kernel_axpy()

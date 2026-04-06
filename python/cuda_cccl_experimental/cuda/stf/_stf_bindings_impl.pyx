@@ -246,6 +246,8 @@ cdef class logical_data:
             self._len = total_items * itemsize
 
             self._ld = stf_logical_data_with_place(ctx._ctx, <void*><uintptr_t>data_ptr, self._len, dplace._h)
+            if self._ld == NULL:
+                raise RuntimeError("failed to create logical_data from CUDA array interface")
 
         else:
             # Fallback to Python buffer protocol; require contiguous memory
@@ -264,6 +266,8 @@ cdef class logical_data:
                 self._shape = tuple(<Py_ssize_t>view.shape[i] for i in range(view.ndim))
                 self._dtype = np.dtype(view.format)
                 self._ld = stf_logical_data_with_place(ctx._ctx, view.buf, view.len, dplace._h)
+                if self._ld == NULL:
+                    raise RuntimeError("failed to create logical_data from buffer")
 
             finally:
                 PyBuffer_Release(&view)
@@ -284,7 +288,10 @@ cdef class logical_data:
 
     def __dealloc__(self):
         if self._ld != NULL:
-            stf_logical_data_destroy(self._ld)
+            try:
+                stf_logical_data_destroy(self._ld)
+            except Exception as e:
+                print(f"stf.logical_data: cleanup failed: {e}")
             self._ld = NULL
 
     def __repr__(self):
@@ -322,12 +329,14 @@ cdef class logical_data:
 
         cdef logical_data out = logical_data.__new__(logical_data)
         out._ld = stf_logical_data_empty(self._ctx, self._len)
+        if out._ld == NULL:
+            raise RuntimeError("failed to create empty logical_data")
         out._ctx   = self._ctx
         out._dtype = self._dtype
         out._shape = self._shape
         out._ndim  = self._ndim
         out._len   = self._len
-        out._symbol = None  # New object has no symbol initially
+        out._symbol = None
         out._is_token = False
 
         return out
@@ -343,6 +352,8 @@ cdef class logical_data:
         out._symbol = None  # New object has no symbol initially
         out._is_token = True
         out._ld = stf_token(ctx._ctx)
+        if out._ld == NULL:
+            raise RuntimeError("failed to create STF token")
 
         return out
 
@@ -372,6 +383,8 @@ cdef class logical_data:
         out._symbol = None
         out._is_token = False
         out._ld = stf_logical_data_empty(ctx._ctx, out._len)
+        if out._ld == NULL:
+            raise RuntimeError("failed to create logical_data from shape")
 
         if name is not None:
             out.set_symbol(name)
@@ -410,19 +423,26 @@ cdef class exec_place:
 
     def __dealloc__(self):
         if self._h != NULL:
-            stf_exec_place_destroy(self._h)
+            try:
+                stf_exec_place_destroy(self._h)
+            except Exception as e:
+                print(f"stf.exec_place: cleanup failed: {e}")
             self._h = NULL
 
     @staticmethod
     def device(int dev_id):
         cdef exec_place p = exec_place.__new__(exec_place)
         p._h = stf_exec_place_device(dev_id)
+        if p._h == NULL:
+            raise RuntimeError(f"failed to create exec_place for device {dev_id}")
         return p
 
     @staticmethod
     def host():
         cdef exec_place p = exec_place.__new__(exec_place)
         p._h = stf_exec_place_host()
+        if p._h == NULL:
+            raise RuntimeError("failed to create host exec_place")
         return p
 
     @property
@@ -439,31 +459,42 @@ cdef class data_place:
 
     def __dealloc__(self):
         if self._h != NULL:
-            stf_data_place_destroy(self._h)
+            try:
+                stf_data_place_destroy(self._h)
+            except Exception as e:
+                print(f"stf.data_place: cleanup failed: {e}")
             self._h = NULL
 
     @staticmethod
     def device(int dev_id):
         cdef data_place p = data_place.__new__(data_place)
         p._h = stf_data_place_device(dev_id)
+        if p._h == NULL:
+            raise RuntimeError(f"failed to create data_place for device {dev_id}")
         return p
 
     @staticmethod
     def host():
         cdef data_place p = data_place.__new__(data_place)
         p._h = stf_data_place_host()
+        if p._h == NULL:
+            raise RuntimeError("failed to create host data_place")
         return p
 
     @staticmethod
     def managed():
         cdef data_place p = data_place.__new__(data_place)
         p._h = stf_data_place_managed()
+        if p._h == NULL:
+            raise RuntimeError("failed to create managed data_place")
         return p
 
     @staticmethod
     def affine():
         cdef data_place p = data_place.__new__(data_place)
         p._h = stf_data_place_affine()
+        if p._h == NULL:
+            raise RuntimeError("failed to create affine data_place")
         return p
 
     @property
@@ -486,11 +517,16 @@ cdef class task:
 
     def __cinit__(self, context ctx):
         self._t = stf_task_create(ctx._ctx)
+        if self._t == NULL:
+            raise RuntimeError("failed to create STF task")
         self._lds_args = []
 
     def __dealloc__(self):
         if self._t != NULL:
-             stf_task_destroy(self._t)
+            try:
+                stf_task_destroy(self._t)
+            except Exception as e:
+                print(f"stf.task: cleanup failed: {e}")
 
     def start(self):
         # This is ignored if this is not a graph task
@@ -612,23 +648,28 @@ cdef class cuda_kernel:
     """
     cdef stf_cuda_kernel_handle _k
     cdef list _lds_args
-    cdef object _arg_holder  # keep ParamHolder alive until end()
+    cdef list _arg_holders  # keep ParamHolder(s) alive until end()
 
     def __cinit__(self, context ctx):
         self._k = stf_cuda_kernel_create(ctx._ctx)
+        if self._k == NULL:
+            raise RuntimeError("failed to create STF cuda_kernel")
         self._lds_args = []
-        self._arg_holder = None
+        self._arg_holders = []
 
     def __dealloc__(self):
         if self._k != NULL:
-            stf_cuda_kernel_destroy(self._k)
+            try:
+                stf_cuda_kernel_destroy(self._k)
+            except Exception as e:
+                print(f"stf.cuda_kernel: cleanup failed: {e}")
 
     def start(self):
         stf_cuda_kernel_start(self._k)
 
     def end(self):
         stf_cuda_kernel_end(self._k)
-        self._arg_holder = None
+        self._arg_holders.clear()
 
     def add_dep(self, object d):
         if not isinstance(d, dep):
@@ -709,7 +750,7 @@ cdef class cuda_kernel:
             grid_dim, block_dim, shmem,
             <int>len(args), raw_args)
 
-        self._arg_holder = holder
+        self._arg_holders.append(holder)
 
     def __enter__(self):
         self.start()
@@ -764,6 +805,8 @@ cdef class context:
                 self._ctx = stf_ctx_create_graph()
             else:
                 self._ctx = stf_ctx_create()
+            if self._ctx == NULL:
+                raise RuntimeError("failed to create STF context")
 
     cdef borrow_from_handle(self, stf_ctx_handle ctx_handle):
         if self._ctx != NULL:
@@ -779,7 +822,10 @@ cdef class context:
 
     def __dealloc__(self):
         if not self._borrowed:
-            self.finalize()
+            try:
+                self.finalize()
+            except Exception as e:
+                print(f"stf.context: cleanup failed: {e}")
 
     def finalize(self):
         if self._borrowed:
@@ -1134,6 +1180,9 @@ cdef class context:
         cdef stf_host_launch_handle h
         cdef int mode_ce
         h = stf_host_launch_create(self._ctx)
+        if h == NULL:
+            Py_XDECREF(<PyObject*>payload)
+            raise RuntimeError("failed to create STF host_launch")
         try:
             if symbol is not None:
                 sym_bytes = symbol.encode("utf-8")
