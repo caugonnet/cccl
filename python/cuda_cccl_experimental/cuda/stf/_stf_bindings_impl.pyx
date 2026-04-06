@@ -6,9 +6,6 @@
 # cython: language_level=3
 # cython: linetrace=True
 
-# Python signatures are declared in the companion Python stub file _bindings.pyi
-# Make sure to update PYI with change to Python API to ensure that Python
-# static type checker tools like mypy green-lights cuda.cccl.parallel
 
 from cpython.buffer cimport (
     Py_buffer, PyBUF_FORMAT, PyBUF_ND, PyBUF_SIMPLE, PyBUF_ANY_CONTIGUOUS,
