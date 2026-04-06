@@ -90,7 +90,9 @@ def test_task_arg_cai_v3():
 
 def test_logical_data_rejects_non_contiguous():
     arr = np.ones((10, 10), dtype=np.float32)
-    strided_view = arr[::2, :]  # non-contiguous: stride along axis 0 != itemsize * shape[1]
+    strided_view = arr[
+        ::2, :
+    ]  # non-contiguous: stride along axis 0 != itemsize * shape[1]
     assert not strided_view.flags["C_CONTIGUOUS"]
 
     ctx = stf.context()
