@@ -233,18 +233,21 @@ cdef class logical_data:
             stf_logical_data_with_place(ctx._ctx, &self._ld, <void*><uintptr_t>data_ptr, self._len, dplace._c_place)
 
         else:
-            # Fallback to Python buffer protocol
-            flags = PyBUF_FORMAT | PyBUF_ND          # request dtype + shape
+            # Fallback to Python buffer protocol; require contiguous memory
+            # since STF registers view.buf/view.len as a flat byte range.
+            flags = PyBUF_FORMAT | PyBUF_ND | PyBUF_ANY_CONTIGUOUS
 
             if PyObject_GetBuffer(buf, &view, flags) != 0:
-                raise ValueError("object doesn't support the full buffer protocol or __cuda_array_interface__")
+                raise ValueError(
+                    "object doesn't support the buffer protocol, is not contiguous, "
+                    "or doesn't expose __cuda_array_interface__"
+                )
 
             try:
                 self._ndim  = view.ndim
                 self._len = view.len
                 self._shape = tuple(<Py_ssize_t>view.shape[i] for i in range(view.ndim))
                 self._dtype = np.dtype(view.format)
-                # For buffer protocol objects, use the specified data place (defaults to host)
                 stf_logical_data_with_place(ctx._ctx, &self._ld, view.buf, view.len, dplace._c_place)
 
             finally:

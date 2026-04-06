@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 import numpy as np
+import pytest
 
 import cuda.stf as stf
 
@@ -84,6 +85,17 @@ def test_task_arg_cai_v3():
         assert cai["typestr"] == X.dtype.str
         assert cai["stream"] == t.stream_ptr()
 
+    ctx.finalize()
+
+
+def test_logical_data_rejects_non_contiguous():
+    arr = np.ones((10, 10), dtype=np.float32)
+    strided_view = arr[::2, :]  # non-contiguous: stride along axis 0 != itemsize * shape[1]
+    assert not strided_view.flags["C_CONTIGUOUS"]
+
+    ctx = stf.context()
+    with pytest.raises(ValueError, match="not contiguous"):
+        ctx.logical_data(strided_view)
     ctx.finalize()
 
 
