@@ -90,7 +90,7 @@ class TestCompositeTask:
             X[i] = float(i)
         lX = ctx.logical_data(X, name="X_composite")
 
-        with ctx.task(stf.exec_place.device(0), lX.rw(dplace)) as t:
+        with ctx.task(stf.exec_place.device(0), lX.rw(dplace)):
             pass
 
         ctx.finalize()
@@ -109,7 +109,7 @@ class TestCompositeTask:
             X[i] = float(i)
         lX = ctx.logical_data(X, name="X_composite_graph")
 
-        with ctx.task(stf.exec_place.device(0), lX.rw(dplace)) as t:
+        with ctx.task(stf.exec_place.device(0), lX.rw(dplace)):
             pass
 
         ctx.finalize()
@@ -127,7 +127,7 @@ class TestCompositeTask:
         X = np.arange(N, dtype=np.float32)
         lX = ctx.logical_data(X)
 
-        with ctx.task(grid, lX.rw()) as t:
+        with ctx.task(grid, lX.rw()):
             pass
 
         ctx.finalize()
@@ -142,7 +142,7 @@ class TestCompositeTask:
         X = np.zeros(N, dtype=np.float32)
         lX = ctx.logical_data(X)
 
-        with ctx.task(grid, lX.rw()) as t:
+        with ctx.task(grid, lX.rw()):
             pass
 
         ctx.finalize()
