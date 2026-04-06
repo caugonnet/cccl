@@ -13,6 +13,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cstdlib>
+#include <memory>
+
 #include <cuda_runtime.h>
 
 #include <c2h/catch2_test_helper.h>
@@ -34,7 +37,9 @@ C2H_TEST("stf_logical_data_with_place - host place (malloc)", "[logical_data_wit
   stf_ctx_handle ctx = stf_ctx_create();
   REQUIRE(ctx != nullptr);
 
-  float* A = static_cast<float*>(malloc(N * sizeof(float)));
+  std::unique_ptr<void, decltype(&free)> A_owner(malloc(N * sizeof(float)), free);
+  REQUIRE(A_owner.get() != nullptr);
+  float* A = static_cast<float*>(A_owner.get());
   for (size_t i = 0; i < N; ++i)
   {
     A[i] = static_cast<float>(i);
@@ -59,8 +64,6 @@ C2H_TEST("stf_logical_data_with_place - host place (malloc)", "[logical_data_wit
   {
     REQUIRE(A[i] == static_cast<float>(i));
   }
-
-  free(A);
 }
 
 C2H_TEST("stf_logical_data_with_place - host place (pinned memory)", "[logical_data_with_place]")
@@ -70,9 +73,11 @@ C2H_TEST("stf_logical_data_with_place - host place (pinned memory)", "[logical_d
   stf_ctx_handle ctx = stf_ctx_create();
   REQUIRE(ctx != nullptr);
 
-  float* A        = nullptr;
-  cudaError_t err = cudaMallocHost(&A, N * sizeof(float));
+  float* A_raw    = nullptr;
+  cudaError_t err = cudaMallocHost(&A_raw, N * sizeof(float));
   REQUIRE(err == cudaSuccess);
+  std::unique_ptr<void, decltype(&cudaFreeHost)> A_owner(A_raw, cudaFreeHost);
+  float* A = static_cast<float*>(A_owner.get());
   for (size_t i = 0; i < N; ++i)
   {
     A[i] = static_cast<float>(i);
@@ -97,8 +102,6 @@ C2H_TEST("stf_logical_data_with_place - host place (pinned memory)", "[logical_d
   {
     REQUIRE(A[i] == static_cast<float>(i));
   }
-
-  cudaFreeHost(A);
 }
 
 C2H_TEST("stf_logical_data_with_place - device place (data on current device)", "[logical_data_with_place]")
@@ -109,18 +112,23 @@ C2H_TEST("stf_logical_data_with_place - device place (data on current device)", 
   stf_ctx_handle ctx = stf_ctx_create();
   REQUIRE(ctx != nullptr);
 
-  float* d_data   = nullptr;
-  cudaError_t err = cudaMalloc(&d_data, N * sizeof(float));
+  float* d_raw    = nullptr;
+  cudaError_t err = cudaMalloc(&d_raw, N * sizeof(float));
   REQUIRE(err == cudaSuccess);
+  std::unique_ptr<void, decltype(&cudaFree)> d_data_owner(d_raw, cudaFree);
+  float* d_data = static_cast<float*>(d_data_owner.get());
 
-  float* h_init = static_cast<float*>(malloc(N * sizeof(float)));
-  for (size_t i = 0; i < N; ++i)
   {
-    h_init[i] = static_cast<float>(i);
+    std::unique_ptr<void, decltype(&free)> h_init_owner(malloc(N * sizeof(float)), free);
+    REQUIRE(h_init_owner.get() != nullptr);
+    float* h_init = static_cast<float*>(h_init_owner.get());
+    for (size_t i = 0; i < N; ++i)
+    {
+      h_init[i] = static_cast<float>(i);
+    }
+    err = cudaMemcpy(d_data, h_init, N * sizeof(float), cudaMemcpyHostToDevice);
+    REQUIRE(err == cudaSuccess);
   }
-  err = cudaMemcpy(d_data, h_init, N * sizeof(float), cudaMemcpyHostToDevice);
-  REQUIRE(err == cudaSuccess);
-  free(h_init);
 
   stf_data_place_handle dev_place = stf_data_place_device(0);
   stf_logical_data_handle lD      = stf_logical_data_with_place(ctx, d_data, N * sizeof(float), dev_place);
@@ -148,7 +156,9 @@ C2H_TEST("stf_logical_data_with_place - device place (data on current device)", 
   stf_ctx_finalize(ctx);
 
   // Copy back and verify: should be i * factor
-  float* h_result = static_cast<float*>(malloc(N * sizeof(float)));
+  std::unique_ptr<void, decltype(&free)> h_result_owner(malloc(N * sizeof(float)), free);
+  REQUIRE(h_result_owner.get() != nullptr);
+  float* h_result = static_cast<float*>(h_result_owner.get());
   err             = cudaMemcpy(h_result, d_data, N * sizeof(float), cudaMemcpyDeviceToHost);
   REQUIRE(err == cudaSuccess);
 
@@ -156,7 +166,4 @@ C2H_TEST("stf_logical_data_with_place - device place (data on current device)", 
   {
     REQUIRE(h_result[i] == static_cast<float>(i) * factor);
   }
-
-  free(h_result);
-  cudaFree(d_data);
 }

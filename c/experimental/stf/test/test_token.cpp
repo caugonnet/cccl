@@ -8,6 +8,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cstdlib>
+#include <memory>
+
 #include <cuda_runtime.h>
 
 #include <c2h/catch2_test_helper.h>
@@ -20,9 +23,15 @@ C2H_TEST("stf token", "[token]")
   stf_ctx_handle ctx = stf_ctx_create();
   REQUIRE(ctx != nullptr);
 
-  float* X = (float*) malloc(N * sizeof(float));
-  float* Y = (float*) malloc(N * sizeof(float));
-  float* Z = (float*) malloc(N * sizeof(float));
+  std::unique_ptr<void, decltype(&free)> X_owner(malloc(N * sizeof(float)), free);
+  std::unique_ptr<void, decltype(&free)> Y_owner(malloc(N * sizeof(float)), free);
+  std::unique_ptr<void, decltype(&free)> Z_owner(malloc(N * sizeof(float)), free);
+  REQUIRE(X_owner.get() != nullptr);
+  REQUIRE(Y_owner.get() != nullptr);
+  REQUIRE(Z_owner.get() != nullptr);
+  [[maybe_unused]] float* const X = static_cast<float*>(X_owner.get());
+  [[maybe_unused]] float* const Y = static_cast<float*>(Y_owner.get());
+  [[maybe_unused]] float* const Z = static_cast<float*>(Z_owner.get());
 
   stf_logical_data_handle lX = stf_token(ctx);
   stf_logical_data_handle lY = stf_token(ctx);
@@ -75,8 +84,4 @@ C2H_TEST("stf token", "[token]")
   stf_logical_data_destroy(lZ);
 
   stf_ctx_finalize(ctx);
-
-  free(X);
-  free(Y);
-  free(Z);
 }
