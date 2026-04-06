@@ -12,13 +12,12 @@ import cuda.stf as stf
 
 try:
     from cuda.core import Program
+
     _HAS_CUDA_CORE = True
 except ImportError:
     _HAS_CUDA_CORE = False
 
-pytestmark = pytest.mark.skipif(
-    not _HAS_CUDA_CORE, reason="cuda.core not available"
-)
+pytestmark = pytest.mark.skipif(not _HAS_CUDA_CORE, reason="cuda.core not available")
 
 AXPY_SOURCE = r"""
 extern "C" __global__
@@ -54,8 +53,12 @@ def test_cuda_kernel_axpy():
     with ctx.cuda_kernel(lX.read(), lY.rw(), symbol="axpy") as k:
         dX = k.get_arg(0)
         dY = k.get_arg(1)
-        k.launch(kernel, grid=((N + 255) // 256,), block=(256,),
-                 args=[ctypes.c_int(N), ctypes.c_double(alpha), dX, dY])
+        k.launch(
+            kernel,
+            grid=((N + 255) // 256,),
+            block=(256,),
+            args=[ctypes.c_int(N), ctypes.c_double(alpha), dX, dY],
+        )
 
     ctx.finalize()
 
@@ -79,8 +82,12 @@ def test_cuda_kernel_axpy_graph():
     with ctx.cuda_kernel(lX.read(), lY.rw(), symbol="axpy") as k:
         dX = k.get_arg(0)
         dY = k.get_arg(1)
-        k.launch(kernel, grid=((N + 255) // 256,), block=(256,),
-                 args=[ctypes.c_int(N), ctypes.c_double(alpha), dX, dY])
+        k.launch(
+            kernel,
+            grid=((N + 255) // 256,),
+            block=(256,),
+            args=[ctypes.c_int(N), ctypes.c_double(alpha), dX, dY],
+        )
 
     ctx.finalize()
 
@@ -103,8 +110,12 @@ def test_cuda_kernel_chained():
         with ctx.cuda_kernel(lX.read(), lY.rw()) as k:
             dX = k.get_arg(0)
             dY = k.get_arg(1)
-            k.launch(kernel, grid=((N + 255) // 256,), block=(256,),
-                     args=[ctypes.c_int(N), ctypes.c_double(alpha), dX, dY])
+            k.launch(
+                kernel,
+                grid=((N + 255) // 256,),
+                block=(256,),
+                args=[ctypes.c_int(N), ctypes.c_double(alpha), dX, dY],
+            )
 
     ctx.finalize()
 
@@ -127,8 +138,12 @@ def test_cuda_kernel_raw_handle():
     with ctx.cuda_kernel(lX.read(), lY.rw()) as k:
         dX = k.get_arg(0)
         dY = k.get_arg(1)
-        k.launch(raw_handle, grid=(1,), block=(256,),
-                 args=[ctypes.c_int(N), ctypes.c_double(1.0), dX, dY])
+        k.launch(
+            raw_handle,
+            grid=(1,),
+            block=(256,),
+            args=[ctypes.c_int(N), ctypes.c_double(1.0), dX, dY],
+        )
 
     ctx.finalize()
 
@@ -158,8 +173,12 @@ def test_cuda_kernel_loop_accumulate():
         with ctx.cuda_kernel(lX.read(), lY.rw()) as k:
             dX = k.get_arg(0)
             dY = k.get_arg(1)
-            k.launch(kernel, grid=(1,), block=(256,),
-                     args=[ctypes.c_int(N), ctypes.c_double(float(i)), dX, dY])
+            k.launch(
+                kernel,
+                grid=(1,),
+                block=(256,),
+                args=[ctypes.c_int(N), ctypes.c_double(float(i)), dX, dY],
+            )
 
     ctx.finalize()
 
@@ -187,10 +206,18 @@ def test_cuda_kernel_multi_launch():
     with ctx.cuda_kernel(lX.read(), lY.rw()) as k:
         dX = k.get_arg(0)
         dY = k.get_arg(1)
-        k.launch(kernel, grid=(1,), block=(256,),
-                 args=[ctypes.c_int(N), ctypes.c_double(1.0), dX, dY])
-        k.launch(kernel, grid=(1,), block=(256,),
-                 args=[ctypes.c_int(N), ctypes.c_double(2.0), dX, dY])
+        k.launch(
+            kernel,
+            grid=(1,),
+            block=(256,),
+            args=[ctypes.c_int(N), ctypes.c_double(1.0), dX, dY],
+        )
+        k.launch(
+            kernel,
+            grid=(1,),
+            block=(256,),
+            args=[ctypes.c_int(N), ctypes.c_double(2.0), dX, dY],
+        )
 
     ctx.finalize()
 
