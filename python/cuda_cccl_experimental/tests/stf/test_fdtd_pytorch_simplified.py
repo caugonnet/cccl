@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 import math
-from typing import Literal, Optional, Tuple
 
 import numpy as np
 import pytest
@@ -20,9 +19,6 @@ try:
     has_matplotlib = True
 except ImportError:
     has_matplotlib = False
-
-Plane = Literal["xy", "xz", "yz"]
-
 
 def show_slice(t3d, plane="xy", index=None):
     """Display a 2D slice of a 3D tensor (requires matplotlib)."""
@@ -71,11 +67,7 @@ def test_fdtd_3d_pytorch_simplified(
     dz: float = 0.01,
     epsilon0: float = 8.85e-12,
     mu0: float = 1.256e-6,
-    device: Optional[torch.device] = None,
-    dtype: torch.dtype = torch.float64,
-) -> Tuple[
-    torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
-]:
+) -> None:
     """
     FDTD 3D implementation using pytorch_task for simplified syntax.
     Demonstrates automatic stream and tensor management.
@@ -216,10 +208,18 @@ def test_fdtd_3d_pytorch_simplified(
             )
 
         if output_freq > 0 and (n % output_freq) == 0:
+            # TODO: show_slice should be a host_launch task once that API is
+            # available in the Python STF bindings.
             with pytorch_task(ctx, lez.read()) as (ez,):
                 print(f"{n}\t{ez[cx, cy, cz].item():.6e}")
                 if has_matplotlib:
                     show_slice(ez, plane="xy")
+
+    with pytorch_task(
+        ctx, lex.read(), ley.read(), lez.read(), lhx.read(), lhy.read(), lhz.read()
+    ) as fields:
+        for field in fields:
+            assert torch.isfinite(field).all(), "FDTD produced non-finite values"
 
     ctx.finalize()
 

@@ -203,6 +203,8 @@ def test_fdtd_3d_pytorch(
             )
 
         if output_freq > 0 and (n % output_freq) == 0:
+            # TODO: show_slice should be a host_launch task once that API is
+            # available in the Python STF bindings.
             with (
                 ctx.task(lez.read()) as t,
                 tc.stream(tc.ExternalStream(t.stream_ptr())),
@@ -211,7 +213,15 @@ def test_fdtd_3d_pytorch(
                 print(f"{n}\t{ez[cx, cy, cz].item():.6e}")
                 if has_matplotlib:
                     show_slice(ez, plane="xy")
-            pass
+
+    with (
+        ctx.task(
+            lex.read(), ley.read(), lez.read(), lhx.read(), lhy.read(), lhz.read()
+        ) as t,
+        tc.stream(tc.ExternalStream(t.stream_ptr())),
+    ):
+        for field in tensor_arguments(t):
+            assert torch.isfinite(field).all(), "FDTD produced non-finite values"
 
     ctx.finalize()
 
