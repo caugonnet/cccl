@@ -52,6 +52,27 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     CUstream stf_fence(stf_ctx_handle ctx) nogil
 
     #
+    # 4D position/dimensions for partition mapping
+    #
+    ctypedef struct stf_pos4:
+        int64_t x
+        int64_t y
+        int64_t z
+        int64_t t
+
+    ctypedef struct stf_dim4:
+        uint64_t x
+        uint64_t y
+        uint64_t z
+        uint64_t t
+
+    ctypedef void (*stf_get_executor_fn)(stf_pos4* result, stf_pos4 data_coords, stf_dim4 data_dims, stf_dim4 grid_dims)
+
+    # Forward-declare data place handle (needed by stf_exec_place_set_affine_data_place)
+    ctypedef struct stf_data_place_opaque_t
+    ctypedef stf_data_place_opaque_t* stf_data_place_handle
+
+    #
     # Exec places (opaque handles)
     #
     ctypedef struct stf_exec_place_opaque_t
@@ -64,16 +85,25 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     int stf_exec_place_is_host(stf_exec_place_handle h)
     int stf_exec_place_is_device(stf_exec_place_handle h)
 
+    # Grid introspection
+    void stf_exec_place_get_dims(stf_exec_place_handle h, stf_dim4* out_dims)
+    size_t stf_exec_place_size(stf_exec_place_handle h)
+    void stf_exec_place_set_affine_data_place(stf_exec_place_handle h, stf_data_place_handle affine_dplace)
+
+    # Grid factories
+    stf_exec_place_handle stf_exec_place_grid_from_devices(const int* device_ids, size_t count)
+    stf_exec_place_handle stf_exec_place_grid_create(const stf_exec_place_handle* places, size_t count, const stf_dim4* grid_dims)
+    void stf_exec_place_grid_destroy(stf_exec_place_handle grid)
+
     #
-    # Data places (opaque handles)
+    # Data places (functions using the forward-declared handle)
     #
-    ctypedef struct stf_data_place_opaque_t
-    ctypedef stf_data_place_opaque_t* stf_data_place_handle
     stf_data_place_handle stf_data_place_host()
     stf_data_place_handle stf_data_place_device(int dev_id)
     stf_data_place_handle stf_data_place_managed()
     stf_data_place_handle stf_data_place_affine()
     stf_data_place_handle stf_data_place_current_device()
+    stf_data_place_handle stf_data_place_composite(stf_exec_place_handle grid, stf_get_executor_fn mapper)
     stf_data_place_handle stf_data_place_clone(stf_data_place_handle h)
     void stf_data_place_destroy(stf_data_place_handle h)
     int stf_data_place_get_device_ordinal(stf_data_place_handle h)
@@ -148,6 +178,43 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     size_t stf_host_launch_deps_get_size(stf_host_launch_deps_handle deps, size_t index)
     size_t stf_host_launch_deps_size(stf_host_launch_deps_handle deps)
     void* stf_host_launch_deps_get_user_data(stf_host_launch_deps_handle deps)
+
+# ctypes mirror structs for the partition mapper callback.
+# The C API uses an out-pointer signature for stf_get_executor_fn:
+#   void (*)(stf_pos4* result, stf_pos4 data_coords, stf_dim4 data_dims, stf_dim4 grid_dims)
+# This is directly representable as a ctypes CFUNCTYPE.
+class _mapper_pos4(ctypes.Structure):
+    _fields_ = [("x", ctypes.c_int64), ("y", ctypes.c_int64),
+                ("z", ctypes.c_int64), ("t", ctypes.c_int64)]
+
+class _mapper_dim4(ctypes.Structure):
+    _fields_ = [("x", ctypes.c_uint64), ("y", ctypes.c_uint64),
+                ("z", ctypes.c_uint64), ("t", ctypes.c_uint64)]
+
+_mapper_cfunc_type = ctypes.CFUNCTYPE(
+    None, ctypes.POINTER(_mapper_pos4), _mapper_pos4, _mapper_dim4, _mapper_dim4)
+
+
+def _make_mapper_callback(mapper):
+    """Wrap a Python partitioner as a C function pointer for stf_data_place_composite.
+
+    Returns (callback_object, c_function_pointer_as_int).
+    The caller must prevent GC of callback_object for the lifetime of the
+    composite data place.
+    """
+    def _trampoline(result_ptr, c_coords, c_data_dims, c_grid_dims):
+        coords = (c_coords.x, c_coords.y, c_coords.z, c_coords.t)
+        data_dims = (c_data_dims.x, c_data_dims.y, c_data_dims.z, c_data_dims.t)
+        grid_dims = (c_grid_dims.x, c_grid_dims.y, c_grid_dims.z, c_grid_dims.t)
+        rx, ry, rz, rt = mapper(coords, data_dims, grid_dims)
+        result_ptr[0].x = int(rx)
+        result_ptr[0].y = int(ry)
+        result_ptr[0].z = int(rz)
+        result_ptr[0].t = int(rt)
+
+    callback = _mapper_cfunc_type(_trampoline)
+    c_ptr = ctypes.cast(callback, ctypes.c_void_p).value
+    return (callback, c_ptr)
 
 class AccessMode(IntFlag):
     NONE  = STF_NONE
@@ -445,17 +512,137 @@ cdef class exec_place:
             raise RuntimeError("failed to create host exec_place")
         return p
 
+    @staticmethod
+    def current_device():
+        cdef exec_place p = exec_place.__new__(exec_place)
+        p._h = stf_exec_place_current_device()
+        if p._h == NULL:
+            raise RuntimeError("failed to create current_device exec_place")
+        return p
+
     @property
     def kind(self) -> str:
         if stf_exec_place_is_host(self._h):
             return "host"
         return "device"
 
+    @property
+    def dims(self):
+        """Grid dimensions as (x, y, z, t). Scalar places return (1, 1, 1, 1)."""
+        cdef stf_dim4 d
+        stf_exec_place_get_dims(self._h, &d)
+        return (d.x, d.y, d.z, d.t)
+
+    @property
+    def size(self):
+        """Number of sub-places (1 for scalar places)."""
+        return stf_exec_place_size(self._h)
+
+    def set_affine_data_place(self, data_place dplace):
+        """Set the affine data place for this exec place grid.
+
+        Dependencies using ``data_place.affine()`` will resolve to ``dplace``
+        when this exec place is used as the task's execution place.
+        """
+        stf_exec_place_set_affine_data_place(self._h, dplace._h)
+
+
+cdef class exec_place_grid(exec_place):
+    """Grid of execution places (a subclass of exec_place).
+
+    Use wherever an exec_place is expected.  Create with ``from_devices()``
+    or ``create()``.
+    """
+    cdef object _mapper_keep_alive  # prevent GC of ctypes callback if mapper was set
+
+    def __cinit__(self):
+        self._mapper_keep_alive = None
+
+    @staticmethod
+    def from_devices(device_ids):
+        """Create a 1-D grid with one place per device.
+
+        Parameters
+        ----------
+        device_ids : sequence of int
+            Device ordinals (e.g. ``[0, 1]`` for two GPUs, or ``[0, 0]``
+            for the same device repeated).
+        """
+        cdef int c_ids[64]
+        cdef size_t n = len(device_ids)
+        if n == 0:
+            raise ValueError("device_ids must contain at least one device")
+        if n > 64:
+            raise ValueError("at most 64 devices supported")
+        for i in range(n):
+            c_ids[i] = int(device_ids[i])
+        cdef exec_place_grid g = exec_place_grid.__new__(exec_place_grid)
+        g._h = stf_exec_place_grid_from_devices(c_ids, n)
+        if g._h == NULL:
+            raise RuntimeError("failed to create exec_place grid from devices")
+        return g
+
+    @staticmethod
+    def create(places, grid_dims=None, mapper=None):
+        """Create a grid from a list of exec_place objects.
+
+        Parameters
+        ----------
+        places : list of exec_place
+            Individual execution places that form the grid.
+        grid_dims : tuple of int, optional
+            Shape of the grid as ``(x, y, z, t)``.  If *None*, a 1-D
+            grid of length ``len(places)`` is used.
+        mapper : callable, optional
+            If provided, a composite data place is created from this
+            partitioner and set as the grid's affine data place so that
+            dependencies with ``data_place.affine()`` resolve automatically.
+            Signature: ``(data_coords, data_dims, grid_dims) -> (x, y, z, t)``.
+        """
+        cdef size_t n = len(places)
+        if n == 0:
+            raise ValueError("places must contain at least one place")
+        if n > 64:
+            raise ValueError("at most 64 places supported")
+
+        cdef stf_exec_place_handle c_places[64]
+        cdef stf_dim4 dims
+        cdef exec_place ep
+
+        converted = []
+        for i in range(n):
+            ep = <exec_place?>places[i]
+            converted.append(ep)
+            c_places[i] = ep._h
+
+        cdef exec_place_grid g = exec_place_grid.__new__(exec_place_grid)
+        if grid_dims is not None:
+            dims.x = int(grid_dims[0])
+            dims.y = int(grid_dims[1]) if len(grid_dims) > 1 else 1
+            dims.z = int(grid_dims[2]) if len(grid_dims) > 2 else 1
+            dims.t = int(grid_dims[3]) if len(grid_dims) > 3 else 1
+            g._h = stf_exec_place_grid_create(c_places, n, &dims)
+        else:
+            g._h = stf_exec_place_grid_create(c_places, n, NULL)
+
+        if g._h == NULL:
+            raise RuntimeError("failed to create exec_place grid")
+
+        if mapper is not None:
+            dplace = data_place.composite(g, mapper)
+            g.set_affine_data_place(dplace)
+            g._mapper_keep_alive = dplace
+
+        return g
+
+
 cdef class data_place:
     cdef stf_data_place_handle _h
+    cdef object _mapper_callback  # prevent GC of ctypes callback for composite places
 
     def __cinit__(self):
         self._h = NULL
+        self._mapper_callback = None
 
     def __dealloc__(self):
         if self._h != NULL:
@@ -495,6 +682,53 @@ cdef class data_place:
         p._h = stf_data_place_affine()
         if p._h == NULL:
             raise RuntimeError("failed to create affine data_place")
+        return p
+
+    @staticmethod
+    def current_device():
+        cdef data_place p = data_place.__new__(data_place)
+        p._h = stf_data_place_current_device()
+        if p._h == NULL:
+            raise RuntimeError("failed to create current_device data_place")
+        return p
+
+    @staticmethod
+    def composite(exec_place grid, object mapper):
+        """Create a composite data place: grid of execution places + partition function.
+
+        The partitioner (mapper) is a callable with signature::
+
+            (data_coords, data_dims, grid_dims) -> (x, y, z, t)
+
+        Each argument/return is a 4-tuple of integers:
+
+        - *data_coords*: logical position in the data
+        - *data_dims*: full shape of the data
+        - *grid_dims*: shape of the execution place grid
+        - return: position in the grid (which place owns this data element)
+
+        Example — blocked partition along first dimension::
+
+            def blocked_1d(data_coords, data_dims, grid_dims):
+                n = data_dims[0]
+                nplaces = grid_dims[0]
+                part_size = max((n + nplaces - 1) // nplaces, 1)
+                place_x = min(data_coords[0] // part_size, nplaces - 1)
+                return (place_x, 0, 0, 0)
+
+            grid = exec_place_grid.from_devices([0, 1])
+            dplace = data_place.composite(grid, blocked_1d)
+        """
+        if not callable(mapper):
+            raise TypeError(
+                "mapper must be callable: (data_coords, data_dims, grid_dims) -> (x, y, z, t)")
+        callback_obj, c_ptr = _make_mapper_callback(mapper)
+        cdef data_place p = data_place.__new__(data_place)
+        p._mapper_callback = callback_obj
+        cdef uintptr_t ptr_val = c_ptr
+        p._h = stf_data_place_composite(grid._h, <stf_get_executor_fn>ptr_val)
+        if p._h == NULL:
+            raise RuntimeError("failed to create composite data_place")
         return p
 
     @property
