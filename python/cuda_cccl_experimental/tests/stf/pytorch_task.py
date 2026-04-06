@@ -59,15 +59,16 @@ def pytorch_task(ctx, *args):
 
         def __enter__(self):
             t.start()
-            self._stream_ctx = None
             try:
-                stream = tc.ExternalStream(t.stream_ptr())
-                self._stream_ctx = tc.stream(stream)
-                self._stream_ctx.__enter__()
-            except Exception:
+                stream_ctx = tc.stream(tc.ExternalStream(t.stream_ptr()))
+                stream_ctx.__enter__()
+                self._stream_ctx = stream_ctx
+                tensors = tensor_arguments(t)
+            except Exception as e:
+                if self._stream_ctx is not None:
+                    self._stream_ctx.__exit__(type(e), e, e.__traceback__)
                 t.end()
                 raise
-            tensors = tensor_arguments(t)
             if tensors is None:
                 return None
             if isinstance(tensors, tuple):
