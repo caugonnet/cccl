@@ -20,6 +20,7 @@ try:
 except ImportError:
     has_matplotlib = False
 
+
 def show_slice(t3d, plane="xy", index=None):
     """Display a 2D slice of a 3D tensor (requires matplotlib)."""
     if not has_matplotlib:
