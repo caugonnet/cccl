@@ -28,11 +28,17 @@ cdef extern from "<cuda.h>":
     cdef struct OpaqueCUstream_st
     cdef struct OpaqueCUkernel_st
     cdef struct OpaqueCUlibrary_st
+    cdef struct OpaqueCUfunc_st
 
     ctypedef int CUresult
     ctypedef OpaqueCUstream_st *CUstream
     ctypedef OpaqueCUkernel_st *CUkernel
     ctypedef OpaqueCUlibrary_st *CUlibrary
+    ctypedef OpaqueCUfunc_st *CUfunction
+
+cdef extern from "<cuda_runtime.h>":
+    cdef struct dim3:
+        unsigned int x, y, z
 
 cdef extern from "cccl/c/experimental/stf/stf.h":
     #
@@ -107,6 +113,21 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
         STF_READ
         STF_WRITE
         STF_RW
+
+    #
+    # CUDA kernel tasks
+    #
+    ctypedef struct stf_cuda_kernel_handle_t
+    ctypedef stf_cuda_kernel_handle_t* stf_cuda_kernel_handle
+    stf_cuda_kernel_handle stf_cuda_kernel_create(stf_ctx_handle ctx)
+    void stf_cuda_kernel_set_exec_place(stf_cuda_kernel_handle k, stf_exec_place_handle exec_p)
+    void stf_cuda_kernel_set_symbol(stf_cuda_kernel_handle k, const char* symbol)
+    void stf_cuda_kernel_add_dep(stf_cuda_kernel_handle k, stf_logical_data_handle ld, stf_access_mode m)
+    void stf_cuda_kernel_start(stf_cuda_kernel_handle k)
+    void* stf_cuda_kernel_get_arg(stf_cuda_kernel_handle k, int index)
+    void stf_cuda_kernel_add_desc_cufunc(stf_cuda_kernel_handle k, CUfunction cufunc, dim3 grid_dim_, dim3 block_dim_, size_t shared_mem_, int arg_cnt, const void** args)
+    void stf_cuda_kernel_end(stf_cuda_kernel_handle k)
+    void stf_cuda_kernel_destroy(stf_cuda_kernel_handle k)
 
     #
     # Host launch
@@ -560,6 +581,145 @@ cdef class task:
         self.end()
         return False
 
+cdef dim3 _to_dim3(object val):
+    """Convert an int or 1-3 element tuple to a dim3 struct."""
+    cdef dim3 d
+    cdef tuple t
+    cdef int n
+    if isinstance(val, int):
+        d.x = val; d.y = 1; d.z = 1
+        return d
+    t = tuple(val)
+    n = len(t)
+    if n == 1:
+        d.x = t[0]; d.y = 1; d.z = 1
+    elif n == 2:
+        d.x = t[0]; d.y = t[1]; d.z = 1
+    elif n == 3:
+        d.x = t[0]; d.y = t[1]; d.z = t[2]
+    else:
+        raise ValueError("grid/block must have 1-3 dimensions")
+    return d
+
+
+cdef class cuda_kernel:
+    """Optimized CUDA kernel task with full dependency tracking.
+
+    Unlike a generic ``task`` where the user manually launches work on a
+    stream, ``cuda_kernel`` receives the complete kernel description
+    (function, grid, block, args) so STF can create native CUDA graph
+    kernel nodes, avoiding stream-capture overhead.
+    """
+    cdef stf_cuda_kernel_handle _k
+    cdef list _lds_args
+    cdef object _arg_holder  # keep ParamHolder alive until end()
+
+    def __cinit__(self, context ctx):
+        self._k = stf_cuda_kernel_create(ctx._ctx)
+        self._lds_args = []
+        self._arg_holder = None
+
+    def __dealloc__(self):
+        if self._k != NULL:
+            stf_cuda_kernel_destroy(self._k)
+
+    def start(self):
+        stf_cuda_kernel_start(self._k)
+
+    def end(self):
+        stf_cuda_kernel_end(self._k)
+        self._arg_holder = None
+
+    def add_dep(self, object d):
+        if not isinstance(d, dep):
+            raise TypeError("add_dep expects read(ld), write(ld) or rw(ld)")
+        cdef logical_data ldata = <logical_data>d.ld
+        cdef int mode_int = int(d.mode)
+        cdef stf_access_mode mode_ce = <stf_access_mode>mode_int
+        stf_cuda_kernel_add_dep(self._k, ldata._ld, mode_ce)
+        self._lds_args.append(ldata)
+
+    def set_symbol(self, str name):
+        stf_cuda_kernel_set_symbol(self._k, name.encode())
+
+    def set_exec_place(self, object exec_p):
+        if not isinstance(exec_p, exec_place):
+            raise TypeError("set_exec_place expects an exec_place argument")
+        cdef exec_place ep = <exec_place>exec_p
+        stf_cuda_kernel_set_exec_place(self._k, ep._h)
+
+    def get_arg(self, int index) -> int:
+        if self._lds_args[index]._is_token:
+            raise RuntimeError("cannot materialize a token argument")
+        cdef void* ptr = stf_cuda_kernel_get_arg(self._k, index)
+        return <uintptr_t>ptr
+
+    def get_arg_cai(self, int index):
+        ptr = self.get_arg(index)
+        return stf_cai(ptr, self._lds_args[index].shape, self._lds_args[index].dtype)
+
+    def launch(self, kernel, grid, block, args, size_t shmem=0):
+        """Launch a CUDA kernel through STF.
+
+        Parameters
+        ----------
+        kernel : cuda.core.Kernel or int
+            Compiled kernel object (``cuda.core.Kernel``) or raw
+            ``CUfunction`` handle as an integer.
+        grid : int or tuple
+            Grid dimensions (up to 3D).
+        block : int or tuple
+            Block dimensions (up to 3D).
+        args : list
+            Kernel arguments.  ``int`` values are treated as device
+            pointers (matching ``cuda.core.launch`` conventions);
+            use ``ctypes`` or ``numpy`` scalars for typed values.
+        shmem : int, optional
+            Dynamic shared memory in bytes (default 0).
+        """
+        from cuda.core._kernel_arg_handler import ParamHolder
+
+        cdef uintptr_t func_handle
+        if hasattr(kernel, '_handle'):
+            handle = kernel._handle
+            try:
+                from cuda.bindings.driver import CUkernel as _CUkernel
+                if isinstance(handle, _CUkernel):
+                    from cuda.bindings.driver import cuKernelGetFunction
+                    err, cufunc = cuKernelGetFunction(handle)
+                    if int(err) != 0:
+                        raise RuntimeError(
+                            f"cuKernelGetFunction failed with error {err}")
+                    func_handle = <uintptr_t>int(cufunc)
+                else:
+                    func_handle = <uintptr_t>int(handle)
+            except ImportError:
+                func_handle = <uintptr_t>int(handle)
+        else:
+            func_handle = <uintptr_t>int(kernel)
+
+        cdef dim3 grid_dim = _to_dim3(grid)
+        cdef dim3 block_dim = _to_dim3(block)
+
+        holder = ParamHolder(tuple(args))
+        cdef const void** raw_args = <const void**><uintptr_t>(holder.ptr)
+
+        stf_cuda_kernel_add_desc_cufunc(
+            self._k, <CUfunction>func_handle,
+            grid_dim, block_dim, shmem,
+            <int>len(args), raw_args)
+
+        self._arg_holder = holder
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, object exc_type, object exc, object tb):
+        self.end()
+        return False
+
+
 # ---------------------------------------------------------------------------
 # host_launch helpers: C callback trampoline and Python payload destructor
 # ---------------------------------------------------------------------------
@@ -906,6 +1066,39 @@ cdef class context:
                     "Arguments must be dependency objects or an exec_place"
                 )
         return t
+
+    def cuda_kernel(self, *args, symbol=None):
+        """Create an optimized CUDA kernel task.
+
+        Accepts the same positional dep/exec_place arguments as
+        ``ctx.task()``, but the resulting object exposes a ``launch()``
+        method that describes a kernel to STF directly (enabling native
+        graph-kernel nodes instead of stream capture).
+
+        Example
+        -------
+        >>> with ctx.cuda_kernel(lX.read(), lY.rw(), symbol="axpy") as k:
+        ...     dX, dY = k.get_arg(0), k.get_arg(1)
+        ...     k.launch(kernel, grid=(4,), block=(256,),
+        ...              args=[ctypes.c_int(N), ctypes.c_double(alpha), dX, dY])
+        """
+        exec_place_set = False
+        k = cuda_kernel(self)
+        if symbol is not None:
+            k.set_symbol(symbol)
+        for d in args:
+            if isinstance(d, dep):
+                k.add_dep(d)
+            elif isinstance(d, exec_place):
+                if exec_place_set:
+                    raise ValueError("Only one exec_place can be given")
+                k.set_exec_place(d)
+                exec_place_set = True
+            else:
+                raise TypeError(
+                    "Arguments must be dependency objects or an exec_place"
+                )
+        return k
 
     def host_launch(self, *deps, fn, args=None, symbol=None):
         """Schedule a host callback with dependency tracking.
