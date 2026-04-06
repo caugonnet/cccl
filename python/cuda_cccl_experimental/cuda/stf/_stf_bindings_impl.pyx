@@ -11,6 +11,7 @@ from cpython.buffer cimport (
     Py_buffer, PyBUF_FORMAT, PyBUF_ND, PyBUF_SIMPLE, PyBUF_ANY_CONTIGUOUS,
     PyObject_GetBuffer, PyBuffer_Release, PyObject_CheckBuffer
 )
+from cpython.ref cimport PyObject, Py_INCREF, Py_XDECREF
 from cpython.bytes cimport PyBytes_FromStringAndSize
 from cpython.pycapsule cimport (
     PyCapsule_CheckExact, PyCapsule_IsValid, PyCapsule_GetPointer
@@ -39,87 +40,60 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     #
     ctypedef struct stf_ctx_handle_t
     ctypedef stf_ctx_handle_t* stf_ctx_handle
-    void stf_ctx_create(stf_ctx_handle* ctx)
-    void stf_ctx_create_graph(stf_ctx_handle* ctx)
-    void stf_ctx_finalize(stf_ctx_handle ctx)
+    stf_ctx_handle stf_ctx_create()
+    stf_ctx_handle stf_ctx_create_graph()
+    void stf_ctx_finalize(stf_ctx_handle ctx) nogil
 
     #
-    # Exec places
+    # Exec places (opaque handles)
     #
-    ctypedef enum stf_exec_place_kind:
-        STF_EXEC_PLACE_DEVICE
-        STF_EXEC_PLACE_HOST
-
-    ctypedef struct stf_exec_place_device:
-        int dev_id
-
-    ctypedef struct stf_exec_place_host:
-        int dummy
-
-    ctypedef union stf_exec_place_u:
-        stf_exec_place_device device
-        stf_exec_place_host   host
-
-    ctypedef struct stf_exec_place:
-        stf_exec_place_kind kind
-        stf_exec_place_u    u
-
-    stf_exec_place make_device_place(int  dev_id)
-    stf_exec_place make_host_place()
+    ctypedef struct stf_exec_place_opaque_t
+    ctypedef stf_exec_place_opaque_t* stf_exec_place_handle
+    stf_exec_place_handle stf_exec_place_host()
+    stf_exec_place_handle stf_exec_place_device(int dev_id)
+    stf_exec_place_handle stf_exec_place_current_device()
+    stf_exec_place_handle stf_exec_place_clone(stf_exec_place_handle h)
+    void stf_exec_place_destroy(stf_exec_place_handle h)
+    int stf_exec_place_is_host(stf_exec_place_handle h)
+    int stf_exec_place_is_device(stf_exec_place_handle h)
 
     #
-    # Data places
+    # Data places (opaque handles)
     #
-    ctypedef enum stf_data_place_kind:
-        STF_DATA_PLACE_DEVICE
-        STF_DATA_PLACE_HOST
-        STF_DATA_PLACE_MANAGED
-        STF_DATA_PLACE_AFFINE
+    ctypedef struct stf_data_place_opaque_t
+    ctypedef stf_data_place_opaque_t* stf_data_place_handle
+    stf_data_place_handle stf_data_place_host()
+    stf_data_place_handle stf_data_place_device(int dev_id)
+    stf_data_place_handle stf_data_place_managed()
+    stf_data_place_handle stf_data_place_affine()
+    stf_data_place_handle stf_data_place_current_device()
+    stf_data_place_handle stf_data_place_clone(stf_data_place_handle h)
+    void stf_data_place_destroy(stf_data_place_handle h)
+    int stf_data_place_get_device_ordinal(stf_data_place_handle h)
+    const char* stf_data_place_to_string(stf_data_place_handle h)
 
-    ctypedef struct stf_data_place_device:
-        int dev_id
-
-    ctypedef struct stf_data_place_host:
-        int dummy
-
-    ctypedef struct stf_data_place_managed:
-        int dummy
-
-    ctypedef struct stf_data_place_affine:
-        int dummy
-
-    ctypedef union stf_data_place_u:
-        stf_data_place_device device
-        stf_data_place_host   host
-        stf_data_place_managed   managed
-        stf_data_place_affine   affine
-
-    ctypedef struct stf_data_place:
-        stf_data_place_kind kind
-        stf_data_place_u    u
-
-    stf_data_place make_device_data_place(int  dev_id)
-    stf_data_place make_host_data_place()
-    stf_data_place make_managed_data_place()
-    stf_data_place make_affine_data_place()
-
+    #
+    # Logical data
+    #
     ctypedef struct stf_logical_data_handle_t
     ctypedef stf_logical_data_handle_t* stf_logical_data_handle
-    void stf_logical_data(stf_ctx_handle ctx, stf_logical_data_handle* ld, void* addr, size_t sz)
-    void stf_logical_data_with_place(stf_ctx_handle ctx, stf_logical_data_handle* ld, void* addr, size_t sz, stf_data_place dplace)
+    stf_logical_data_handle stf_logical_data(stf_ctx_handle ctx, void* addr, size_t sz)
+    stf_logical_data_handle stf_logical_data_with_place(stf_ctx_handle ctx, void* addr, size_t sz, stf_data_place_handle dplace)
     void stf_logical_data_set_symbol(stf_logical_data_handle ld, const char* symbol)
     void stf_logical_data_destroy(stf_logical_data_handle ld)
-    void stf_logical_data_empty(stf_ctx_handle ctx, size_t length, stf_logical_data_handle *to)
+    stf_logical_data_handle stf_logical_data_empty(stf_ctx_handle ctx, size_t length)
+    stf_logical_data_handle stf_token(stf_ctx_handle ctx)
 
-    void stf_token(stf_ctx_handle ctx, stf_logical_data_handle* ld);
-
+    #
+    # Tasks
+    #
     ctypedef struct stf_task_handle_t
     ctypedef stf_task_handle_t* stf_task_handle
-    void stf_task_create(stf_ctx_handle ctx, stf_task_handle* t)
-    void stf_task_set_exec_place(stf_task_handle t, stf_exec_place* exec_p)
+    stf_task_handle stf_task_create(stf_ctx_handle ctx)
+    void stf_task_set_exec_place(stf_task_handle t, stf_exec_place_handle exec_p)
     void stf_task_set_symbol(stf_task_handle t, const char* symbol)
     void stf_task_add_dep(stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m)
-    void stf_task_add_dep_with_dplace(stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m, stf_data_place* data_p)
+    void stf_task_add_dep_with_dplace(stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m, stf_data_place_handle data_p)
     void stf_task_start(stf_task_handle t)
     void stf_task_end(stf_task_handle t)
     void stf_task_enable_capture(stf_task_handle t)
@@ -132,6 +106,26 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
         STF_READ
         STF_WRITE
         STF_RW
+
+    #
+    # Host launch
+    #
+    ctypedef struct stf_host_launch_handle_t
+    ctypedef stf_host_launch_handle_t* stf_host_launch_handle
+    ctypedef struct stf_host_launch_deps_handle_t
+    ctypedef stf_host_launch_deps_handle_t* stf_host_launch_deps_handle
+    ctypedef void (*stf_host_callback_fn)(stf_host_launch_deps_handle deps) noexcept
+
+    stf_host_launch_handle stf_host_launch_create(stf_ctx_handle ctx)
+    void stf_host_launch_add_dep(stf_host_launch_handle h, stf_logical_data_handle ld, stf_access_mode m)
+    void stf_host_launch_set_symbol(stf_host_launch_handle h, const char* symbol)
+    void stf_host_launch_set_user_data(stf_host_launch_handle h, const void* data, size_t size, void (*dtor)(void*))
+    void stf_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback)
+    void stf_host_launch_destroy(stf_host_launch_handle h)
+    void* stf_host_launch_deps_get(stf_host_launch_deps_handle deps, size_t index)
+    size_t stf_host_launch_deps_get_size(stf_host_launch_deps_handle deps, size_t index)
+    size_t stf_host_launch_deps_size(stf_host_launch_deps_handle deps)
+    void* stf_host_launch_deps_get_user_data(stf_host_launch_deps_handle deps)
 
 class AccessMode(IntFlag):
     NONE  = STF_NONE
@@ -229,8 +223,7 @@ cdef class logical_data:
                 total_items *= dim
             self._len = total_items * itemsize
 
-            # Create STF logical data using the new C API with data place specification
-            stf_logical_data_with_place(ctx._ctx, &self._ld, <void*><uintptr_t>data_ptr, self._len, dplace._c_place)
+            self._ld = stf_logical_data_with_place(ctx._ctx, <void*><uintptr_t>data_ptr, self._len, dplace._h)
 
         else:
             # Fallback to Python buffer protocol; require contiguous memory
@@ -248,7 +241,7 @@ cdef class logical_data:
                 self._len = view.len
                 self._shape = tuple(<Py_ssize_t>view.shape[i] for i in range(view.ndim))
                 self._dtype = np.dtype(view.format)
-                stf_logical_data_with_place(ctx._ctx, &self._ld, view.buf, view.len, dplace._c_place)
+                self._ld = stf_logical_data_with_place(ctx._ctx, view.buf, view.len, dplace._h)
 
             finally:
                 PyBuffer_Release(&view)
@@ -306,7 +299,7 @@ cdef class logical_data:
             raise RuntimeError("source logical_data handle is NULL")
 
         cdef logical_data out = logical_data.__new__(logical_data)
-        stf_logical_data_empty(self._ctx, self._len, &out._ld)
+        out._ld = stf_logical_data_empty(self._ctx, self._len)
         out._ctx   = self._ctx
         out._dtype = self._dtype
         out._shape = self._shape
@@ -327,7 +320,7 @@ cdef class logical_data:
         out._len   = 0
         out._symbol = None  # New object has no symbol initially
         out._is_token = True
-        stf_token(ctx._ctx, &out._ld)
+        out._ld = stf_token(ctx._ctx)
 
         return out
 
@@ -356,7 +349,7 @@ cdef class logical_data:
         out._len   = total_items * out._dtype.itemsize
         out._symbol = None
         out._is_token = False
-        stf_logical_data_empty(ctx._ctx, out._len, &out._ld)
+        out._ld = stf_logical_data_empty(ctx._ctx, out._len)
 
         if name is not None:
             out.set_symbol(name)
@@ -388,85 +381,77 @@ def write(ld, dplace=None):  return dep(ld, AccessMode.WRITE.value, dplace)
 def rw(ld, dplace=None):     return dep(ld, AccessMode.RW.value, dplace)
 
 cdef class exec_place:
-    cdef stf_exec_place _c_place
+    cdef stf_exec_place_handle _h
 
     def __cinit__(self):
-        # empty default constructor; never directly used
-        pass
+        self._h = NULL
+
+    def __dealloc__(self):
+        if self._h != NULL:
+            stf_exec_place_destroy(self._h)
+            self._h = NULL
 
     @staticmethod
     def device(int dev_id):
         cdef exec_place p = exec_place.__new__(exec_place)
-        p._c_place = make_device_place(dev_id)
+        p._h = stf_exec_place_device(dev_id)
         return p
 
     @staticmethod
     def host():
         cdef exec_place p = exec_place.__new__(exec_place)
-        p._c_place = make_host_place()
+        p._h = stf_exec_place_host()
         return p
 
     @property
     def kind(self) -> str:
-        return ("device" if self._c_place.kind == STF_EXEC_PLACE_DEVICE
-                else "host")
-
-    @property
-    def device_id(self) -> int:
-        if self._c_place.kind != STF_EXEC_PLACE_DEVICE:
-            raise AttributeError("not a device execution place")
-        return self._c_place.u.device.dev_id
+        if stf_exec_place_is_host(self._h):
+            return "host"
+        return "device"
 
 cdef class data_place:
-    cdef stf_data_place _c_place
+    cdef stf_data_place_handle _h
 
     def __cinit__(self):
-        # empty default constructor; never directly used
-        pass
+        self._h = NULL
+
+    def __dealloc__(self):
+        if self._h != NULL:
+            stf_data_place_destroy(self._h)
+            self._h = NULL
 
     @staticmethod
     def device(int dev_id):
         cdef data_place p = data_place.__new__(data_place)
-        p._c_place = make_device_data_place(dev_id)
+        p._h = stf_data_place_device(dev_id)
         return p
 
     @staticmethod
     def host():
         cdef data_place p = data_place.__new__(data_place)
-        p._c_place = make_host_data_place()
+        p._h = stf_data_place_host()
         return p
 
     @staticmethod
     def managed():
         cdef data_place p = data_place.__new__(data_place)
-        p._c_place = make_managed_data_place()
+        p._h = stf_data_place_managed()
         return p
 
     @staticmethod
     def affine():
         cdef data_place p = data_place.__new__(data_place)
-        p._c_place = make_affine_data_place()
+        p._h = stf_data_place_affine()
         return p
 
     @property
     def kind(self) -> str:
-        cdef stf_data_place_kind k = self._c_place.kind
-        if k == STF_DATA_PLACE_DEVICE:
-            return "device"
-        elif k == STF_DATA_PLACE_HOST:
-            return "host"
-        elif k == STF_DATA_PLACE_MANAGED:
-            return "managed"
-        elif k == STF_DATA_PLACE_AFFINE:
-            return "affine"
-        else:
-            raise ValueError(f"Unknown data place kind: {k}")
+        cdef const char* s = stf_data_place_to_string(self._h)
+        return s.decode("utf-8") if s != NULL else "unknown"
 
     @property
     def device_id(self) -> int:
-        if self._c_place.kind != STF_DATA_PLACE_DEVICE:
-            raise AttributeError("not a device data place")
-        return self._c_place.u.device.dev_id
+        return stf_data_place_get_device_ordinal(self._h)
 
 
 
@@ -478,7 +463,7 @@ cdef class task:
     cdef list _lds_args
 
     def __cinit__(self, context ctx):
-        stf_task_create(ctx._ctx, &self._t)
+        self._t = stf_task_create(ctx._ctx)
         self._lds_args = []
 
     def __dealloc__(self):
@@ -510,7 +495,7 @@ cdef class task:
             stf_task_add_dep(self._t, ldata._ld, mode_ce)
         else:
             dp = <data_place> d.dplace
-            stf_task_add_dep_with_dplace(self._t, ldata._ld, mode_ce, &dp._c_place)
+            stf_task_add_dep_with_dplace(self._t, ldata._ld, mode_ce, dp._h)
 
         self._lds_args.append(ldata)
 
@@ -519,7 +504,7 @@ cdef class task:
            raise TypeError("set_exec_place expects and exec_place argument")
 
        cdef exec_place ep = <exec_place> exec_p
-       stf_task_set_exec_place(self._t, &ep._c_place)
+       stf_task_set_exec_place(self._t, ep._h)
 
     def stream_ptr(self) -> int:
         """
@@ -571,6 +556,37 @@ cdef class task:
         self.end()
         return False
 
+# ---------------------------------------------------------------------------
+# host_launch helpers: C callback trampoline and Python payload destructor
+# ---------------------------------------------------------------------------
+
+cdef void _python_payload_destructor(void* data) noexcept with gil:
+    """Release the Python payload tuple when C++ destroys the host_launch scope."""
+    cdef PyObject* obj = (<PyObject**>data)[0]
+    Py_XDECREF(obj)
+
+cdef void _host_launch_trampoline(stf_host_launch_deps_handle deps_h) noexcept with gil:
+    """C callback that unpacks deps as numpy arrays and calls the Python fn."""
+    cdef PyObject** payload_ptr_ptr = <PyObject**>stf_host_launch_deps_get_user_data(deps_h)
+    cdef object payload = <object>(payload_ptr_ptr[0])
+    fn, user_args, dep_meta = payload
+
+    cdef size_t ndeps = stf_host_launch_deps_size(deps_h)
+    dep_arrays = []
+    cdef size_t i
+    cdef void* ptr
+    cdef size_t nbytes
+    for i in range(ndeps):
+        ptr = stf_host_launch_deps_get(deps_h, i)
+        nbytes = stf_host_launch_deps_get_size(deps_h, i)
+        shape, dtype = dep_meta[i]
+        dt = np.dtype(dtype)
+        cbuf = (ctypes.c_char * nbytes).from_address(<uintptr_t>ptr)
+        arr = np.frombuffer(cbuf, dtype=dt).reshape(shape)
+        dep_arrays.append(arr)
+
+    fn(*dep_arrays, *user_args)
+
 cdef class context:
     cdef stf_ctx_handle _ctx
     # Is this a context that we have borrowed ?
@@ -581,9 +597,9 @@ cdef class context:
         self._borrowed = borrowed
         if not borrowed:
             if use_graph:
-                stf_ctx_create_graph(&self._ctx)
+                self._ctx = stf_ctx_create_graph()
             else:
-                stf_ctx_create(&self._ctx)
+                self._ctx = stf_ctx_create()
 
     cdef borrow_from_handle(self, stf_ctx_handle ctx_handle):
         if self._ctx != NULL:
@@ -605,9 +621,13 @@ cdef class context:
         if self._borrowed:
             raise RuntimeError("cannot finalize borrowed context")
 
-        if self._ctx != NULL:
-                stf_ctx_finalize(self._ctx)
-        self._ctx = NULL
+        cdef stf_ctx_handle h = self._ctx
+        if h != NULL:
+            self._ctx = NULL
+            with nogil:
+                stf_ctx_finalize(h)
+        else:
+            self._ctx = NULL
 
     def logical_data(self, object buf, data_place dplace=None, str name=None):
         """
@@ -849,3 +869,51 @@ cdef class context:
                     "Arguments must be dependency objects or an exec_place"
                 )
         return t
+
+    def host_launch(self, *deps, fn, args=None, symbol=None):
+        """Schedule a host callback with dependency tracking.
+
+        Deps (positional) are auto-unpacked as numpy arrays and passed as
+        the first N arguments to ``fn``.  Extra user data goes through
+        ``args`` and is appended after the dep arrays.
+
+        Example::
+
+            ctx.host_launch(lX.read(), fn=lambda x: print(x.sum()))
+            ctx.host_launch(lX.read(), lY.read(), fn=check, args=[result])
+        """
+        if args is None:
+            user_args = ()
+        else:
+            user_args = tuple(args)
+
+        cdef logical_data ldata
+        dep_meta = []
+        for d in deps:
+            if not isinstance(d, dep):
+                raise TypeError(
+                    "Positional arguments must be dep objects "
+                    "(use ld.read(), ld.write(), or ld.rw())")
+            ldata = <logical_data>d.ld
+            dep_meta.append((ldata._shape, ldata._dtype))
+
+        payload = (fn, user_args, dep_meta)
+        Py_INCREF(payload)
+        cdef PyObject* payload_ptr = <PyObject*>payload
+
+        cdef stf_host_launch_handle h
+        cdef int mode_ce
+        h = stf_host_launch_create(self._ctx)
+        try:
+            if symbol is not None:
+                sym_bytes = symbol.encode("utf-8")
+                stf_host_launch_set_symbol(h, sym_bytes)
+            for d in deps:
+                ldata = <logical_data>d.ld
+                mode_ce = <int>d.mode
+                stf_host_launch_add_dep(h, ldata._ld, <stf_access_mode>mode_ce)
+            stf_host_launch_set_user_data(
+                h, &payload_ptr, sizeof(PyObject*), _python_payload_destructor)
+            stf_host_launch_submit(h, _host_launch_trampoline)
+        finally:
+            stf_host_launch_destroy(h)
