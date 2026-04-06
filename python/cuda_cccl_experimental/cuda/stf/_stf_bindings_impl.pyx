@@ -500,6 +500,9 @@ cdef class task:
 
         self._lds_args.append(ldata)
 
+    def set_symbol(self, str name):
+        stf_task_set_symbol(self._t, name.encode())
+
     def set_exec_place(self, object exec_p):
        if not isinstance(exec_p, exec_place):
            raise TypeError("set_exec_place expects and exec_place argument")
@@ -876,18 +879,20 @@ cdef class context:
     def token(self):
         return logical_data.token(self)
 
-    def task(self, *args):
+    def task(self, *args, symbol=None):
         """
         Create a `task`
 
         Example
         -------
-        >>> t = ctx.task(read(lX), rw(lY))
+        >>> t = ctx.task(read(lX), rw(lY), symbol="axpy")
         >>> t.start()
         >>> t.end()
         """
         exec_place_set = False
         t = task(self)          # construct with this context
+        if symbol is not None:
+            t.set_symbol(symbol)
         for d in args:
             if isinstance(d, dep):
                 t.add_dep(d)
