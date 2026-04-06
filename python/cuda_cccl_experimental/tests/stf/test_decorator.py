@@ -45,6 +45,13 @@ def test_decorator(use_graph):
         2.0, lY.read(), lZ.rw(stf.data_place.device(0))
     )  # per-dep placement override
 
+    ctx.finalize()
+
+    assert np.allclose(X, 2.0)
+    assert np.allclose(Y, 5.0)
+    assert np.allclose(Z, 15.0)
+
 
 if __name__ == "__main__":
     test_decorator(False)
+    test_decorator(True)
