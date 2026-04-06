@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 import math
-from typing import Literal, Optional, Tuple
 
 import numpy as np
 import pytest
@@ -20,9 +19,6 @@ try:
     has_matplotlib = True
 except ImportError:
     has_matplotlib = False
-
-Plane = Literal["xy", "xz", "yz"]
-
 
 def show_slice(t3d, plane="xy", index=None):
     """Display a 2D slice of a 3D tensor (requires matplotlib)."""
@@ -71,11 +67,7 @@ def test_fdtd_3d_pytorch(
     dz: float = 0.01,
     epsilon0: float = 8.85e-12,
     mu0: float = 1.256e-6,
-    device: Optional[torch.device] = None,
-    dtype: torch.dtype = torch.float64,
-) -> Tuple[
-    torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
-]:
+) -> None:
     ctx = stf.context()
 
     # allocate and initialize fields
