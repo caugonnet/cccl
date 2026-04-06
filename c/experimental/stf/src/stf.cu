@@ -524,6 +524,41 @@ CUstream stf_task_get_custream(stf_task_handle t)
   return static_cast<CUstream>(task_ptr->get_stream());
 }
 
+int stf_task_get_grid_dims(stf_task_handle t, stf_dim4* out_dims)
+{
+  if (t == nullptr || out_dims == nullptr)
+  {
+    return -1;
+  }
+  auto* task_ptr = from_opaque(t);
+  dim4 d;
+  if (!task_ptr->get_grid_dims(&d))
+  {
+    return -1;
+  }
+  out_dims->x = static_cast<uint64_t>(d.x);
+  out_dims->y = static_cast<uint64_t>(d.y);
+  out_dims->z = static_cast<uint64_t>(d.z);
+  out_dims->t = static_cast<uint64_t>(d.t);
+  return 0;
+}
+
+int stf_task_get_custream_at_index(stf_task_handle t, size_t place_index, CUstream* out_stream)
+{
+  if (t == nullptr || out_stream == nullptr)
+  {
+    return -1;
+  }
+  auto* task_ptr = from_opaque(t);
+  cudaStream_t s = task_ptr->get_stream(place_index);
+  if (s == nullptr)
+  {
+    return -1;
+  }
+  *out_stream = static_cast<CUstream>(s);
+  return 0;
+}
+
 void stf_task_destroy(stf_task_handle t)
 {
   _CCCL_ASSERT(t != nullptr, "task handle must not be null");

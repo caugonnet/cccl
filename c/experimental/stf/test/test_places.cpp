@@ -234,3 +234,91 @@ C2H_TEST("composite data place with stf_exec_place_grid_create (vector of places
   }
   free(X);
 }
+
+C2H_TEST("task on exec_place_grid: get_grid_dims and get_custream_at_index", "[task][places][grid]")
+{
+  const size_t nplaces = 2;
+  stf_exec_place_handle places[2];
+  for (size_t i = 0; i < nplaces; i++)
+  {
+    places[i] = stf_exec_place_device(0);
+  }
+  stf_exec_place_handle grid = stf_exec_place_grid_create(places, nplaces, nullptr);
+  REQUIRE(grid != nullptr);
+  for (size_t i = 0; i < nplaces; i++)
+  {
+    stf_exec_place_destroy(places[i]);
+  }
+
+  stf_data_place_handle composite_dplace = stf_data_place_composite(grid, blocked_mapper_1d);
+  REQUIRE(composite_dplace != nullptr);
+  stf_exec_place_set_affine_data_place(grid, composite_dplace);
+
+  stf_ctx_handle ctx = stf_ctx_create();
+  REQUIRE(ctx != nullptr);
+
+  float* X = static_cast<float*>(malloc(4 * sizeof(float)));
+  for (size_t i = 0; i < 4; ++i)
+  {
+    X[i] = 0.0f;
+  }
+
+  stf_logical_data_handle lX = stf_logical_data(ctx, X, 4 * sizeof(float));
+  REQUIRE(lX != nullptr);
+
+  stf_task_handle t = stf_task_create(ctx);
+  REQUIRE(t != nullptr);
+  stf_task_set_exec_place(t, grid);
+  stf_task_add_dep(t, lX, STF_RW);
+  stf_task_start(t);
+
+  stf_dim4 dims;
+  int got_dims = stf_task_get_grid_dims(t, &dims);
+  REQUIRE(got_dims == 0);
+  REQUIRE(dims.x == 2);
+  REQUIRE(dims.y == 1);
+  REQUIRE(dims.z == 1);
+  REQUIRE(dims.t == 1);
+
+  CUstream s0, s1;
+  REQUIRE(stf_task_get_custream_at_index(t, 0, &s0) == 0);
+  REQUIRE(stf_task_get_custream_at_index(t, 1, &s1) == 0);
+  REQUIRE(s0 != nullptr);
+  REQUIRE(s1 != nullptr);
+
+  stf_task_end(t);
+  stf_task_destroy(t);
+
+  stf_data_place_destroy(composite_dplace);
+  stf_exec_place_grid_destroy(grid);
+  stf_logical_data_destroy(lX);
+  stf_ctx_finalize(ctx);
+
+  free(X);
+}
+
+C2H_TEST("task get_grid_dims returns error for non-grid exec_place", "[task][places][grid]")
+{
+  stf_ctx_handle ctx = stf_ctx_create();
+  REQUIRE(ctx != nullptr);
+
+  float val   = 0.0f;
+  auto lX     = stf_logical_data(ctx, &val, sizeof(float));
+  auto e_dev0 = stf_exec_place_device(0);
+
+  stf_task_handle t = stf_task_create(ctx);
+  REQUIRE(t != nullptr);
+  stf_task_set_exec_place(t, e_dev0);
+  stf_task_add_dep(t, lX, STF_RW);
+  stf_task_start(t);
+
+  stf_dim4 dims;
+  REQUIRE(stf_task_get_grid_dims(t, &dims) != 0);
+
+  stf_task_end(t);
+  stf_task_destroy(t);
+
+  stf_exec_place_destroy(e_dev0);
+  stf_logical_data_destroy(lX);
+  stf_ctx_finalize(ctx);
+}

@@ -135,6 +135,8 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     void stf_task_end(stf_task_handle t)
     void stf_task_enable_capture(stf_task_handle t)
     CUstream stf_task_get_custream(stf_task_handle t)
+    int stf_task_get_grid_dims(stf_task_handle t, stf_dim4* out_dims)
+    int stf_task_get_custream_at_index(stf_task_handle t, size_t place_index, CUstream* out_stream)
     void* stf_task_get(stf_task_handle t, int submitted_index)
     void stf_task_destroy(stf_task_handle t)
 
@@ -808,6 +810,39 @@ cdef class task:
         """
         cdef CUstream s = stf_task_get_custream(self._t)
         return <uintptr_t> s         # cast pointer -> Py int
+
+    def get_grid_dims(self):
+        """When the task's exec place is a grid, return (x, y, z, t) shape.
+
+        Call after start(). Returns None if the task is not on a grid.
+        """
+        cdef stf_dim4 dims
+        if stf_task_get_grid_dims(self._t, &dims) != 0:
+            return None
+        return (dims.x, dims.y, dims.z, dims.t)
+
+    def get_stream_at_index(self, size_t place_index):
+        """When the task's exec place is a grid, return the CUstream for the
+        given linear index (0 to product of grid dims - 1) as a Python int.
+
+        Call after start(). Raises if not a grid or index invalid.
+        """
+        cdef CUstream s
+        if stf_task_get_custream_at_index(self._t, place_index, &s) != 0:
+            raise RuntimeError("task is not on a grid or place_index out of range")
+        return <uintptr_t> s
+
+    def get_stream_ptrs(self):
+        """Return a list of raw CUstream pointers (as ints), one per place in the grid.
+
+        Convenience for grid tasks. Returns [stream_ptr()] (length 1) for non-grid tasks.
+        Call after start().
+        """
+        dims = self.get_grid_dims()
+        if dims is None:
+            return [self.stream_ptr()]
+        cdef size_t n = dims[0] * dims[1] * dims[2] * dims[3]
+        return [self.get_stream_at_index(i) for i in range(n)]
 
     def get_arg(self, index) -> int:
         if self._lds_args[index]._is_token:

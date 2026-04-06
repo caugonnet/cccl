@@ -165,6 +165,86 @@ class TestCompositeTask:
         assert len(results) == 1
         assert abs(results[0] - expected) < 1e-6
 
+    def test_task_on_exec_place_grid(self):
+        """Task runs on an exec_place_grid; query grid dims and streams by index."""
+        grid = stf.exec_place_grid.from_devices([0, 0])
+        dplace = stf.data_place.composite(grid, blocked_mapper_1d)
+        grid.set_affine_data_place(dplace)
+
+        ctx = stf.context()
+        X = np.zeros(4, dtype=np.float32)
+        lX = ctx.logical_data(X)
+
+        with ctx.task(grid, lX.rw()) as t:
+            dims = t.get_grid_dims()
+            assert dims is not None
+            assert dims == (2, 1, 1, 1)
+            s0 = t.get_stream_at_index(0)
+            s1 = t.get_stream_at_index(1)
+            assert s0 is not None and s0 != 0
+            assert s1 is not None and s1 != 0
+
+        ctx.finalize()
+
+    def test_task_on_grid_get_stream_ptrs(self):
+        """get_stream_ptrs() returns one stream per grid place."""
+        grid = stf.exec_place_grid.from_devices([0, 0, 0])
+        dplace = stf.data_place.composite(grid, blocked_mapper_1d)
+        grid.set_affine_data_place(dplace)
+
+        ctx = stf.context()
+        X = np.zeros(6, dtype=np.float32)
+        lX = ctx.logical_data(X)
+
+        with ctx.task(grid, lX.rw()) as t:
+            ptrs = t.get_stream_ptrs()
+            assert len(ptrs) == 3
+            for p in ptrs:
+                assert p != 0
+
+        ctx.finalize()
+
+    def test_task_get_grid_dims_none_for_scalar(self):
+        """get_grid_dims() returns None when exec place is not a grid."""
+        ctx = stf.context()
+        X = np.zeros(4, dtype=np.float32)
+        lX = ctx.logical_data(X)
+
+        with ctx.task(stf.exec_place.device(0), lX.rw()) as t:
+            assert t.get_grid_dims() is None
+
+        ctx.finalize()
+
+    def test_task_get_stream_ptrs_scalar_fallback(self):
+        """get_stream_ptrs() returns a single-element list for non-grid tasks."""
+        ctx = stf.context()
+        X = np.zeros(4, dtype=np.float32)
+        lX = ctx.logical_data(X)
+
+        with ctx.task(stf.exec_place.device(0), lX.rw()) as t:
+            ptrs = t.get_stream_ptrs()
+            assert len(ptrs) == 1
+            assert ptrs[0] != 0
+
+        ctx.finalize()
+
+    def test_task_on_grid_with_composite_dep(self):
+        """Task on exec_place_grid; affine set so deps use lX.rw() without explicit dplace."""
+        grid = stf.exec_place_grid.from_devices([0, 0])
+        dplace = stf.data_place.composite(grid, blocked_mapper_1d)
+        grid.set_affine_data_place(dplace)
+
+        ctx = stf.context()
+        X = np.zeros(4, dtype=np.float32)
+        lX = ctx.logical_data(X)
+
+        with ctx.task(grid, lX.rw()) as t:
+            dims = t.get_grid_dims()
+            assert dims is not None
+            assert dims == (2, 1, 1, 1)
+
+        ctx.finalize()
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

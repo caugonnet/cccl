@@ -843,6 +843,64 @@ void stf_task_destroy(stf_task_handle t);
 
 void stf_task_enable_capture(stf_task_handle t);
 
+//!
+//! \brief Get grid dimensions of a task's exec place
+//!
+//! When the task's execution place is a grid (size > 1), writes its
+//! shape to \p out_dims. Returns 0 on success, non-zero if the task's
+//! exec place is not a grid or \p out_dims is NULL.
+//!
+//! \param t Task handle
+//! \param[out] out_dims On success, the grid shape (x, y, z, t) is written here. Must not be NULL.
+//! \return 0 on success; non-zero if task exec place is not a grid or \p out_dims is NULL
+//!
+//! \pre t must be valid task handle
+//! \pre stf_task_start() must have been called
+//!
+//! \note Total number of grid entries is out_dims->x * out_dims->y * out_dims->z * out_dims->t.
+//!
+//! \par Example:
+//! \code
+//! stf_task_start(task);
+//! stf_dim4 dims;
+//! if (stf_task_get_grid_dims(task, &dims) == 0) {
+//!     printf("Grid: %lu x %lu\n", dims.x, dims.y);
+//! }
+//! \endcode
+//!
+//! \see stf_task_get_custream_at_index()
+
+int stf_task_get_grid_dims(stf_task_handle t, stf_dim4* out_dims);
+
+//!
+//! \brief Get the CUDA stream for a specific grid index
+//!
+//! When the task's exec place is a grid, returns the CUstream for the
+//! given linear index (0 to product of grid dims - 1).
+//!
+//! \param t Task handle (must have been started; exec place must be a grid)
+//! \param place_index Linear index in the grid (0-based; use stf_task_get_grid_dims to get shape)
+//! \param[out] out_stream On success, the stream for that index is written here. Must not be NULL.
+//! \return 0 on success; non-zero if task is not a grid, index out of range, or no per-index streams
+//!
+//! \pre t must be valid task handle
+//! \pre stf_task_start() must have been called
+//!
+//! \par Example:
+//! \code
+//! stf_dim4 dims;
+//! stf_task_get_grid_dims(task, &dims);
+//! for (size_t i = 0; i < dims.x; ++i) {
+//!     CUstream s;
+//!     stf_task_get_custream_at_index(task, i, &s);
+//!     // launch work on stream s
+//! }
+//! \endcode
+//!
+//! \see stf_task_get_grid_dims()
+
+int stf_task_get_custream_at_index(stf_task_handle t, size_t place_index, CUstream* out_stream);
+
 //! \}
 
 //! \defgroup CUDAKernel CUDA Kernel Interface
