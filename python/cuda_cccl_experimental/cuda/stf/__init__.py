@@ -22,6 +22,7 @@ else:
         dep,
         exec_place,
         exec_place_grid,
+        machine_init,
     )
 
     __all__ = [
@@ -31,4 +32,5 @@ else:
         "exec_place",
         "exec_place_grid",
         "data_place",
+        "machine_init",
     ]

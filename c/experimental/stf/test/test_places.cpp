@@ -322,3 +322,119 @@ C2H_TEST("task get_grid_dims returns error for non-grid exec_place", "[task][pla
   stf_logical_data_destroy(lX);
   stf_ctx_finalize(ctx);
 }
+
+// ===== Place scope and accessor tests (task-free usage) =====
+
+C2H_TEST("exec_place_scope enter/exit", "[places][scope]")
+{
+  stf_machine_init();
+  stf_exec_place_handle dev0 = stf_exec_place_device(0);
+  REQUIRE(dev0 != nullptr);
+
+  stf_exec_place_scope_handle scope = stf_exec_place_scope_enter(dev0, 0);
+  REQUIRE(scope != nullptr);
+
+  stf_exec_place_scope_exit(scope);
+  stf_exec_place_scope_exit(nullptr);
+
+  stf_exec_place_destroy(dev0);
+}
+
+C2H_TEST("exec_place_scope nested", "[places][scope]")
+{
+  stf_machine_init();
+  stf_exec_place_handle dev0 = stf_exec_place_device(0);
+  REQUIRE(dev0 != nullptr);
+
+  stf_exec_place_scope_handle outer = stf_exec_place_scope_enter(dev0, 0);
+  REQUIRE(outer != nullptr);
+
+  stf_exec_place_scope_handle inner = stf_exec_place_scope_enter(dev0, 0);
+  REQUIRE(inner != nullptr);
+
+  stf_exec_place_scope_exit(inner);
+  stf_exec_place_scope_exit(outer);
+
+  stf_exec_place_destroy(dev0);
+}
+
+C2H_TEST("exec_place_get_affine_data_place", "[places][accessor]")
+{
+  stf_exec_place_handle dev0 = stf_exec_place_device(0);
+  REQUIRE(dev0 != nullptr);
+
+  stf_data_place_handle dp = stf_exec_place_get_affine_data_place(dev0);
+  REQUIRE(dp != nullptr);
+  REQUIRE(stf_data_place_get_device_ordinal(dp) == 0);
+
+  stf_data_place_destroy(dp);
+  stf_exec_place_destroy(dev0);
+}
+
+C2H_TEST("exec_place_pick_stream", "[places][scope][stream]")
+{
+  stf_machine_init();
+  stf_exec_place_handle dev0 = stf_exec_place_device(0);
+  REQUIRE(dev0 != nullptr);
+
+  stf_exec_place_scope_handle scope = stf_exec_place_scope_enter(dev0, 0);
+  REQUIRE(scope != nullptr);
+
+  CUstream s = stf_exec_place_pick_stream(dev0);
+  REQUIRE(s != nullptr);
+
+  stf_exec_place_scope_exit(scope);
+  stf_exec_place_destroy(dev0);
+}
+
+C2H_TEST("exec_place_get_place on grid", "[places][accessor][grid]")
+{
+  const size_t nplaces       = 2;
+  int device_ids[2]          = {0, 0};
+  stf_exec_place_handle grid = stf_exec_place_grid_from_devices(device_ids, nplaces);
+  REQUIRE(grid != nullptr);
+
+  stf_exec_place_handle sub0 = stf_exec_place_get_place(grid, 0);
+  stf_exec_place_handle sub1 = stf_exec_place_get_place(grid, 1);
+  REQUIRE(sub0 != nullptr);
+  REQUIRE(sub1 != nullptr);
+  REQUIRE(stf_exec_place_is_device(sub0) != 0);
+  REQUIRE(stf_exec_place_is_device(sub1) != 0);
+
+  stf_exec_place_destroy(sub0);
+  stf_exec_place_destroy(sub1);
+  stf_exec_place_grid_destroy(grid);
+}
+
+C2H_TEST("exec_place_get_place on scalar", "[places][accessor]")
+{
+  stf_exec_place_handle dev0 = stf_exec_place_device(0);
+  REQUIRE(dev0 != nullptr);
+
+  stf_exec_place_handle sub = stf_exec_place_get_place(dev0, 0);
+  REQUIRE(sub != nullptr);
+  REQUIRE(stf_exec_place_is_device(sub) != 0);
+
+  stf_exec_place_destroy(sub);
+  stf_exec_place_destroy(dev0);
+}
+
+C2H_TEST("exec_place_get_place out of bounds", "[places][accessor]")
+{
+  stf_exec_place_handle dev0 = stf_exec_place_device(0);
+  REQUIRE(dev0 != nullptr);
+  REQUIRE(stf_exec_place_get_place(dev0, 1) == nullptr);
+  stf_exec_place_destroy(dev0);
+
+  int device_ids[2]          = {0, 0};
+  stf_exec_place_handle grid = stf_exec_place_grid_from_devices(device_ids, 2);
+  REQUIRE(grid != nullptr);
+  REQUIRE(stf_exec_place_get_place(grid, 2) == nullptr);
+  stf_exec_place_grid_destroy(grid);
+}
+
+C2H_TEST("machine_init idempotent", "[places][machine]")
+{
+  stf_machine_init();
+  stf_machine_init();
+}

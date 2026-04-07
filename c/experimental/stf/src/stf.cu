@@ -107,6 +107,10 @@ template <class P>
   {
     return static_cast<stf_host_launch_deps_handle>(opaque_bits);
   }
+  else if constexpr (::std::is_same_v<P, exec_place_scope>)
+  {
+    return static_cast<stf_exec_place_scope_handle>(opaque_bits);
+  }
   else
   {
     static_assert(stf_dependent_false_v<P>, "to_opaque: missing pointee -> handle pairing");
@@ -143,6 +147,10 @@ template <class Opaque>
   else if constexpr (::std::is_same_v<Opaque*, stf_host_launch_deps_handle>)
   {
     return static_cast<const reserved::host_launch_deps*>(opaque_bits);
+  }
+  else if constexpr (::std::is_same_v<Opaque*, stf_exec_place_scope_handle>)
+  {
+    return static_cast<const exec_place_scope*>(opaque_bits);
   }
   else
   {
@@ -262,6 +270,50 @@ stf_exec_place_grid_create(const stf_exec_place_handle* places, size_t count, co
 void stf_exec_place_grid_destroy(stf_exec_place_handle grid)
 {
   stf_exec_place_destroy(grid);
+}
+
+stf_exec_place_scope_handle stf_exec_place_scope_enter(stf_exec_place_handle place, size_t idx)
+{
+  _CCCL_ASSERT(place != nullptr, "exec_place handle must not be null");
+  return to_opaque(stf_try_allocate([&] {
+    return new exec_place_scope(*from_opaque(place), idx);
+  }));
+}
+
+void stf_exec_place_scope_exit(stf_exec_place_scope_handle scope)
+{
+  delete from_opaque(scope);
+}
+
+stf_data_place_handle stf_exec_place_get_affine_data_place(stf_exec_place_handle h)
+{
+  _CCCL_ASSERT(h != nullptr, "exec_place handle must not be null");
+  return to_opaque(stf_try_allocate([h] {
+    return new data_place(from_opaque(h)->affine_data_place());
+  }));
+}
+
+CUstream stf_exec_place_pick_stream(stf_exec_place_handle h)
+{
+  _CCCL_ASSERT(h != nullptr, "exec_place handle must not be null");
+  return reinterpret_cast<CUstream>(from_opaque(h)->pick_stream());
+}
+
+stf_exec_place_handle stf_exec_place_get_place(stf_exec_place_handle h, size_t idx)
+{
+  _CCCL_ASSERT(h != nullptr, "exec_place handle must not be null");
+  if (idx >= from_opaque(h)->size())
+  {
+    return nullptr;
+  }
+  return to_opaque(stf_try_allocate([h, idx] {
+    return new exec_place(from_opaque(h)->get_place(idx));
+  }));
+}
+
+void stf_machine_init(void)
+{
+  cuda::experimental::places::reserved::machine::instance();
 }
 
 stf_data_place_handle stf_data_place_host(void)

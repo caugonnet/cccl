@@ -105,6 +105,9 @@ typedef struct stf_exec_place_opaque_t* stf_exec_place_handle;
 //! \brief Opaque handle to a \c data_place.
 typedef struct stf_data_place_opaque_t* stf_data_place_handle;
 
+//! \brief Opaque handle to an active exec_place_scope (RAII context activation).
+typedef struct stf_exec_place_scope_opaque_t* stf_exec_place_scope_handle;
+
 //! \brief 4D position (coordinates) for partition mapping.
 //! Layout matches C++ pos4 for use as partition function arguments/result.
 typedef struct stf_pos4
@@ -170,6 +173,33 @@ stf_exec_place_grid_create(const stf_exec_place_handle* places, size_t count, co
 
 //! \brief Same as stf_exec_place_destroy (grids are exec_place handles).
 void stf_exec_place_grid_destroy(stf_exec_place_handle grid);
+
+//! \brief Activate the sub-place at linear index \p idx (0 for scalar places).
+//! Saves the current CUDA context; call stf_exec_place_scope_exit to restore.
+//! \return Opaque scope handle, or NULL on failure.
+stf_exec_place_scope_handle stf_exec_place_scope_enter(stf_exec_place_handle place, size_t idx);
+
+//! \brief Restore the CUDA context saved by stf_exec_place_scope_enter and destroy the scope.
+//! \p scope may be NULL (no-op).
+void stf_exec_place_scope_exit(stf_exec_place_scope_handle scope);
+
+//! \brief Get the affine data_place associated with this exec_place.
+//! Caller must stf_data_place_destroy the result.
+stf_data_place_handle stf_exec_place_get_affine_data_place(stf_exec_place_handle h);
+
+//! \brief Get a CUDA stream from this place's stream pool.
+//! The returned CUstream is owned by the place; do NOT destroy it.
+//! Must be called while the place (or a parent) is activated via stf_exec_place_scope_enter.
+CUstream stf_exec_place_pick_stream(stf_exec_place_handle h);
+
+//! \brief Get the sub-place at linear index \p idx.
+//! For scalar places, \p idx must be 0. Returns NULL if \p idx is out of bounds.
+//! Caller must stf_exec_place_destroy the result.
+stf_exec_place_handle stf_exec_place_get_place(stf_exec_place_handle h, size_t idx);
+
+//! \brief Initialize the machine singleton (P2P access, memory pool setup, topology).
+//! Safe to call multiple times; only the first call has effect.
+void stf_machine_init(void);
 
 //! \brief Host (CPU/pinned) data placement.
 stf_data_place_handle stf_data_place_host(void);

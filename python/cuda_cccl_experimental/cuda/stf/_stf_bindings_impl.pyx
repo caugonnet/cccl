@@ -97,6 +97,18 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     stf_exec_place_handle stf_exec_place_grid_create(const stf_exec_place_handle* places, size_t count, const stf_dim4* grid_dims)
     void stf_exec_place_grid_destroy(stf_exec_place_handle grid)
 
+    # exec_place_scope
+    ctypedef struct stf_exec_place_scope_opaque_t
+    ctypedef stf_exec_place_scope_opaque_t* stf_exec_place_scope_handle
+    stf_exec_place_scope_handle stf_exec_place_scope_enter(stf_exec_place_handle place, size_t idx)
+    void stf_exec_place_scope_exit(stf_exec_place_scope_handle scope)
+
+    # Place accessors
+    stf_data_place_handle stf_exec_place_get_affine_data_place(stf_exec_place_handle h)
+    CUstream stf_exec_place_pick_stream(stf_exec_place_handle h)
+    stf_exec_place_handle stf_exec_place_get_place(stf_exec_place_handle h, size_t idx)
+    void stf_machine_init()
+
     #
     # Data places (functions using the forward-declared handle)
     #
@@ -496,13 +508,29 @@ def read(ld, dplace=None):   return dep(ld, AccessMode.READ.value, dplace)
 def write(ld, dplace=None):  return dep(ld, AccessMode.WRITE.value, dplace)
 def rw(ld, dplace=None):     return dep(ld, AccessMode.RW.value, dplace)
 
+def machine_init():
+    """Initialize machine topology (P2P access, device memory pools).
+
+    This is done automatically when creating an ``stf.context()``, but must
+    be called explicitly when using places without an STF task context
+    (e.g. for direct ``exec_place`` / ``pick_stream`` usage).
+
+    Safe to call multiple times; only the first invocation has effect.
+    """
+    stf_machine_init()
+
 cdef class exec_place:
     cdef stf_exec_place_handle _h
+    cdef stf_exec_place_scope_handle _scope
 
     def __cinit__(self):
         self._h = NULL
+        self._scope = NULL
 
     def __dealloc__(self):
+        if self._scope != NULL:
+            stf_exec_place_scope_exit(self._scope)
+            self._scope = NULL
         if self._h != NULL:
             try:
                 stf_exec_place_destroy(self._h)
@@ -559,6 +587,54 @@ cdef class exec_place:
         when this exec place is used as the task's execution place.
         """
         stf_exec_place_set_affine_data_place(self._h, dplace._h)
+
+    def __enter__(self):
+        if self._h == NULL:
+            raise RuntimeError("exec_place handle is null")
+        self._scope = stf_exec_place_scope_enter(self._h, 0)
+        if self._scope == NULL:
+            raise RuntimeError("failed to activate exec_place scope")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._scope != NULL:
+            stf_exec_place_scope_exit(self._scope)
+            self._scope = NULL
+        return False
+
+    @property
+    def affine_data_place(self):
+        """Return the data_place associated with this exec_place."""
+        cdef stf_data_place_handle dh = stf_exec_place_get_affine_data_place(self._h)
+        if dh == NULL:
+            raise RuntimeError("failed to get affine data_place")
+        cdef data_place dp = data_place.__new__(data_place)
+        dp._h = dh
+        return dp
+
+    def pick_stream(self):
+        """Return a CUstream (as int) from this place's stream pool.
+
+        Must be called inside a ``with place:`` block (or after manual scope entry).
+        """
+        cdef CUstream s = stf_exec_place_pick_stream(self._h)
+        return <uintptr_t>s
+
+    def get_place(self, size_t idx):
+        """Get the sub-place at linear index *idx* (0 for scalar places).
+
+        For grids, returns the sub-place at that index.
+        Caller owns the returned exec_place.
+        """
+        cdef stf_exec_place_handle sub = stf_exec_place_get_place(self._h, idx)
+        if sub == NULL:
+            raise IndexError(f"sub-place index {idx} is out of range")
+        cdef exec_place ep = exec_place.__new__(exec_place)
+        ep._h = sub
+        return ep
+
+    def __getitem__(self, size_t idx):
+        return self.get_place(idx)
 
 
 cdef class exec_place_grid(exec_place):
