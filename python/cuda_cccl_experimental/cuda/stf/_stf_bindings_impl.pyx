@@ -614,6 +614,11 @@ cdef class exec_place:
         """Number of sub-places (1 for scalar places)."""
         return stf_exec_place_size(self._h)
 
+    @property
+    def _handle_int(self):
+        """Return the opaque C handle as an integer (for FFI / ctypes use)."""
+        return <uintptr_t>self._h
+
     def set_affine_data_place(self, data_place dplace):
         """Set the affine data place for this exec place grid.
 
