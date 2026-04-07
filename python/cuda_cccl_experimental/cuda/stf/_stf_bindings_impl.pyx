@@ -9,6 +9,7 @@
 
 from cpython.buffer cimport (
     Py_buffer, PyBUF_FORMAT, PyBUF_ND, PyBUF_SIMPLE, PyBUF_ANY_CONTIGUOUS,
+    PyBUF_WRITABLE, PyBUF_C_CONTIGUOUS,
     PyObject_GetBuffer, PyBuffer_Release, PyObject_CheckBuffer
 )
 from cpython.ref cimport PyObject, Py_INCREF, Py_XDECREF
@@ -35,6 +36,7 @@ cdef extern from "<cuda.h>":
     ctypedef OpaqueCUkernel_st *CUkernel
     ctypedef OpaqueCUlibrary_st *CUlibrary
     ctypedef OpaqueCUfunc_st *CUfunction
+
 
 cdef extern from "<cuda_runtime.h>":
     cdef struct dim3:
@@ -114,6 +116,7 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     #
     ctypedef struct stf_logical_data_handle_t
     ctypedef stf_logical_data_handle_t* stf_logical_data_handle
+    int stf_ctx_wait(stf_ctx_handle ctx, stf_logical_data_handle ld, void* out, size_t size) nogil
     stf_logical_data_handle stf_logical_data(stf_ctx_handle ctx, void* addr, size_t sz)
     stf_logical_data_handle stf_logical_data_with_place(stf_ctx_handle ctx, void* addr, size_t sz, stf_data_place_handle dplace)
     void stf_logical_data_set_symbol(stf_logical_data_handle ld, const char* symbol)
@@ -259,6 +262,10 @@ cdef class logical_data:
     cdef size_t _len
     cdef str    _symbol  # Store symbol for display purposes
     cdef readonly bint _is_token  # readonly makes it accessible from Python
+    # Prevent GC of the Python object whose raw pointer was passed to
+    # the C API.  STF may access that pointer asynchronously, so the
+    # source object must outlive the logical_data.
+    cdef object _source_buf
 
     def __cinit__(self, context ctx=None, object buf=None, data_place dplace=None, shape=None, dtype=None, str name=None):
         cdef Py_buffer view
@@ -274,11 +281,13 @@ cdef class logical_data:
             self._ndim = 0
             self._symbol = None
             self._is_token = False
+            self._source_buf = None
             return
 
         self._ctx = ctx._ctx
         self._symbol = None  # Initialize symbol
         self._is_token = False  # Initialize token flag
+        self._source_buf = buf  # prevent garbage collection in the case of numpy objects
 
         # Default to host data place if not specified (matches C++ API)
         if dplace is None:
@@ -407,6 +416,7 @@ cdef class logical_data:
         out._len   = self._len
         out._symbol = None
         out._is_token = False
+        out._source_buf = None
 
         return out
 
@@ -420,6 +430,7 @@ cdef class logical_data:
         out._len   = 0
         out._symbol = None  # New object has no symbol initially
         out._is_token = True
+        out._source_buf = None
         out._ld = stf_token(ctx._ctx)
         if out._ld == NULL:
             raise RuntimeError("failed to create STF token")
@@ -451,6 +462,7 @@ cdef class logical_data:
         out._len   = total_items * out._dtype.itemsize
         out._symbol = None
         out._is_token = False
+        out._source_buf = None
         out._ld = stf_logical_data_empty(ctx._ctx, out._len)
         if out._ld == NULL:
             raise RuntimeError("failed to create logical_data from shape")
@@ -1138,6 +1150,53 @@ cdef class context:
         with nogil:
             s = stf_fence(self._ctx)
         return <uintptr_t>s
+
+    def wait(self, ld not None):
+        """Synchronize and return a logical data's contents as a numpy array.
+
+        Like C++ ``ctx.wait(ldata)``, this blocks until the data is
+        available and returns a host copy.  The context remains usable
+        afterwards, unlike ``finalize()``.
+
+        Parameters
+        ----------
+        ld : logical_data
+            The logical data whose contents should be retrieved.
+
+        Returns
+        -------
+        numpy.ndarray
+            A new numpy array with the same shape and dtype as ``ld``.
+
+        Examples
+        --------
+        >>> ctx = stf.context()
+        >>> lSum = ctx.logical_data(np.zeros(1, dtype=np.float64))
+        >>> # ... submit tasks that write to lSum ...
+        >>> result = ctx.wait(lSum)   # blocks, returns numpy array
+        >>> print(result[0])          # context still usable
+        >>> ctx.finalize()
+        """
+        if self._ctx == NULL:
+            raise RuntimeError("context handle is NULL")
+        if not isinstance(ld, logical_data):
+            raise TypeError("wait() requires a logical_data object")
+        cdef logical_data ldata = <logical_data>ld
+        import numpy as np
+        cdef object buf = np.empty(ldata._shape, dtype=ldata._dtype)
+        cdef Py_buffer pybuf
+        PyObject_GetBuffer(buf, &pybuf, PyBUF_WRITABLE | PyBUF_C_CONTIGUOUS)
+        cdef void* ptr = pybuf.buf
+        cdef size_t sz = <size_t>pybuf.len
+        cdef int rc
+        try:
+            with nogil:
+                rc = stf_ctx_wait(self._ctx, ldata._ld, ptr, sz)
+        finally:
+            PyBuffer_Release(&pybuf)
+        if rc != 0:
+            raise RuntimeError("stf_ctx_wait failed")
+        return buf
 
     def logical_data(self, object buf, data_place dplace=None, str name=None):
         """
