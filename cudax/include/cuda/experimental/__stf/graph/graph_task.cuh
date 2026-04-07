@@ -224,11 +224,10 @@ public:
         // Move ownership so child graphs with memory alloc/free nodes
         // (e.g. from cudaMallocAsync during stream capture) are accepted.
         cudaGraphNodeParams nodeParams = {};
-        nodeParams.type            = cudaGraphNodeTypeGraph;
-        nodeParams.graph.graph     = childGraph;
-        nodeParams.graph.ownership = cudaGraphChildGraphOwnershipMove;
-        cuda_safe_call(
-          cudaGraphAddNode(&n, ctx_graph, deps, nullptr, ready_dependencies.size(), &nodeParams));
+        nodeParams.type                = cudaGraphNodeTypeGraph;
+        nodeParams.graph.graph         = childGraph;
+        nodeParams.graph.ownership     = cudaGraphChildGraphOwnershipMove;
+        cuda_safe_call(cudaGraphAddNode(&n, ctx_graph, deps, nullptr, ready_dependencies.size(), &nodeParams));
 #else // _CCCL_CTK_AT_LEAST(13, 0)
         cuda_safe_call(cudaGraphAddChildGraphNode(&n, ctx_graph, deps, ready_dependencies.size(), childGraph));
         // Destroy the child graph unless we should not
