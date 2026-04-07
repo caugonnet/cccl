@@ -19,22 +19,6 @@ Example
 from __future__ import annotations
 
 
-class StfStream:
-    """Adapts a raw CUstream pointer to the __cuda_stream__ protocol."""
-
-    __slots__ = ("_ptr",)
-
-    def __init__(self, ptr: int):
-        self._ptr = ptr
-
-    def __cuda_stream__(self):
-        return (0, self._ptr)
-
-    @property
-    def ptr(self):
-        return self._ptr
-
-
 def _to_numba(cai):
     """Convert an stf_cai object to a numba.cuda device array."""
     from numba import cuda
@@ -62,7 +46,7 @@ def numba_task(ctx, *args, symbol=None):
         def __enter__(self):
             t.start()
             cais = t.args_cai()
-            stream = StfStream(t.stream_ptr())
+            stream = t.stream_ptr()
             if cais is None:
                 return ((), stream)
             if isinstance(cais, tuple):
@@ -76,4 +60,4 @@ def numba_task(ctx, *args, symbol=None):
     return _NumbaTaskContext()
 
 
-__all__ = ["numba_task", "StfStream"]
+__all__ = ["numba_task"]

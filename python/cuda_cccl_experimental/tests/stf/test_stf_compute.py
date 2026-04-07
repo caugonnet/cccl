@@ -45,23 +45,6 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-class StfStream:
-    """Adapts an STF task's raw CUstream pointer to the __cuda_stream__ protocol
-    expected by cuda.compute algorithms."""
-
-    __slots__ = ("_ptr",)
-
-    def __init__(self, ptr: int):
-        self._ptr = ptr
-
-    def __cuda_stream__(self):
-        return (0, self._ptr)
-
-    @property
-    def ptr(self):
-        return self._ptr
-
-
 # ---------------------------------------------------------------------------
 # Example 1: Device-wide reduction (cf. 08-cub-reduce.cu)
 #
@@ -86,7 +69,7 @@ def test_stf_reduce():
         d_in = numba.cuda.from_cuda_array_interface(t.get_arg_cai(0), sync=False)
         d_out = numba.cuda.from_cuda_array_interface(t.get_arg_cai(1), sync=False)
         h_init = np.array([0], dtype=np.int32)
-        stream = StfStream(t.stream_ptr())
+        stream = t.stream_ptr()
         cuda.compute.reduce_into(d_in, d_out, OpKind.PLUS, N, h_init, stream=stream)
 
     ctx.finalize()
@@ -118,7 +101,7 @@ def test_stf_reduce_graph():
         d_in = numba.cuda.from_cuda_array_interface(t.get_arg_cai(0), sync=False)
         d_out = numba.cuda.from_cuda_array_interface(t.get_arg_cai(1), sync=False)
         h_init = np.array([0], dtype=np.int32)
-        stream = StfStream(t.stream_ptr())
+        stream = t.stream_ptr()
         cuda.compute.reduce_into(d_in, d_out, OpKind.PLUS, N, h_init, stream=stream)
 
     ctx.finalize()
@@ -149,7 +132,7 @@ def test_stf_inclusive_scan():
     with ctx.task(lData.read(), lOut.rw()) as t:
         d_in = numba.cuda.from_cuda_array_interface(t.get_arg_cai(0), sync=False)
         d_out = numba.cuda.from_cuda_array_interface(t.get_arg_cai(1), sync=False)
-        stream = StfStream(t.stream_ptr())
+        stream = t.stream_ptr()
         cuda.compute.inclusive_scan(d_in, d_out, OpKind.PLUS, None, N, stream=stream)
 
     # Verify via host_launch that reads the result
@@ -176,7 +159,7 @@ def test_stf_exclusive_scan():
         d_in = numba.cuda.from_cuda_array_interface(t.get_arg_cai(0), sync=False)
         d_out = numba.cuda.from_cuda_array_interface(t.get_arg_cai(1), sync=False)
         h_init = np.array([0], dtype=np.int32)
-        stream = StfStream(t.stream_ptr())
+        stream = t.stream_ptr()
         cuda.compute.exclusive_scan(d_in, d_out, OpKind.PLUS, h_init, N, stream=stream)
 
     ctx.finalize()
@@ -211,7 +194,7 @@ def test_stf_binary_transform():
         dA = numba.cuda.from_cuda_array_interface(t.get_arg_cai(0), sync=False)
         dB = numba.cuda.from_cuda_array_interface(t.get_arg_cai(1), sync=False)
         dC = numba.cuda.from_cuda_array_interface(t.get_arg_cai(2), sync=False)
-        stream = StfStream(t.stream_ptr())
+        stream = t.stream_ptr()
         cuda.compute.binary_transform(dA, dB, dC, OpKind.PLUS, N, stream=stream)
 
     ctx.finalize()
@@ -237,7 +220,7 @@ def test_stf_unary_transform():
     with ctx.task(lIn.read(), lOut.rw()) as t:
         d_in = numba.cuda.from_cuda_array_interface(t.get_arg_cai(0), sync=False)
         d_out = numba.cuda.from_cuda_array_interface(t.get_arg_cai(1), sync=False)
-        stream = StfStream(t.stream_ptr())
+        stream = t.stream_ptr()
         cuda.compute.unary_transform(d_in, d_out, negate, N, stream=stream)
 
     ctx.finalize()
@@ -273,7 +256,7 @@ def test_stf_pipeline_transform_then_reduce():
         dA = numba.cuda.from_cuda_array_interface(t.get_arg_cai(0), sync=False)
         dB = numba.cuda.from_cuda_array_interface(t.get_arg_cai(1), sync=False)
         dC = numba.cuda.from_cuda_array_interface(t.get_arg_cai(2), sync=False)
-        stream = StfStream(t.stream_ptr())
+        stream = t.stream_ptr()
         cuda.compute.binary_transform(dA, dB, dC, OpKind.PLUS, N, stream=stream)
 
     # Task 2: sum = reduce(C)  — automatically waits for task 1
@@ -281,7 +264,7 @@ def test_stf_pipeline_transform_then_reduce():
         dC = numba.cuda.from_cuda_array_interface(t.get_arg_cai(0), sync=False)
         dSum = numba.cuda.from_cuda_array_interface(t.get_arg_cai(1), sync=False)
         h_init = np.array([0.0], dtype=np.float32)
-        stream = StfStream(t.stream_ptr())
+        stream = t.stream_ptr()
         cuda.compute.reduce_into(dC, dSum, OpKind.PLUS, N, h_init, stream=stream)
 
     ctx.finalize()

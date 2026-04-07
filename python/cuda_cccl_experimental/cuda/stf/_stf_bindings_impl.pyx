@@ -17,6 +17,7 @@ from cpython.bytes cimport PyBytes_FromStringAndSize
 from cpython.pycapsule cimport (
     PyCapsule_CheckExact, PyCapsule_IsValid, PyCapsule_GetPointer
 )
+from libc.stddef cimport ptrdiff_t
 from libc.stdint cimport uint8_t, uint32_t, uint64_t, int64_t, uintptr_t
 from libc.string cimport memset, memcpy
 
@@ -122,6 +123,9 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     void stf_data_place_destroy(stf_data_place_handle h)
     int stf_data_place_get_device_ordinal(stf_data_place_handle h)
     const char* stf_data_place_to_string(stf_data_place_handle h)
+    void* stf_data_place_allocate(stf_data_place_handle h, ptrdiff_t size, cudaStream_t stream)
+    void stf_data_place_deallocate(stf_data_place_handle h, void* ptr, size_t size, cudaStream_t stream)
+    int stf_data_place_allocation_is_stream_ordered(stf_data_place_handle h)
 
     #
     # Logical data
@@ -248,7 +252,7 @@ class stf_cai:
         self.ptr = ptr               # integer device pointer
         self.shape = shape
         self.dtype = np.dtype(dtype)
-        self.stream = stream        # CUDA stream handle (int or 0)
+        self.stream = int(stream)    # CUDA stream handle (int or 0)
         self.__cuda_array_interface__ = {
             'version': 3,
             'shape': self.shape,
@@ -519,6 +523,36 @@ def machine_init():
     """
     stf_machine_init()
 
+
+class CudaStream(int):
+    """An ``int`` subclass that also implements ``__cuda_stream__``.
+
+    Because it **is** an ``int``, it passes ``PyLong_Check`` and works
+    everywhere a raw stream pointer was accepted before (PyTorch's
+    ``ExternalStream``, Numba's ``external_stream``, CuPy, ctypes, ...).
+
+    The added ``__cuda_stream__`` method satisfies the protocol expected
+    by ``cuda.compute`` algorithms, so the object can be passed directly
+    as ``stream=`` without a manual wrapper.
+
+    Instances are returned by :meth:`exec_place.pick_stream` and
+    :meth:`task.stream_ptr`.
+    """
+
+    def __new__(cls, ptr):
+        return super().__new__(cls, ptr)
+
+    def __cuda_stream__(self):
+        return (0, int(self))
+
+    @property
+    def ptr(self) -> int:
+        """Raw CUstream pointer as a plain Python ``int``."""
+        return int(self)
+
+    def __repr__(self):
+        return f"CudaStream(0x{int(self):x})"
+
 cdef class exec_place:
     cdef stf_exec_place_handle _h
     cdef stf_exec_place_scope_handle _scope
@@ -613,12 +647,15 @@ cdef class exec_place:
         return dp
 
     def pick_stream(self):
-        """Return a CUstream (as int) from this place's stream pool.
+        """Return a :class:`CudaStream` from this place's stream pool.
+
+        The returned object implements ``__cuda_stream__`` for direct use
+        with ``cuda.compute`` and behaves like an ``int`` (raw pointer).
 
         Must be called inside a ``with place:`` block (or after manual scope entry).
         """
         cdef CUstream s = stf_exec_place_pick_stream(self._h)
-        return <uintptr_t>s
+        return CudaStream(<uintptr_t>s)
 
     def get_place(self, size_t idx):
         """Get the sub-place at linear index *idx* (0 for scalar places).
@@ -830,6 +867,60 @@ cdef class data_place:
     def device_id(self) -> int:
         return stf_data_place_get_device_ordinal(self._h)
 
+    def allocate(self, Py_ssize_t nbytes, stream=None):
+        """Allocate *nbytes* on this data place.
+
+        Parameters
+        ----------
+        nbytes : int
+            Number of bytes to allocate.
+        stream : optional
+            CUDA stream for stream-ordered allocation (int, CudaStream, or
+            any object implementing ``__cuda_stream__``).  ``None`` uses the
+            default (null) stream.
+
+        Returns
+        -------
+        int
+            Device (or host) pointer as a Python int.
+
+        Raises
+        ------
+        MemoryError
+            If the underlying place cannot allocate (out of memory, or
+            the place type does not support allocation).
+        """
+        cdef uintptr_t s_val = 0
+        if stream is not None:
+            s_val = <uintptr_t>int(stream)
+        cdef cudaStream_t s = <cudaStream_t>s_val
+        cdef void* ptr = stf_data_place_allocate(self._h, <ptrdiff_t>nbytes, s)
+        if ptr == NULL:
+            raise MemoryError(f"data_place.allocate failed for {nbytes} bytes")
+        return <uintptr_t>ptr
+
+    def deallocate(self, uintptr_t ptr, size_t nbytes, stream=None):
+        """Free memory previously obtained from :meth:`allocate`.
+
+        Parameters
+        ----------
+        ptr : int
+            Pointer returned by :meth:`allocate`.
+        nbytes : int
+            Size of the original allocation in bytes.
+        stream : optional
+            CUDA stream for stream-ordered deallocation.
+        """
+        cdef uintptr_t s_val = 0
+        if stream is not None:
+            s_val = <uintptr_t>int(stream)
+        cdef cudaStream_t s = <cudaStream_t>s_val
+        stf_data_place_deallocate(self._h, <void*>ptr, nbytes, s)
+
+    @property
+    def allocation_is_stream_ordered(self):
+        """Whether allocations on this place are stream-ordered."""
+        return bool(stf_data_place_allocation_is_stream_ordered(self._h))
 
 
 cdef class task:
@@ -891,13 +982,15 @@ cdef class task:
        cdef exec_place ep = <exec_place> exec_p
        stf_task_set_exec_place(self._t, ep._h)
 
-    def stream_ptr(self) -> int:
-        """
-        Return the raw CUstream pointer as a Python int
-        (memory address).  Suitable for ctypes or PyCUDA.
+    def stream_ptr(self):
+        """Return a :class:`CudaStream` for this task's CUDA stream.
+
+        The returned object implements ``__cuda_stream__`` for direct use
+        with ``cuda.compute`` and behaves like an ``int`` (raw pointer)
+        for ctypes or PyCUDA.
         """
         cdef CUstream s = stf_task_get_custream(self._t)
-        return <uintptr_t> s         # cast pointer -> Py int
+        return CudaStream(<uintptr_t>s)
 
     def get_grid_dims(self):
         """When the task's exec place is a grid, return (x, y, z, t) shape.

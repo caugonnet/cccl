@@ -438,3 +438,84 @@ C2H_TEST("machine_init idempotent", "[places][machine]")
   stf_machine_init();
   stf_machine_init();
 }
+
+C2H_TEST("data_place_allocate_device", "[places][allocate]")
+{
+  stf_exec_place_handle ep = stf_exec_place_device(0);
+  REQUIRE(ep != nullptr);
+
+  stf_exec_place_scope_handle scope = stf_exec_place_scope_enter(ep, 0);
+  REQUIRE(scope != nullptr);
+
+  CUstream stream              = stf_exec_place_pick_stream(ep);
+  stf_data_place_handle dplace = stf_exec_place_get_affine_data_place(ep);
+  REQUIRE(dplace != nullptr);
+
+  void* ptr = stf_data_place_allocate(dplace, 1024, reinterpret_cast<cudaStream_t>(stream));
+  REQUIRE(ptr != nullptr);
+
+  stf_data_place_deallocate(dplace, ptr, 1024, reinterpret_cast<cudaStream_t>(stream));
+
+  stf_data_place_destroy(dplace);
+  stf_exec_place_scope_exit(scope);
+  stf_exec_place_destroy(ep);
+}
+
+C2H_TEST("data_place_allocate_host", "[places][allocate]")
+{
+  stf_data_place_handle dplace = stf_data_place_host();
+  REQUIRE(dplace != nullptr);
+
+  void* ptr = stf_data_place_allocate(dplace, 256, nullptr);
+  REQUIRE(ptr != nullptr);
+
+  int* buf = static_cast<int*>(ptr);
+  buf[0]   = 42;
+  REQUIRE(buf[0] == 42);
+
+  stf_data_place_deallocate(dplace, ptr, 256, nullptr);
+  stf_data_place_destroy(dplace);
+}
+
+C2H_TEST("data_place_allocate_managed", "[places][allocate]")
+{
+  stf_data_place_handle dplace = stf_data_place_managed();
+  REQUIRE(dplace != nullptr);
+
+  void* ptr = stf_data_place_allocate(dplace, 512, nullptr);
+  REQUIRE(ptr != nullptr);
+
+  int* buf = static_cast<int*>(ptr);
+  buf[0]   = 99;
+  REQUIRE(buf[0] == 99);
+
+  stf_data_place_deallocate(dplace, ptr, 512, nullptr);
+  stf_data_place_destroy(dplace);
+}
+
+C2H_TEST("data_place_allocation_is_stream_ordered", "[places][allocate]")
+{
+  stf_data_place_handle dev = stf_data_place_device(0);
+  REQUIRE(dev != nullptr);
+  REQUIRE(stf_data_place_allocation_is_stream_ordered(dev) == 1);
+  stf_data_place_destroy(dev);
+
+  stf_data_place_handle host = stf_data_place_host();
+  REQUIRE(host != nullptr);
+  REQUIRE(stf_data_place_allocation_is_stream_ordered(host) == 0);
+  stf_data_place_destroy(host);
+
+  stf_data_place_handle mgd = stf_data_place_managed();
+  REQUIRE(mgd != nullptr);
+  REQUIRE(stf_data_place_allocation_is_stream_ordered(mgd) == 0);
+  stf_data_place_destroy(mgd);
+}
+
+C2H_TEST("data_place_allocate_invalid_returns_null", "[places][allocate]")
+{
+  stf_data_place_handle inv = stf_data_place_affine();
+  REQUIRE(inv != nullptr);
+  void* ptr = stf_data_place_allocate(inv, 64, nullptr);
+  REQUIRE(ptr == nullptr);
+  stf_data_place_destroy(inv);
+}

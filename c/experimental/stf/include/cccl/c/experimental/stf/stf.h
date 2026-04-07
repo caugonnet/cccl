@@ -231,6 +231,35 @@ int stf_data_place_get_device_ordinal(stf_data_place_handle h);
 //! \brief Human-readable description; pointer valid until the next call on this thread.
 const char* stf_data_place_to_string(stf_data_place_handle h);
 
+//! \brief Allocate \p size bytes at this data place.
+//!
+//! For device places the allocation is stream-ordered (cudaMallocAsync).
+//! For host/managed places \p stream is ignored.
+//! Returns NULL on failure (e.g. unsupported place type or out of memory).
+//!
+//! \param h     Data place handle (must not be NULL)
+//! \param size  Allocation size in bytes
+//! \param stream CUDA stream for stream-ordered allocation (may be NULL)
+//! \return Pointer to allocated memory, or NULL on failure
+void* stf_data_place_allocate(stf_data_place_handle h, ptrdiff_t size, cudaStream_t stream);
+
+//! \brief Deallocate memory previously obtained from stf_data_place_allocate().
+//!
+//! For device places the deallocation is stream-ordered (cudaFreeAsync).
+//! For host/managed places \p stream is ignored.
+//!
+//! \param h      Data place handle (must not be NULL)
+//! \param ptr    Pointer returned by stf_data_place_allocate()
+//! \param size   Size of the original allocation in bytes
+//! \param stream CUDA stream for stream-ordered deallocation (may be NULL)
+void stf_data_place_deallocate(stf_data_place_handle h, void* ptr, size_t size, cudaStream_t stream);
+
+//! \brief Query whether allocations on this place are stream-ordered.
+//!
+//! \param h Data place handle (must not be NULL)
+//! \return 1 if stream-ordered, 0 otherwise
+int stf_data_place_allocation_is_stream_ordered(stf_data_place_handle h);
+
 //! \}
 
 //! \defgroup Handles Opaque Handles

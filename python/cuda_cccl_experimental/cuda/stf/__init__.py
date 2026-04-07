@@ -17,6 +17,7 @@ if not _BINDINGS_AVAILABLE:
         )
 else:
     from ._stf_bindings import (
+        CudaStream,
         context,
         data_place,
         dep,
@@ -24,9 +25,12 @@ else:
         exec_place_grid,
         machine_init,
     )
+    from .device_array import DeviceArray
 
     __all__ = [
         "_BINDINGS_AVAILABLE",
+        "CudaStream",
+        "DeviceArray",
         "context",
         "dep",
         "exec_place",

@@ -394,6 +394,37 @@ const char* stf_data_place_to_string(stf_data_place_handle h)
   return s.c_str();
 }
 
+void* stf_data_place_allocate(stf_data_place_handle h, ptrdiff_t size, cudaStream_t stream)
+{
+  _CCCL_ASSERT(h != nullptr, "data_place handle must not be null");
+  try
+  {
+    return from_opaque(h)->allocate(static_cast<::std::ptrdiff_t>(size), stream);
+  }
+  catch (const ::std::exception& e)
+  {
+    fprintf(stderr, "stf_data_place_allocate failed: %s\n", e.what());
+    return nullptr;
+  }
+  catch (...)
+  {
+    fprintf(stderr, "stf_data_place_allocate failed: unknown exception\n");
+    return nullptr;
+  }
+}
+
+void stf_data_place_deallocate(stf_data_place_handle h, void* ptr, size_t size, cudaStream_t stream)
+{
+  _CCCL_ASSERT(h != nullptr, "data_place handle must not be null");
+  from_opaque(h)->deallocate(ptr, size, stream);
+}
+
+int stf_data_place_allocation_is_stream_ordered(stf_data_place_handle h)
+{
+  _CCCL_ASSERT(h != nullptr, "data_place handle must not be null");
+  return from_opaque(h)->allocation_is_stream_ordered() ? 1 : 0;
+}
+
 stf_ctx_handle stf_ctx_create(void)
 {
   return to_opaque(stf_try_allocate([] {

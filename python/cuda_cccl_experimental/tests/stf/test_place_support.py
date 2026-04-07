@@ -28,6 +28,7 @@ def test_pick_stream():
     place = stf.exec_place.device(0)
     with place:
         s = place.pick_stream()
+        assert isinstance(s, stf.CudaStream)
         assert isinstance(s, int)
         assert s != 0
 
@@ -67,17 +68,6 @@ def test_machine_init_idempotent():
     stf.machine_init()
 
 
-class _PlaceStream:
-    """Adapts a raw CUstream pointer (int) to the __cuda_stream__ protocol
-    expected by cuda.compute algorithms."""
-
-    def __init__(self, stream_ptr):
-        self._ptr = stream_ptr
-
-    def __cuda_stream__(self):
-        return (0, self._ptr)
-
-
 def test_scope_with_cuda_compute():
     """Activate place, pick_stream, run cuda.compute.reduce_into -- no STF tasks."""
     try:
@@ -94,7 +84,7 @@ def test_scope_with_cuda_compute():
     place = stf.exec_place.device(0)
 
     with place:
-        stream_ptr = place.pick_stream()
+        stream = place.pick_stream()
 
         n = 1024
         h_input = np.arange(n, dtype=np.float32)
@@ -105,13 +95,11 @@ def test_scope_with_cuda_compute():
         d_output = numba.cuda.device_array(1, dtype=np.float32)
 
         input_cai = stf_cai(
-            d_input.device_ctypes_pointer.value, (n,), np.float32, stream=stream_ptr
+            d_input.device_ctypes_pointer.value, (n,), np.float32, stream=stream
         )
         output_cai = stf_cai(
-            d_output.device_ctypes_pointer.value, (1,), np.float32, stream=stream_ptr
+            d_output.device_ctypes_pointer.value, (1,), np.float32, stream=stream
         )
-
-        stream = _PlaceStream(stream_ptr)
 
         h_init = np.array([0.0], dtype=np.float32)
         cuda.compute.reduce_into(
@@ -128,3 +116,136 @@ def test_scope_with_cuda_compute():
         result = d_output.copy_to_host()
         expected = h_input.sum()
         assert abs(result[0] - expected) < 1e-2, f"got {result[0]}, expected {expected}"
+
+
+# ---------------------------------------------------------------------------
+# data_place.allocate / deallocate / allocation_is_stream_ordered
+# ---------------------------------------------------------------------------
+
+
+def test_data_place_allocate_deallocate():
+    """Allocate on a device data_place, verify non-zero pointer, deallocate."""
+    stf.machine_init()
+    place = stf.exec_place.device(0)
+    with place:
+        dp = place.affine_data_place
+        stream = place.pick_stream()
+        ptr = dp.allocate(1024, stream)
+        assert ptr != 0
+        dp.deallocate(ptr, 1024, stream)
+
+
+def test_data_place_host_allocate():
+    """Allocate on the host data_place, write/read, deallocate."""
+    import ctypes
+
+    dp = stf.data_place.host()
+    ptr = dp.allocate(256)
+    assert ptr != 0
+    ctypes.memset(ptr, 0x42, 4)
+    buf = (ctypes.c_uint8 * 4).from_address(ptr)
+    assert buf[0] == 0x42
+    dp.deallocate(ptr, 256)
+
+
+def test_allocation_is_stream_ordered():
+    dp_dev = stf.data_place.device(0)
+    assert dp_dev.allocation_is_stream_ordered is True
+
+    dp_host = stf.data_place.host()
+    assert dp_host.allocation_is_stream_ordered is False
+
+    dp_mgd = stf.data_place.managed()
+    assert dp_mgd.allocation_is_stream_ordered is False
+
+
+# ---------------------------------------------------------------------------
+# DeviceArray
+# ---------------------------------------------------------------------------
+
+
+def test_device_array_roundtrip():
+    """Create DeviceArray from host, copy back, verify."""
+    import numpy as np
+
+    stf.machine_init()
+    place = stf.exec_place.device(0)
+    with place:
+        dp = place.affine_data_place
+        h = np.arange(128, dtype=np.float32)
+        d = stf.DeviceArray.from_host(h, dp)
+        assert d.size == 128
+        assert d.dtype == np.float32
+        result = d.copy_to_host()
+        np.testing.assert_array_equal(result, h)
+
+
+def test_device_array_with_cuda_compute():
+    """Use DeviceArray as input to cuda.compute.reduce_into."""
+    try:
+        import cuda.compute
+        from cuda.compute import OpKind
+    except ImportError:
+        pytest.skip("cuda.compute not available")
+
+    import numpy as np
+
+    stf.machine_init()
+    place = stf.exec_place.device(0)
+    with place:
+        dp = place.affine_data_place
+        stream = place.pick_stream()
+
+        h_in = np.arange(256, dtype=np.float64)
+        d_in = stf.DeviceArray.from_host(h_in, dp)
+        d_out = stf.DeviceArray(1, np.float64, dp)
+        h_init = np.array([0.0], dtype=np.float64)
+
+        cuda.compute.reduce_into(
+            d_in,
+            d_out,
+            OpKind.PLUS,
+            256,
+            h_init,
+            stream=stream,
+        )
+
+        import ctypes
+
+        ctypes.CDLL("libcudart.so").cudaStreamSynchronize(ctypes.c_void_p(int(stream)))
+
+        result = d_out.copy_to_host()
+        expected = h_in.sum()
+        assert abs(result[0] - expected) < 1e-6, f"got {result[0]}, expected {expected}"
+
+
+def test_device_array_slice_view():
+    """Verify slicing returns a view with correct offset and data."""
+    import numpy as np
+
+    stf.machine_init()
+    place = stf.exec_place.device(0)
+    with place:
+        dp = place.affine_data_place
+        h = np.arange(100, dtype=np.int32)
+        d = stf.DeviceArray.from_host(h, dp)
+
+        view = d[10:20]
+        assert view.size == 10
+        assert view.dtype == np.int32
+        result = view.copy_to_host()
+        np.testing.assert_array_equal(result, h[10:20])
+
+
+def test_device_array_empty():
+    """Zero-size DeviceArray should work without errors."""
+    import numpy as np
+
+    stf.machine_init()
+    place = stf.exec_place.device(0)
+    with place:
+        dp = place.affine_data_place
+        d = stf.DeviceArray(0, np.float32, dp)
+        assert d.size == 0
+        result = d.copy_to_host()
+        assert result.shape == (0,)
