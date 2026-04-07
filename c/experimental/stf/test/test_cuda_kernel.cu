@@ -8,8 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cstdlib>
-#include <memory>
+#include <vector>
 
 #include <cuda_runtime.h>
 
@@ -44,12 +43,8 @@ C2H_TEST("axpy with stf cuda_kernel", "[cuda_kernel]")
   stf_ctx_handle ctx = stf_ctx_create();
   REQUIRE(ctx != nullptr);
 
-  std::unique_ptr<void, decltype(&free)> X_owner(malloc(N * sizeof(double)), free);
-  std::unique_ptr<void, decltype(&free)> Y_owner(malloc(N * sizeof(double)), free);
-  REQUIRE(X_owner.get() != nullptr);
-  REQUIRE(Y_owner.get() != nullptr);
-  double* X = static_cast<double*>(X_owner.get());
-  double* Y = static_cast<double*>(Y_owner.get());
+  std::vector<double> X(N);
+  std::vector<double> Y(N);
 
   for (size_t i = 0; i < N; i++)
   {
@@ -59,8 +54,8 @@ C2H_TEST("axpy with stf cuda_kernel", "[cuda_kernel]")
 
   const double alpha = 3.14;
 
-  stf_logical_data_handle lX = stf_logical_data(ctx, X, N * sizeof(double));
-  stf_logical_data_handle lY = stf_logical_data(ctx, Y, N * sizeof(double));
+  stf_logical_data_handle lX = stf_logical_data(ctx, X.data(), N * sizeof(double));
+  stf_logical_data_handle lY = stf_logical_data(ctx, Y.data(), N * sizeof(double));
   REQUIRE(lX != nullptr);
   REQUIRE(lY != nullptr);
 

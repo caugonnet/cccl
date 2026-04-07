@@ -8,8 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cstdlib>
-#include <memory>
+#include <vector>
 
 #include <cuda_runtime.h>
 
@@ -23,15 +22,9 @@ C2H_TEST("stf token", "[token]")
   stf_ctx_handle ctx = stf_ctx_create();
   REQUIRE(ctx != nullptr);
 
-  std::unique_ptr<void, decltype(&free)> X_owner(malloc(N * sizeof(float)), free);
-  std::unique_ptr<void, decltype(&free)> Y_owner(malloc(N * sizeof(float)), free);
-  std::unique_ptr<void, decltype(&free)> Z_owner(malloc(N * sizeof(float)), free);
-  REQUIRE(X_owner.get() != nullptr);
-  REQUIRE(Y_owner.get() != nullptr);
-  REQUIRE(Z_owner.get() != nullptr);
-  [[maybe_unused]] float* const X = static_cast<float*>(X_owner.get());
-  [[maybe_unused]] float* const Y = static_cast<float*>(Y_owner.get());
-  [[maybe_unused]] float* const Z = static_cast<float*>(Z_owner.get());
+  [[maybe_unused]] std::vector<float> X(N);
+  [[maybe_unused]] std::vector<float> Y(N);
+  [[maybe_unused]] std::vector<float> Z(N);
 
   stf_logical_data_handle lX = stf_token(ctx);
   stf_logical_data_handle lY = stf_token(ctx);

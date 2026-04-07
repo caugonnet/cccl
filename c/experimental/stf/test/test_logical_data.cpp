@@ -8,8 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cstdlib>
-#include <memory>
+#include <vector>
 
 #include <cuda_runtime.h>
 
@@ -23,15 +22,11 @@ C2H_TEST("basic stf logical_data", "[logical_data]")
   stf_ctx_handle ctx = stf_ctx_create();
   REQUIRE(ctx != nullptr);
 
-  std::unique_ptr<void, decltype(&free)> A_owner(malloc(N * sizeof(float)), free);
-  std::unique_ptr<void, decltype(&free)> B_owner(malloc(N * sizeof(float)), free);
-  REQUIRE(A_owner.get() != nullptr);
-  REQUIRE(B_owner.get() != nullptr);
-  float* A = static_cast<float*>(A_owner.get());
-  float* B = static_cast<float*>(B_owner.get());
+  std::vector<float> A(N);
+  std::vector<float> B(N);
 
-  stf_logical_data_handle lA = stf_logical_data(ctx, A, N * sizeof(float));
-  stf_logical_data_handle lB = stf_logical_data(ctx, B, N * sizeof(float));
+  stf_logical_data_handle lA = stf_logical_data(ctx, A.data(), N * sizeof(float));
+  stf_logical_data_handle lB = stf_logical_data(ctx, B.data(), N * sizeof(float));
   REQUIRE(lA != nullptr);
   REQUIRE(lB != nullptr);
 

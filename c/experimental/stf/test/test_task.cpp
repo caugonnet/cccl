@@ -8,8 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cstdlib>
-#include <memory>
+#include <vector>
 
 #include <cuda_runtime.h>
 
@@ -23,19 +22,13 @@ C2H_TEST("empty stf tasks", "[task]")
   stf_ctx_handle ctx = stf_ctx_create();
   REQUIRE(ctx != nullptr);
 
-  std::unique_ptr<void, decltype(&free)> X_owner(malloc(N * sizeof(float)), free);
-  std::unique_ptr<void, decltype(&free)> Y_owner(malloc(N * sizeof(float)), free);
-  std::unique_ptr<void, decltype(&free)> Z_owner(malloc(N * sizeof(float)), free);
-  REQUIRE(X_owner.get() != nullptr);
-  REQUIRE(Y_owner.get() != nullptr);
-  REQUIRE(Z_owner.get() != nullptr);
-  float* X = static_cast<float*>(X_owner.get());
-  float* Y = static_cast<float*>(Y_owner.get());
-  float* Z = static_cast<float*>(Z_owner.get());
+  std::vector<float> X(N);
+  std::vector<float> Y(N);
+  std::vector<float> Z(N);
 
-  stf_logical_data_handle lX = stf_logical_data(ctx, X, N * sizeof(float));
-  stf_logical_data_handle lY = stf_logical_data(ctx, Y, N * sizeof(float));
-  stf_logical_data_handle lZ = stf_logical_data(ctx, Z, N * sizeof(float));
+  stf_logical_data_handle lX = stf_logical_data(ctx, X.data(), N * sizeof(float));
+  stf_logical_data_handle lY = stf_logical_data(ctx, Y.data(), N * sizeof(float));
+  stf_logical_data_handle lZ = stf_logical_data(ctx, Z.data(), N * sizeof(float));
   REQUIRE(lX != nullptr);
   REQUIRE(lY != nullptr);
   REQUIRE(lZ != nullptr);

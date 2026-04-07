@@ -13,8 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cstdlib>
 #include <memory>
+#include <vector>
 
 #include <cuda_runtime.h>
 
@@ -37,16 +37,14 @@ C2H_TEST("stf_logical_data_with_place - host place (malloc)", "[logical_data_wit
   stf_ctx_handle ctx = stf_ctx_create();
   REQUIRE(ctx != nullptr);
 
-  std::unique_ptr<void, decltype(&free)> A_owner(malloc(N * sizeof(float)), free);
-  REQUIRE(A_owner.get() != nullptr);
-  float* A = static_cast<float*>(A_owner.get());
+  std::vector<float> A(N);
   for (size_t i = 0; i < N; ++i)
   {
     A[i] = static_cast<float>(i);
   }
 
   stf_data_place_handle host_place = stf_data_place_host();
-  stf_logical_data_handle lA       = stf_logical_data_with_place(ctx, A, N * sizeof(float), host_place);
+  stf_logical_data_handle lA       = stf_logical_data_with_place(ctx, A.data(), N * sizeof(float), host_place);
   REQUIRE(lA != nullptr);
   stf_data_place_destroy(host_place);
 
@@ -118,17 +116,13 @@ C2H_TEST("stf_logical_data_with_place - device place (data on current device)", 
   std::unique_ptr<void, decltype(&cudaFree)> d_data_owner(d_raw, cudaFree);
   float* d_data = static_cast<float*>(d_data_owner.get());
 
+  std::vector<float> h_init(N);
+  for (size_t i = 0; i < N; ++i)
   {
-    std::unique_ptr<void, decltype(&free)> h_init_owner(malloc(N * sizeof(float)), free);
-    REQUIRE(h_init_owner.get() != nullptr);
-    float* h_init = static_cast<float*>(h_init_owner.get());
-    for (size_t i = 0; i < N; ++i)
-    {
-      h_init[i] = static_cast<float>(i);
-    }
-    err = cudaMemcpy(d_data, h_init, N * sizeof(float), cudaMemcpyHostToDevice);
-    REQUIRE(err == cudaSuccess);
+    h_init[i] = static_cast<float>(i);
   }
+  err = cudaMemcpy(d_data, h_init.data(), N * sizeof(float), cudaMemcpyHostToDevice);
+  REQUIRE(err == cudaSuccess);
 
   stf_data_place_handle dev_place = stf_data_place_device(0);
   stf_logical_data_handle lD      = stf_logical_data_with_place(ctx, d_data, N * sizeof(float), dev_place);
@@ -156,10 +150,8 @@ C2H_TEST("stf_logical_data_with_place - device place (data on current device)", 
   stf_ctx_finalize(ctx);
 
   // Copy back and verify: should be i * factor
-  std::unique_ptr<void, decltype(&free)> h_result_owner(malloc(N * sizeof(float)), free);
-  REQUIRE(h_result_owner.get() != nullptr);
-  float* h_result = static_cast<float*>(h_result_owner.get());
-  err             = cudaMemcpy(h_result, d_data, N * sizeof(float), cudaMemcpyDeviceToHost);
+  std::vector<float> h_result(N);
+  err = cudaMemcpy(h_result.data(), d_data, N * sizeof(float), cudaMemcpyDeviceToHost);
   REQUIRE(err == cudaSuccess);
 
   for (size_t i = 0; i < N; ++i)
