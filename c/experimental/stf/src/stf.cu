@@ -111,6 +111,12 @@ template <class P>
   {
     return static_cast<stf_exec_place_scope_handle>(opaque_bits);
   }
+#if _CCCL_CTK_AT_LEAST(12, 4)
+  else if constexpr (::std::is_same_v<P, green_context_helper>)
+  {
+    return static_cast<stf_green_context_helper_handle>(opaque_bits);
+  }
+#endif
   else
   {
     static_assert(stf_dependent_false_v<P>, "to_opaque: missing pointee -> handle pairing");
@@ -152,6 +158,12 @@ template <class Opaque>
   {
     return static_cast<const exec_place_scope*>(opaque_bits);
   }
+#if _CCCL_CTK_AT_LEAST(12, 4)
+  else if constexpr (::std::is_same_v<Opaque*, stf_green_context_helper_handle>)
+  {
+    return static_cast<const green_context_helper*>(opaque_bits);
+  }
+#endif
   else
   {
     static_assert(stf_dependent_false_v<Opaque>, "from_opaque_const: missing handle -> pointee pairing");
@@ -187,6 +199,50 @@ stf_exec_place_handle stf_exec_place_current_device(void)
   return to_opaque(stf_try_allocate([] {
     return new exec_place(exec_place::current_device());
   }));
+}
+
+stf_green_context_helper_handle stf_green_context_helper_create(int sm_count, int dev_id)
+{
+#if _CCCL_CTK_AT_LEAST(12, 4)
+  return to_opaque(stf_try_allocate([sm_count, dev_id] {
+    return new green_context_helper(sm_count, dev_id);
+  }));
+#else
+  (void) sm_count;
+  (void) dev_id;
+  return nullptr;
+#endif
+}
+
+void stf_green_context_helper_destroy(stf_green_context_helper_handle h)
+{
+#if _CCCL_CTK_AT_LEAST(12, 4)
+  delete from_opaque(h);
+#else
+  (void) h;
+#endif
+}
+
+size_t stf_green_context_helper_get_count(stf_green_context_helper_handle h)
+{
+#if _CCCL_CTK_AT_LEAST(12, 4)
+  _CCCL_ASSERT(h != nullptr, "green_context_helper handle must not be null");
+  return from_opaque(h)->get_count();
+#else
+  (void) h;
+  return 0;
+#endif
+}
+
+int stf_green_context_helper_get_device_id(stf_green_context_helper_handle h)
+{
+#if _CCCL_CTK_AT_LEAST(12, 4)
+  _CCCL_ASSERT(h != nullptr, "green_context_helper handle must not be null");
+  return static_cast<int>(from_opaque(h)->get_device_id());
+#else
+  (void) h;
+  return -1;
+#endif
 }
 
 stf_exec_place_handle stf_exec_place_clone(stf_exec_place_handle h)
@@ -311,6 +367,27 @@ stf_exec_place_handle stf_exec_place_get_place(stf_exec_place_handle h, size_t i
   }));
 }
 
+stf_exec_place_handle
+stf_exec_place_green_ctx(stf_green_context_helper_handle helper, size_t idx, int use_green_ctx_data_place)
+{
+#if _CCCL_CTK_AT_LEAST(12, 4)
+  _CCCL_ASSERT(helper != nullptr, "green_context_helper handle must not be null");
+  auto* gc_helper = from_opaque(helper);
+  if (idx >= gc_helper->get_count())
+  {
+    return nullptr;
+  }
+  return to_opaque(stf_try_allocate([gc_helper, idx, use_green_ctx_data_place] {
+    return new exec_place(exec_place::green_ctx(gc_helper->get_view(idx), use_green_ctx_data_place != 0));
+  }));
+#else
+  (void) helper;
+  (void) idx;
+  (void) use_green_ctx_data_place;
+  return nullptr;
+#endif
+}
+
 void stf_machine_init(void)
 {
   cuda::experimental::places::reserved::machine::instance();
@@ -364,6 +441,25 @@ stf_data_place_handle stf_data_place_composite(stf_exec_place_handle grid, stf_g
     return new data_place(data_place::composite(cpp_mapper, *grid_ptr));
   });
   return to_opaque(dp);
+}
+
+stf_data_place_handle stf_data_place_green_ctx(stf_green_context_helper_handle helper, size_t idx)
+{
+#if _CCCL_CTK_AT_LEAST(12, 4)
+  _CCCL_ASSERT(helper != nullptr, "green_context_helper handle must not be null");
+  auto* gc_helper = from_opaque(helper);
+  if (idx >= gc_helper->get_count())
+  {
+    return nullptr;
+  }
+  return to_opaque(stf_try_allocate([gc_helper, idx] {
+    return new data_place(data_place::green_ctx(gc_helper->get_view(idx)));
+  }));
+#else
+  (void) helper;
+  (void) idx;
+  return nullptr;
+#endif
 }
 
 stf_data_place_handle stf_data_place_clone(stf_data_place_handle h)

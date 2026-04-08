@@ -7,6 +7,15 @@ import pytest
 import cuda.stf as stf
 
 
+def _require_green_context_helper(sm_count=1, dev_id=0):
+    if not hasattr(stf, "green_context_helper"):
+        pytest.skip("green context STF bindings are not available")
+    try:
+        return stf.green_context_helper(sm_count, dev_id)
+    except Exception as exc:
+        pytest.skip(f"green context support unavailable: {exc}")
+
+
 def test_scope_context_manager():
     stf.machine_init()
     place = stf.exec_place.device(0)
@@ -66,6 +75,39 @@ def test_getitem_out_of_bounds():
 def test_machine_init_idempotent():
     stf.machine_init()
     stf.machine_init()
+
+
+def test_green_context_helper_view():
+    helper = _require_green_context_helper()
+    assert helper.get_count() >= 1
+    assert len(helper) == helper.get_count()
+
+    view = helper.get_view(0)
+    assert view.helper is helper
+    assert view.index == 0
+    assert view.device_id == helper.device_id
+
+
+def test_green_context_exec_and_data_places():
+    stf.machine_init()
+    helper = _require_green_context_helper()
+    view = helper.get_view(0)
+
+    place = stf.exec_place.green_ctx(view)
+    assert place.kind == "device"
+    assert place.affine_data_place.device_id == helper.device_id
+
+    with place:
+        stream = place.pick_stream()
+        assert isinstance(stream, stf.CudaStream)
+        assert stream != 0
+
+    green_affine_place = stf.exec_place.green_ctx(view, use_green_ctx_data_place=True)
+    assert "green_ctx" in green_affine_place.affine_data_place.kind
+
+    dplace = stf.data_place.green_ctx(view)
+    assert dplace.device_id == helper.device_id
+    assert "green_ctx" in dplace.kind
 
 
 def test_scope_with_cuda_compute():

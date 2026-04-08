@@ -23,6 +23,8 @@ else:
         dep,
         exec_place,
         exec_place_grid,
+        green_context_helper,
+        green_ctx_view,
         machine_init,
     )
     from .device_array import DeviceArray
@@ -35,6 +37,8 @@ else:
         "dep",
         "exec_place",
         "exec_place_grid",
+        "green_context_helper",
+        "green_ctx_view",
         "data_place",
         "machine_init",
     ]

@@ -67,6 +67,7 @@ class DeviceArray:
         "_stream_int",
         "_base",
         "_finalizer_ref",
+        "__weakref__",
     )
 
     def __init__(self, size: int, dtype, dplace: "data_place", stream=None):

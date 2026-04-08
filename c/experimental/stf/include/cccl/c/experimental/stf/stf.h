@@ -105,6 +105,9 @@ typedef struct stf_exec_place_opaque_t* stf_exec_place_handle;
 //! \brief Opaque handle to a \c data_place.
 typedef struct stf_data_place_opaque_t* stf_data_place_handle;
 
+//! \brief Opaque handle to a \c green_context_helper.
+typedef struct stf_green_context_helper_opaque_t* stf_green_context_helper_handle;
+
 //! \brief Opaque handle to an active exec_place_scope (RAII context activation).
 typedef struct stf_exec_place_scope_opaque_t* stf_exec_place_scope_handle;
 
@@ -142,6 +145,19 @@ stf_exec_place_handle stf_exec_place_device(int dev_id);
 
 //! \brief Create execution place for the current CUDA device.
 stf_exec_place_handle stf_exec_place_current_device(void);
+
+//! \brief Create a green-context helper for \p dev_id with \p sm_count SMs per green context.
+//! Requires CUDA 12.4+. Returns NULL on failure.
+stf_green_context_helper_handle stf_green_context_helper_create(int sm_count, int dev_id);
+
+//! \brief Destroy a green-context helper handle.
+void stf_green_context_helper_destroy(stf_green_context_helper_handle h);
+
+//! \brief Number of green contexts created by \p h.
+size_t stf_green_context_helper_get_count(stf_green_context_helper_handle h);
+
+//! \brief Device ordinal used by this green-context helper.
+int stf_green_context_helper_get_device_id(stf_green_context_helper_handle h);
 
 //! \brief Deep copy of an execution place handle (caller must stf_exec_place_destroy the result).
 stf_exec_place_handle stf_exec_place_clone(stf_exec_place_handle h);
@@ -197,6 +213,12 @@ CUstream stf_exec_place_pick_stream(stf_exec_place_handle h);
 //! Caller must stf_exec_place_destroy the result.
 stf_exec_place_handle stf_exec_place_get_place(stf_exec_place_handle h, size_t idx);
 
+//! \brief Create an exec_place from green-context helper \p helper and view index \p idx.
+//! If \p use_green_ctx_data_place is non-zero, set the affine data_place to a green-context data place.
+//! Returns NULL on failure or if \p idx is out of range.
+stf_exec_place_handle
+stf_exec_place_green_ctx(stf_green_context_helper_handle helper, size_t idx, int use_green_ctx_data_place);
+
 //! \brief Initialize the machine singleton (P2P access, memory pool setup, topology).
 //! Safe to call multiple times; only the first call has effect.
 void stf_machine_init(void);
@@ -218,6 +240,10 @@ stf_data_place_handle stf_data_place_current_device(void);
 
 //! \brief Composite partitioned placement over a grid of execution places.
 stf_data_place_handle stf_data_place_composite(stf_exec_place_handle grid, stf_get_executor_fn mapper);
+
+//! \brief Create a data_place from green-context helper \p helper and view index \p idx.
+//! Returns NULL on failure or if \p idx is out of range.
+stf_data_place_handle stf_data_place_green_ctx(stf_green_context_helper_handle helper, size_t idx);
 
 //! \brief Deep copy (caller must stf_data_place_destroy).
 stf_data_place_handle stf_data_place_clone(stf_data_place_handle h);

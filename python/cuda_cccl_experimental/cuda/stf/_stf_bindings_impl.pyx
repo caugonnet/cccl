@@ -42,6 +42,7 @@ cdef extern from "<cuda.h>":
 cdef extern from "<cuda_runtime.h>":
     cdef struct dim3:
         unsigned int x, y, z
+    ctypedef OpaqueCUstream_st *cudaStream_t
 
 cdef extern from "cccl/c/experimental/stf/stf.h":
     #
@@ -74,6 +75,8 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     # Forward-declare data place handle (needed by stf_exec_place_set_affine_data_place)
     ctypedef struct stf_data_place_opaque_t
     ctypedef stf_data_place_opaque_t* stf_data_place_handle
+    ctypedef struct stf_green_context_helper_opaque_t
+    ctypedef stf_green_context_helper_opaque_t* stf_green_context_helper_handle
 
     #
     # Exec places (opaque handles)
@@ -83,6 +86,10 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     stf_exec_place_handle stf_exec_place_host()
     stf_exec_place_handle stf_exec_place_device(int dev_id)
     stf_exec_place_handle stf_exec_place_current_device()
+    stf_green_context_helper_handle stf_green_context_helper_create(int sm_count, int dev_id)
+    void stf_green_context_helper_destroy(stf_green_context_helper_handle h)
+    size_t stf_green_context_helper_get_count(stf_green_context_helper_handle h)
+    int stf_green_context_helper_get_device_id(stf_green_context_helper_handle h)
     stf_exec_place_handle stf_exec_place_clone(stf_exec_place_handle h)
     void stf_exec_place_destroy(stf_exec_place_handle h)
     int stf_exec_place_is_host(stf_exec_place_handle h)
@@ -108,6 +115,7 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     stf_data_place_handle stf_exec_place_get_affine_data_place(stf_exec_place_handle h)
     CUstream stf_exec_place_pick_stream(stf_exec_place_handle h)
     stf_exec_place_handle stf_exec_place_get_place(stf_exec_place_handle h, size_t idx)
+    stf_exec_place_handle stf_exec_place_green_ctx(stf_green_context_helper_handle helper, size_t idx, int use_green_ctx_data_place)
     void stf_machine_init()
 
     #
@@ -119,6 +127,7 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     stf_data_place_handle stf_data_place_affine()
     stf_data_place_handle stf_data_place_current_device()
     stf_data_place_handle stf_data_place_composite(stf_exec_place_handle grid, stf_get_executor_fn mapper)
+    stf_data_place_handle stf_data_place_green_ctx(stf_green_context_helper_handle helper, size_t idx)
     stf_data_place_handle stf_data_place_clone(stf_data_place_handle h)
     void stf_data_place_destroy(stf_data_place_handle h)
     int stf_data_place_get_device_ordinal(stf_data_place_handle h)
@@ -553,6 +562,76 @@ class CudaStream(int):
     def __repr__(self):
         return f"CudaStream(0x{int(self):x})"
 
+cdef class green_ctx_view:
+    cdef object _helper
+    cdef size_t _idx
+
+    def __cinit__(self):
+        self._helper = None
+        self._idx = 0
+
+    @property
+    def helper(self):
+        return self._helper
+
+    @property
+    def index(self):
+        return self._idx
+
+    @property
+    def device_id(self):
+        return self._helper.device_id
+
+    def __repr__(self):
+        return f"green_ctx_view(device_id={self.device_id}, index={self._idx})"
+
+
+cdef class green_context_helper:
+    cdef stf_green_context_helper_handle _h
+
+    def __cinit__(self, int sm_count, int dev_id=0):
+        self._h = NULL
+        if sm_count < 1:
+            raise ValueError("sm_count must be a positive integer")
+        self._h = stf_green_context_helper_create(sm_count, dev_id)
+        if self._h == NULL:
+            raise RuntimeError(
+                f"failed to create green_context_helper(sm_count={sm_count}, dev_id={dev_id})"
+            )
+
+    def __dealloc__(self):
+        if self._h != NULL:
+            try:
+                stf_green_context_helper_destroy(self._h)
+            except Exception as e:
+                print(f"stf.green_context_helper: cleanup failed: {e}")
+            self._h = NULL
+
+    def get_count(self):
+        return stf_green_context_helper_get_count(self._h)
+
+    def __len__(self):
+        return self.get_count()
+
+    @property
+    def device_id(self):
+        return stf_green_context_helper_get_device_id(self._h)
+
+    def get_view(self, size_t idx):
+        if idx >= self.get_count():
+            raise IndexError(f"green_ctx index {idx} is out of range")
+        cdef green_ctx_view view = green_ctx_view.__new__(green_ctx_view)
+        view._helper = self
+        view._idx = idx
+        return view
+
+    def __repr__(self):
+        return (
+            f"green_context_helper(device_id={self.device_id}, "
+            f"count={self.get_count()})"
+        )
+
+
 cdef class exec_place:
     cdef stf_exec_place_handle _h
     cdef stf_exec_place_scope_handle _scope
@@ -594,6 +673,19 @@ cdef class exec_place:
         p._h = stf_exec_place_current_device()
         if p._h == NULL:
             raise RuntimeError("failed to create current_device exec_place")
+        return p
+
+    @staticmethod
+    def green_ctx(green_ctx_view view, use_green_ctx_data_place=False):
+        cdef green_context_helper helper = <green_context_helper>view._helper
+        cdef exec_place p = exec_place.__new__(exec_place)
+        p._h = stf_exec_place_green_ctx(
+            helper._h,
+            view._idx,
+            1 if use_green_ctx_data_place else 0,
+        )
+        if p._h == NULL:
+            raise RuntimeError(f"failed to create green_ctx exec_place for index {view._idx}")
         return p
 
     @property
@@ -822,6 +914,15 @@ cdef class data_place:
         p._h = stf_data_place_current_device()
         if p._h == NULL:
             raise RuntimeError("failed to create current_device data_place")
+        return p
+
+    @staticmethod
+    def green_ctx(green_ctx_view view):
+        cdef green_context_helper helper = <green_context_helper>view._helper
+        cdef data_place p = data_place.__new__(data_place)
+        p._h = stf_data_place_green_ctx(helper._h, view._idx)
+        if p._h == NULL:
+            raise RuntimeError(f"failed to create green_ctx data_place for index {view._idx}")
         return p
 
     @staticmethod
