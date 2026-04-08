@@ -30,6 +30,8 @@ from ._sort import radix_sort as radix_sort
 from ._sort import segmented_sort as segmented_sort
 from ._three_way_partition import make_three_way_partition as make_three_way_partition
 from ._three_way_partition import three_way_partition as three_way_partition
+from ._generate import generate as generate
+from ._generate import make_generate as make_generate
 from ._transform import binary_transform, unary_transform
 from ._transform import make_binary_transform as make_binary_transform
 from ._transform import make_unary_transform as make_unary_transform
@@ -37,6 +39,8 @@ from ._unique_by_key import make_unique_by_key as make_unique_by_key
 from ._unique_by_key import unique_by_key as unique_by_key
 
 __all__ = [
+    "generate",
+    "make_generate",
     "reduce_into",
     "make_reduce_into",
     "lower_bound",

@@ -448,6 +448,25 @@ class DeviceBinaryTransform:
     ) -> None: ...
 
 # ---------------
+# DeviceGenerate
+# ---------------
+
+class DeviceGenerate:
+    def __init__(
+        self,
+        d_out: Iterator,
+        op: Op,
+        info: CommonData,
+    ): ...
+    def compute(
+        self,
+        d_out: Iterator,
+        num_items: int,
+        op: Op,
+        stream,
+    ) -> None: ...
+
+# ---------------
 # DeviceHistogram
 # ---------------
 

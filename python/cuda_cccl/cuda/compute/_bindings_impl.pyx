@@ -2098,6 +2098,101 @@ cdef class DeviceBinaryTransform:
         )
 
 
+# ----------------
+#   DeviceGenerate
+# ----------------
+cdef extern from "cccl/c/generate.h":
+    cdef struct cccl_device_generate_build_result_t:
+        const char* cubin
+        size_t cubin_size
+
+    cdef CUresult cccl_device_generate_build(
+        cccl_device_generate_build_result_t *build_ptr,
+        cccl_iterator_t d_out,
+        cccl_op_t op,
+        int, int, const char *, const char *, const char *, const char *
+    ) nogil
+
+    cdef CUresult cccl_device_generate(
+        cccl_device_generate_build_result_t build,
+        cccl_iterator_t d_out,
+        uint64_t num_items,
+        cccl_op_t op,
+        CUstream stream) nogil
+
+    cdef CUresult cccl_device_generate_cleanup(
+        cccl_device_generate_build_result_t *build_ptr,
+    ) nogil
+
+
+cdef class DeviceGenerate:
+    cdef cccl_device_generate_build_result_t build_data
+
+    def __cinit__(
+        self,
+        Iterator d_out,
+        Op op,
+        CommonData common_data
+    ):
+        memset(&self.build_data, 0, sizeof(cccl_device_generate_build_result_t))
+
+        cdef CUresult status = -1
+        cdef int cc_major = common_data.get_cc_major()
+        cdef int cc_minor = common_data.get_cc_minor()
+        cdef const char *cub_path = common_data.cub_path_get_c_str()
+        cdef const char *thrust_path = common_data.thrust_path_get_c_str()
+        cdef const char *libcudacxx_path = common_data.libcudacxx_path_get_c_str()
+        cdef const char *ctk_path = common_data.ctk_path_get_c_str()
+
+        with nogil:
+            status = cccl_device_generate_build(
+                &self.build_data,
+                d_out.iter_data,
+                op.op_data,
+                cc_major,
+                cc_minor,
+                cub_path,
+                thrust_path,
+                libcudacxx_path,
+                ctk_path,
+            )
+        if status != 0:
+            raise RuntimeError("Failed to build generate")
+
+    def __dealloc__(DeviceGenerate self):
+        cdef CUresult status = -1
+        with nogil:
+            status = cccl_device_generate_cleanup(&self.build_data)
+        if (status != 0):
+            print(f"Return code {status} encountered during generate result cleanup")
+
+    cpdef void compute(
+        DeviceGenerate self,
+        Iterator d_out,
+        size_t num_items,
+        Op op,
+        stream
+    ):
+        cdef CUresult status = -1
+        cdef CUstream c_stream = <CUstream><uintptr_t>(stream) if stream else NULL
+        with nogil:
+            status = cccl_device_generate(
+                self.build_data,
+                d_out.iter_data,
+                <uint64_t>num_items,
+                op.op_data,
+                c_stream
+            )
+        if (status != 0):
+            raise RuntimeError("Failed to compute generate")
+
+    def _get_cubin(self):
+        return PyBytes_FromStringAndSize(
+            <const char*>self.build_data.cubin,
+            self.build_data.cubin_size
+        )
+
+
 # -----------------
 #   DeviceHistogram
 # -----------------
