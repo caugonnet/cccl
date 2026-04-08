@@ -9,6 +9,8 @@ from ._binary_search import lower_bound as lower_bound
 from ._binary_search import make_lower_bound as make_lower_bound
 from ._binary_search import make_upper_bound as make_upper_bound
 from ._binary_search import upper_bound as upper_bound
+from ._generate import generate as generate
+from ._generate import make_generate as make_generate
 from ._histogram import histogram_even as histogram_even
 from ._histogram import make_histogram_even as make_histogram_even
 from ._reduce import make_reduce_into as make_reduce_into
@@ -30,8 +32,6 @@ from ._sort import radix_sort as radix_sort
 from ._sort import segmented_sort as segmented_sort
 from ._three_way_partition import make_three_way_partition as make_three_way_partition
 from ._three_way_partition import three_way_partition as three_way_partition
-from ._generate import generate as generate
-from ._generate import make_generate as make_generate
 from ._transform import binary_transform, unary_transform
 from ._transform import make_binary_transform as make_binary_transform
 from ._transform import make_unary_transform as make_unary_transform

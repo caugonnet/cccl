@@ -55,11 +55,7 @@ CCCL_C_API CUresult cccl_device_generate_build_ex(
   cccl_build_config* config);
 
 CCCL_C_API CUresult cccl_device_generate(
-  cccl_device_generate_build_result_t build,
-  cccl_iterator_t d_out,
-  uint64_t num_items,
-  cccl_op_t op,
-  CUstream stream);
+  cccl_device_generate_build_result_t build, cccl_iterator_t d_out, uint64_t num_items, cccl_op_t op, CUstream stream);
 
 CCCL_C_API CUresult cccl_device_generate_cleanup(cccl_device_generate_build_result_t* bld_ptr);
 
