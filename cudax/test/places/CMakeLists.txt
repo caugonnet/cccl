@@ -1,6 +1,7 @@
 set(
   places_test_sources
   include_only.cu
+  partition_recipe.cu
   data_place_alloc.cu
   data_place_vmm.cu
   exec_place_scope.cu
@@ -12,6 +13,10 @@ set(places_fail_tests exec_place_scope_data_place_fail.cu)
 set(
   places_unittested_headers
   cuda/experimental/__places/places.cuh
+  cuda/experimental/__places/shape_desc.cuh
+  cuda/experimental/__places/layout_desc.cuh
+  cuda/experimental/__places/partition_recipe.cuh
+  cuda/experimental/__places/partition_instance.cuh
   cuda/experimental/__places/exec/green_context.cuh
   cuda/experimental/__places/partitions/blocked_partition.cuh
   cuda/experimental/__places/partitions/cyclic_shape.cuh

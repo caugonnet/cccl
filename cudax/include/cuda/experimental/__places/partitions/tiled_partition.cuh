@@ -25,6 +25,7 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/experimental/__places/partition_recipe_builders.cuh>
 #include <cuda/experimental/__places/places.cuh>
 
 namespace cuda::experimental::places
@@ -128,6 +129,11 @@ class tiled_partition
 public:
   tiled_partition() = default;
 
+  [[nodiscard]] static partition_recipe recipe()
+  {
+    return make_tiled_partition_recipe(tile_size);
+  }
+
   template <typename mdspan_shape_t>
   static const reserved::tiled_mdspan_shape<tile_size, mdspan_shape_t>
   apply(const mdspan_shape_t& in, pos4 place_position, dim4 grid_dims)
@@ -140,7 +146,7 @@ public:
   _CCCL_HOST_DEVICE static void get_executor(pos4* result, pos4 data_coords, dim4 /*unused*/, dim4 grid_dims)
   {
     assert(grid_dims.x > 0);
-    *result = pos4((data_coords.x / tile_size) % grid_dims.x);
+    *result = pos4((static_cast<size_t>(data_coords.x) / tile_size) % grid_dims.x);
   }
 };
 

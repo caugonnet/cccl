@@ -31,6 +31,7 @@
 
 #include <cuda/std/__cccl/assert.h>
 
+#include <cuda/experimental/__places/partition_instance.cuh>
 #include <cuda/experimental/__stf/utility/dimensions.cuh>
 
 #include <cstddef>
@@ -191,6 +192,32 @@ public:
   virtual const partition_fn_t& get_partitioner() const
   {
     throw ::std::logic_error("get_partitioner() called on non-composite data_place");
+  }
+
+  /**
+   * @brief Whether this composite place carries a structured partition recipe
+   */
+  virtual bool has_partition_recipe() const
+  {
+    return false;
+  }
+
+  /**
+   * @brief Get the structured recipe carried by a composite place
+   * @throws std::logic_error if not a structured composite place
+   */
+  virtual const partition_recipe& get_partition_recipe() const
+  {
+    throw ::std::logic_error("get_partition_recipe() called on non-recipe data_place");
+  }
+
+  /**
+   * @brief Instantiate the structured partition for a concrete logical shape
+   * @throws std::logic_error if not a structured composite place
+   */
+  virtual partition_instance instantiate_partition(const shape_desc&) const
+  {
+    throw ::std::logic_error("instantiate_partition() called on non-recipe data_place");
   }
 };
 } // end namespace cuda::experimental::places

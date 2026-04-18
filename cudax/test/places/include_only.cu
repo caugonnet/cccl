@@ -21,11 +21,15 @@ int main()
   auto dev0_place = data_place::device(0);
   auto exec_host  = exec_place::host();
   auto exec_dev0  = exec_place::device(0);
+  auto recipe     = partition_recipe::blocked();
+  auto instance   = recipe.instantiate(shape_desc({16}), shape_desc({2}));
 
   (void) host_place;
   (void) dev0_place;
   (void) exec_host;
   (void) exec_dev0;
+  (void) recipe;
+  (void) instance;
 
   return 0;
 }

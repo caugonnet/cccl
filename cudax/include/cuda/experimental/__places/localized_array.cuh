@@ -258,6 +258,193 @@ public:
     }
   }
 
+  template <typename F>
+  localized_array(
+    exec_place grid, partition_instance instance, F&& delinearize, size_t total_size, size_t elemsize, dim4 data_dims)
+      : grid(mv(grid))
+      , total_size_bytes(total_size * elemsize)
+      , data_dims(data_dims)
+      , elemsize(elemsize)
+      , partition_instance_(mv(instance))
+      , has_partition_instance_(true)
+  {
+    cuda_try(cudaFree(nullptr));
+
+    const int ndevs = cuda_try<cudaGetDeviceCount>();
+    CUdevice dev    = cuda_try<cuCtxGetDevice>();
+
+    int supportsVMM = cuda_try<cuDeviceGetAttribute>(CU_DEVICE_ATTRIBUTE_VIRTUAL_ADDRESS_MANAGEMENT_SUPPORTED, dev);
+    EXPECT(supportsVMM == 1, "Cannot create a localized_array object on this machine because it does not support VMM.");
+
+    CUmemAllocationProp prop = {};
+    prop.type                = CU_MEM_ALLOCATION_TYPE_PINNED;
+    prop.location            = {.type = CU_MEM_LOCATION_TYPE_DEVICE, .id = dev};
+
+    size_t alloc_granularity_bytes = cuda_try<cuMemGetAllocationGranularity>(&prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM);
+
+    block_size_bytes = alloc_granularity_bytes;
+
+    vm_total_size_bytes =
+      ((total_size_bytes + alloc_granularity_bytes - 1) / alloc_granularity_bytes) * alloc_granularity_bytes;
+
+    size_t nblocks = vm_total_size_bytes / alloc_granularity_bytes;
+
+    base_ptr = cuda_try<cuMemAddressReserve>(vm_total_size_bytes, 0ULL, 0ULL, 0ULL);
+
+    ::std::vector<CUmemAccessDesc> accessDesc(ndevs);
+    for (int d = 0; d < ndevs; d++)
+    {
+      accessDesc[d].location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+      accessDesc[d].location.id   = d;
+      accessDesc[d].flags         = CU_MEM_ACCESS_FLAGS_PROT_READWRITE;
+    }
+
+    block_stats stats;
+
+    ::std::vector<pos4> owner;
+    owner.reserve(nblocks);
+    for (size_t i = 0; i < nblocks; i++)
+    {
+      owner.push_back(
+        block_to_grid_pos(i * block_size_bytes / elemsize, alloc_granularity_bytes / elemsize, delinearize, stats));
+    }
+
+    meta.reserve(nblocks);
+
+    ::std::unordered_map<::std::string, size_t> bytes_per_place;
+
+    for (size_t i = 0; i < nblocks;)
+    {
+      pos4 p   = owner[i];
+      size_t j = 0;
+      while ((i + j < nblocks) && (owner[i + j] == p))
+      {
+        j++;
+      }
+
+      data_place place  = grid_pos_to_place(p);
+      size_t alloc_size = j * alloc_granularity_bytes;
+      bytes_per_place[place.to_string()] += alloc_size;
+
+      meta.emplace_back(mv(place), alloc_size, i * block_size_bytes);
+
+      i += j;
+    }
+
+    if (localized_alloc_stats_enabled())
+    {
+      fprintf(stderr, "\n=== Localized Array Allocation Statistics ===\n");
+      fprintf(stderr, "Total size: %zu bytes (%.2f MB)\n", total_size_bytes, total_size_bytes / (1024.0 * 1024.0));
+      fprintf(
+        stderr, "VM reservation: %zu bytes (%.2f MB)\n", vm_total_size_bytes, vm_total_size_bytes / (1024.0 * 1024.0));
+      fprintf(stderr, "Block size: %zu bytes (%.2f KB)\n", block_size_bytes, block_size_bytes / 1024.0);
+      fprintf(stderr, "Number of blocks: %zu (merged into %zu allocations)\n", nblocks, meta.size());
+      fprintf(stderr, "Number of places: %zu\n", bytes_per_place.size());
+
+      fprintf(stderr, "\nAllocation distribution by place:\n");
+      for (const auto& entry : bytes_per_place)
+      {
+        double pct = 100.0 * entry.second / vm_total_size_bytes;
+        fprintf(stderr,
+                "  %s: %zu bytes (%.2f MB, %.1f%%)\n",
+                entry.first.c_str(),
+                entry.second,
+                entry.second / (1024.0 * 1024.0),
+                pct);
+      }
+
+      if (stats.total_samples > 0)
+      {
+        double accuracy = 100.0 * stats.matching_samples / stats.total_samples;
+        fprintf(stderr,
+                "\nPlacement accuracy: %.1f%% (%zu/%zu samples matched chosen position)\n",
+                accuracy,
+                stats.matching_samples,
+                stats.total_samples);
+      }
+
+      fprintf(stderr, "\nAllocation map (%zu allocations):\n", meta.size());
+      fprintf(stderr, "  %-6s  %-12s  %-12s  %-10s  %s\n", "Index", "Offset", "Size", "Blocks", "Place");
+      fprintf(stderr, "  %-6s  %-12s  %-12s  %-10s  %s\n", "-----", "------", "----", "------", "-----");
+      for (size_t idx = 0; idx < meta.size(); idx++)
+      {
+        const auto& item   = meta[idx];
+        size_t num_blocks  = item.size / alloc_granularity_bytes;
+        size_t start_block = item.offset / alloc_granularity_bytes;
+        fprintf(stderr,
+                "  %-6zu  %-12zu  %-12zu  %-10zu  %s\n",
+                idx,
+                item.offset,
+                item.size,
+                num_blocks,
+                item.place.to_string().c_str());
+      }
+
+      fprintf(stderr, "\nBlock ownership map (each char = 1 block, 0-9/a-z = place index):\n  ");
+      ::std::unordered_map<::std::string, char> place_to_char;
+      char next_char = '0';
+      for (size_t i = 0; i < nblocks; i++)
+      {
+        ::std::string place_str = grid_pos_to_place(owner[i]).to_string();
+        if (place_to_char.find(place_str) == place_to_char.end())
+        {
+          place_to_char[place_str] = next_char;
+          if (next_char == '9')
+          {
+            next_char = 'a';
+          }
+          else
+          {
+            next_char++;
+          }
+        }
+        fprintf(stderr, "%c", place_to_char[place_str]);
+        if ((i + 1) % 80 == 0)
+        {
+          fprintf(stderr, "\n  ");
+        }
+      }
+      fprintf(stderr, "\n");
+
+      fprintf(stderr, "\n  Legend:\n");
+      for (const auto& entry : place_to_char)
+      {
+        fprintf(stderr, "    %c = %s\n", entry.second, entry.first.c_str());
+      }
+
+      fprintf(stderr, "==============================================\n\n");
+    }
+
+    for (auto& item : meta)
+    {
+      int item_dev = device_ordinal(item.place);
+
+      cuda_try(item.place.mem_create(&item.alloc_handle, item.size));
+
+      _CCCL_ASSERT(item.offset + item.size <= vm_total_size_bytes, "Allocation offset out of bounds");
+      cuda_try(cuMemMap(base_ptr + item.offset, item.size, 0ULL, item.alloc_handle, 0ULL));
+
+      for (int d = 0; d < ndevs; d++)
+      {
+        int set_access = 1;
+        if (item_dev != d)
+        {
+          cuda_try(cudaDeviceCanAccessPeer(&set_access, d, item_dev));
+
+          if (!set_access)
+          {
+            fprintf(stderr, "Warning : Cannot enable peer access between devices %d and %d\n", d, item_dev);
+          }
+        }
+
+        if (set_access == 1)
+        {
+          cuda_try(cuMemSetAccess(base_ptr + item.offset, item.size, &accessDesc[d], 1ULL));
+        }
+      }
+    }
+  }
+
   localized_array()                                  = delete;
   localized_array(const localized_array&)            = delete;
   localized_array(localized_array&&)                 = delete;
@@ -315,6 +502,10 @@ private:
   template <typename F>
   pos4 block_to_grid_pos(size_t linearized_index, size_t allocation_granularity, F&& delinearize, block_stats& stats)
   {
+    if (has_partition_instance_ && partition_instance_.has_owner_query())
+    {
+      return index_to_grid_pos(linearized_index, delinearize);
+    }
 #if 0
         return index_to_grid_pos(linearized_index, delinearize);
 #else
@@ -357,7 +548,18 @@ private:
   template <typename F>
   pos4 index_to_grid_pos(size_t linearized_index, F&& delinearize)
   {
-    pos4 coords = delinearize(linearized_index);
+    const pos4 coords = delinearize(linearized_index);
+    if (has_partition_instance_ && partition_instance_.has_owner_query())
+    {
+      const size_t rank = data_dims.get_rank() + 1;
+      ::std::vector<size_t> shape_coords(rank, 0);
+      for (size_t axis = 0; axis < rank; ++axis)
+      {
+        shape_coords[axis] = static_cast<size_t>(coords.get(axis));
+      }
+      return partition_instance_.owner_of(shape_desc(shape_coords)).to_pos4();
+    }
+
     pos4 eplace_coords;
     mapper(&eplace_coords, coords, data_dims, grid.get_dims());
     return eplace_coords;
@@ -365,6 +567,8 @@ private:
 
   exec_place grid;
   partition_fn_t mapper = nullptr;
+  partition_instance partition_instance_{};
+  bool has_partition_instance_ = false;
   ::std::vector<metadata> meta;
 
   size_t block_size_bytes = 0;
@@ -388,11 +592,20 @@ inline void* allocate_composite_data_place(const data_place_composite& p, ::std:
 {
   const size_t size_u          = static_cast<size_t>(size);
   const exec_place& grid       = p.get_grid();
-  const partition_fn_t& mapper = p.get_partitioner();
   auto delinearize_1d          = [](size_t i) {
     return pos4(static_cast<ssize_t>(i), 0, 0, 0);
   };
-  auto arr  = ::std::make_unique<localized_array>(grid, mapper, delinearize_1d, size_u, 1, dim4(size_u));
+  ::std::unique_ptr<localized_array> arr;
+  if (p.has_partition_recipe())
+  {
+    auto instance = p.instantiate_partition(shape_desc({size_u}));
+    arr           = ::std::make_unique<localized_array>(grid, mv(instance), delinearize_1d, size_u, 1, dim4(size_u));
+  }
+  else
+  {
+    const partition_fn_t& mapper = p.get_partitioner();
+    arr = ::std::make_unique<localized_array>(grid, mapper, delinearize_1d, size_u, 1, dim4(size_u));
+  }
   void* ptr = arr->get_base_ptr();
   get_composite_alloc_registry()[ptr] = ::std::move(arr);
   return ptr;

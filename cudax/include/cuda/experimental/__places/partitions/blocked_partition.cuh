@@ -26,6 +26,7 @@
 #endif // no system header
 
 #include <cuda/experimental/__places/partitions/cyclic_shape.cuh>
+#include <cuda/experimental/__places/partition_recipe_builders.cuh>
 #include <cuda/experimental/__places/places.cuh>
 #include <cuda/experimental/__stf/utility/dimensions.cuh>
 
@@ -37,15 +38,16 @@ class blocked_partition_custom
 public:
   blocked_partition_custom() = default;
 
+  [[nodiscard]] static partition_recipe recipe()
+  {
+    return make_blocked_partition_recipe(which_dim);
+  }
+
   template <size_t dimensions>
   _CCCL_HOST_DEVICE static auto apply(const box<dimensions>& in, pos4 place_position, dim4 grid_dims)
   {
     ::std::array<::std::pair<::std::ptrdiff_t, ::std::ptrdiff_t>, dimensions> bounds;
-    size_t target_dim = (which_dim == -1) ? dimensions - 1 : size_t(which_dim);
-    if (target_dim > dimensions - 1)
-    {
-      target_dim = dimensions - 1;
-    }
+    const size_t target_dim = __partition_detail::__normalize_axis(which_dim, dimensions);
 
     //        if constexpr (dimensions > 1) {
     for (size_t d = 0; d < dimensions; d++)
@@ -57,11 +59,12 @@ public:
     }
     //        }
 
-    size_t nplaces             = grid_dims.x;
+    const size_t nplaces       = ::std::max<size_t>(grid_dims.x, 1);
     ::std::ptrdiff_t dim_beg   = bounds[target_dim].first;
     ::std::ptrdiff_t dim_end   = bounds[target_dim].second;
-    size_t cnt                 = dim_end - dim_beg;
-    ::std::ptrdiff_t part_size = (cnt + nplaces - 1) / nplaces;
+    const size_t cnt           = static_cast<size_t>(dim_end - dim_beg);
+    const ::std::ptrdiff_t part_size =
+      static_cast<::std::ptrdiff_t>(__partition_detail::__blocked_part_size(cnt, nplaces));
 
     // If first = second, this means it's an empty shape. This may happen
     // when there are more entries in grid_dims than in the shape for
@@ -85,17 +88,13 @@ public:
     }
 
     // Last position in this dimension (excluded)
-    size_t target_dim = (which_dim == -1) ? dimensions - 1 : size_t(which_dim);
-    if (target_dim > dimensions - 1)
-    {
-      target_dim = dimensions - 1;
-    }
+    const size_t target_dim = __partition_detail::__normalize_axis(which_dim, dimensions);
 
     ::std::ptrdiff_t dim_end = in.extent(target_dim);
 
     // The last dimension is split across the different places
-    size_t nplaces            = grid_dims.x;
-    size_t part_size          = (in.extent(target_dim) + nplaces - 1) / nplaces;
+    const size_t nplaces      = ::std::max<size_t>(grid_dims.x, 1);
+    const size_t part_size    = __partition_detail::__blocked_part_size(in.extent(target_dim), nplaces);
     bounds[target_dim].first  = ::std::min((::std::ptrdiff_t) part_size * place_position.x, dim_end);
     bounds[target_dim].second = ::std::min((::std::ptrdiff_t) part_size * (place_position.x + 1), dim_end);
 
@@ -104,23 +103,17 @@ public:
 
   _CCCL_HOST_DEVICE static void get_executor(pos4* result, pos4 data_coords, dim4 data_dims, dim4 grid_dims)
   {
-    // Find the largest dimension
-    size_t rank       = data_dims.get_rank();
-    size_t target_dim = (which_dim == -1) ? rank : size_t(which_dim);
-    if (target_dim > rank)
-    {
-      target_dim = rank;
-    }
+    const size_t rank       = data_dims.get_rank() + 1;
+    const size_t target_dim = __partition_detail::__normalize_axis(which_dim, rank);
+    const size_t extent     = data_dims.get(target_dim);
 
-    size_t extent = data_dims.get(target_dim);
-
-    size_t nplaces   = grid_dims.x;
-    size_t part_size = (extent + nplaces - 1) / nplaces;
+    const size_t nplaces   = ::std::max<size_t>(grid_dims.x, 1);
+    const size_t part_size = __partition_detail::__blocked_part_size(extent, nplaces);
 
     // Get the coordinate in the selected dimension
-    size_t c = data_coords.get(target_dim);
+    const size_t c = static_cast<size_t>(data_coords.get(target_dim));
 
-    *result = pos4(c / part_size);
+    *result = pos4(::std::min(c / part_size, nplaces - 1));
   }
 };
 

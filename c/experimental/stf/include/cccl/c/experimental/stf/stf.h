@@ -137,6 +137,59 @@ typedef struct stf_dim4
 //! in FFI frameworks (ctypes, cffi, Rust) that cannot return C structs.
 typedef void (*stf_get_executor_fn)(stf_pos4* result, stf_pos4 data_coords, stf_dim4 data_dims, stf_dim4 grid_dims);
 
+//! \brief Borrowed explicit-rank shape descriptor view.
+typedef struct stf_shape_view
+{
+  const uint64_t* extents; //!< Borrowed pointer to \p rank extents
+  size_t rank; //!< Number of extents in \p extents
+} stf_shape_view;
+
+//! \brief Borrowed explicit-rank affine layout descriptor view.
+typedef struct stf_layout_view
+{
+  const uint64_t* extents; //!< Borrowed pointer to \p rank extents
+  const int64_t* strides; //!< Borrowed pointer to \p rank strides
+  size_t rank; //!< Number of extents/strides
+} stf_layout_view;
+
+//! \brief Structured predefined partition recipe kind.
+typedef enum stf_partition_recipe_kind
+{
+  STF_PARTITION_RECIPE_NONE = 0,
+  STF_PARTITION_RECIPE_EXPLICIT_LAYOUT = 1,
+  STF_PARTITION_RECIPE_BLOCKED = 2,
+  STF_PARTITION_RECIPE_TILED = 3,
+} stf_partition_recipe_kind;
+
+//! \brief Portable structured recipe descriptor for predefined recipes.
+typedef struct stf_partition_recipe_desc
+{
+  stf_partition_recipe_kind kind; //!< Structured recipe kind
+  int64_t target_axis; //!< Axis selected by the recipe (-1 = default / last logical axis)
+  uint64_t tile_size; //!< Tile size for tiled recipes, zero otherwise
+} stf_partition_recipe_desc;
+
+//! \brief Size requirements for inspecting a concrete partition instance.
+typedef struct stf_partition_instance_requirements
+{
+  size_t partition_rank; //!< Number of extents/strides needed for the partition layout
+  size_t offset_rank; //!< Number of extents/strides needed for the offset layout
+  int has_offset_layout; //!< Non-zero if the instance exposes an offset layout
+  int has_owner_query; //!< Non-zero if owner queries are supported for this instance
+} stf_partition_instance_requirements;
+
+//! \brief Filled view of an instantiated partition.
+typedef struct stf_partition_instance_view
+{
+  stf_layout_view partition_layout; //!< Filled view over caller-provided partition buffers
+  stf_layout_view offset_layout; //!< Filled view over caller-provided offset buffers
+  uint64_t partition_axis; //!< Logical axis partitioned by the instance
+  uint64_t partition_size; //!< Blocked part size or tiled tiles-per-part for built-in recipes
+  uint64_t tile_size; //!< Tile size for tiled recipes, zero otherwise
+  int has_offset_layout; //!< Non-zero if \p offset_layout is valid
+  int has_owner_query; //!< Non-zero if owner queries are supported
+} stf_partition_instance_view;
+
 //! \brief Create host execution place (CPU).
 stf_exec_place_handle stf_exec_place_host(void);
 
@@ -240,6 +293,41 @@ stf_data_place_handle stf_data_place_current_device(void);
 
 //! \brief Composite partitioned placement over a grid of execution places.
 stf_data_place_handle stf_data_place_composite(stf_exec_place_handle grid, stf_get_executor_fn mapper);
+
+//! \brief Build a blocked structured recipe descriptor.
+void stf_partition_recipe_init_blocked(stf_partition_recipe_desc* recipe, int64_t target_axis);
+
+//! \brief Build a tiled structured recipe descriptor.
+void stf_partition_recipe_init_tiled(stf_partition_recipe_desc* recipe, uint64_t tile_size, int64_t target_axis);
+
+//! \brief Composite partitioned placement over a grid of execution places using a structured recipe.
+stf_data_place_handle
+stf_data_place_composite_recipe(stf_exec_place_handle grid, const stf_partition_recipe_desc* recipe);
+
+//! \brief Return non-zero if \p h carries a structured partition recipe.
+int stf_data_place_has_partition_recipe(stf_data_place_handle h);
+
+//! \brief Copy the structured recipe description carried by \p h into \p out_recipe.
+//! \return Non-zero on success, zero if \p h is not recipe-backed.
+int stf_data_place_get_partition_recipe(stf_data_place_handle h, stf_partition_recipe_desc* out_recipe);
+
+//! \brief Query the buffer sizes required to inspect the instantiated partition for \p logical_shape.
+//! \return Non-zero on success, zero if \p h is not recipe-backed.
+int stf_data_place_query_partition_instance(
+  stf_data_place_handle h, stf_shape_view logical_shape, stf_partition_instance_requirements* out_requirements);
+
+//! \brief Fill caller-provided buffers with the instantiated partition layouts for \p logical_shape.
+//! \return Non-zero on success, zero if \p h is not recipe-backed or the buffers are too small.
+int stf_data_place_fill_partition_instance(
+  stf_data_place_handle h,
+  stf_shape_view logical_shape,
+  uint64_t* partition_extents,
+  int64_t* partition_strides,
+  size_t partition_capacity,
+  uint64_t* offset_extents,
+  int64_t* offset_strides,
+  size_t offset_capacity,
+  stf_partition_instance_view* out_instance);
 
 //! \brief Create a data_place from green-context helper \p helper and view index \p idx.
 //! Returns NULL on failure or if \p idx is out of range.

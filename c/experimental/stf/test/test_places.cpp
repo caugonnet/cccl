@@ -231,6 +231,87 @@ C2H_TEST("composite data place with stf_exec_place_grid_create (vector of places
   }
 }
 
+C2H_TEST("recipe-backed composite data place exposes structured partition instance", "[places][composite][recipe]")
+{
+  const size_t nplaces = 3;
+  int device_ids[3]    = {0, 0, 0};
+  stf_exec_place_handle grid = stf_exec_place_grid_from_devices(device_ids, nplaces);
+  REQUIRE(grid != nullptr);
+
+  stf_partition_recipe_desc recipe;
+  stf_partition_recipe_init_blocked(&recipe, -1);
+
+  stf_data_place_handle recipe_dplace = stf_data_place_composite_recipe(grid, &recipe);
+  REQUIRE(recipe_dplace != nullptr);
+  REQUIRE(stf_data_place_has_partition_recipe(recipe_dplace) != 0);
+
+  stf_partition_recipe_desc roundtrip;
+  REQUIRE(stf_data_place_get_partition_recipe(recipe_dplace, &roundtrip) != 0);
+  REQUIRE(roundtrip.kind == STF_PARTITION_RECIPE_BLOCKED);
+  REQUIRE(roundtrip.target_axis == -1);
+  REQUIRE(roundtrip.tile_size == 0);
+
+  uint64_t logical_extents[1] = {17};
+  stf_shape_view logical_shape = {logical_extents, 1};
+  stf_partition_instance_requirements requirements;
+  REQUIRE(stf_data_place_query_partition_instance(recipe_dplace, logical_shape, &requirements) != 0);
+  REQUIRE(requirements.partition_rank == 2);
+  REQUIRE(requirements.offset_rank == 1);
+  REQUIRE(requirements.has_offset_layout != 0);
+  REQUIRE(requirements.has_owner_query != 0);
+
+  std::vector<uint64_t> partition_extents(requirements.partition_rank);
+  std::vector<int64_t> partition_strides(requirements.partition_rank);
+  std::vector<uint64_t> offset_extents(requirements.offset_rank);
+  std::vector<int64_t> offset_strides(requirements.offset_rank);
+  stf_partition_instance_view instance;
+
+  REQUIRE(stf_data_place_fill_partition_instance(
+            recipe_dplace,
+            logical_shape,
+            partition_extents.data(),
+            partition_strides.data(),
+            partition_extents.size(),
+            offset_extents.data(),
+            offset_strides.data(),
+            offset_extents.size(),
+            &instance)
+          != 0);
+
+  REQUIRE(instance.partition_axis == 0);
+  REQUIRE(instance.partition_size == 6);
+  REQUIRE(instance.tile_size == 0);
+  REQUIRE(instance.partition_layout.rank == 2);
+  REQUIRE(partition_extents[0] == 3);
+  REQUIRE(partition_extents[1] == 6);
+  REQUIRE(partition_strides[0] == 6);
+  REQUIRE(partition_strides[1] == 1);
+  REQUIRE(instance.offset_layout.rank == 1);
+  REQUIRE(offset_extents[0] == 3);
+  REQUIRE(offset_strides[0] == 6);
+
+  stf_data_place_destroy(recipe_dplace);
+  stf_exec_place_grid_destroy(grid);
+}
+
+C2H_TEST("callback-backed composite data place does not expose structured recipe", "[places][composite][recipe]")
+{
+  const size_t nplaces = 2;
+  int device_ids[2]    = {0, 0};
+  stf_exec_place_handle grid = stf_exec_place_grid_from_devices(device_ids, nplaces);
+  REQUIRE(grid != nullptr);
+
+  stf_data_place_handle callback_dplace = stf_data_place_composite(grid, blocked_mapper_1d);
+  REQUIRE(callback_dplace != nullptr);
+  REQUIRE(stf_data_place_has_partition_recipe(callback_dplace) == 0);
+
+  stf_partition_recipe_desc roundtrip;
+  REQUIRE(stf_data_place_get_partition_recipe(callback_dplace, &roundtrip) == 0);
+
+  stf_data_place_destroy(callback_dplace);
+  stf_exec_place_grid_destroy(grid);
+}
+
 C2H_TEST("task on exec_place_grid: get_grid_dims and get_custream_at_index", "[task][places][grid]")
 {
   const size_t nplaces = 2;

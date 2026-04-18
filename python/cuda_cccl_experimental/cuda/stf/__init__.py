@@ -26,6 +26,10 @@ else:
         green_context_helper,
         green_ctx_view,
         machine_init,
+        layout_desc,
+        partition_instance,
+        partition_recipe,
+        shape_desc,
     )
     from .device_array import DeviceArray
 
@@ -40,5 +44,9 @@ else:
         "green_context_helper",
         "green_ctx_view",
         "data_place",
+        "layout_desc",
         "machine_init",
+        "partition_instance",
+        "partition_recipe",
+        "shape_desc",
     ]

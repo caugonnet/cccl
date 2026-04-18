@@ -22,6 +22,10 @@
 #include <cccl/c/experimental/stf/stf.h>
 
 using namespace cuda::experimental::stf;
+using ::cuda::experimental::places::layout_desc;
+using ::cuda::experimental::places::partition_instance;
+using ::cuda::experimental::places::partition_recipe;
+using ::cuda::experimental::places::shape_desc;
 
 namespace
 {
@@ -175,6 +179,49 @@ template <class Opaque>
 {
   auto* const c = from_opaque_const(h);
   return const_cast<::std::remove_const_t<::std::remove_pointer_t<decltype(c)>>*>(c);
+}
+
+[[nodiscard]] partition_recipe stf_partition_recipe_from_desc(const stf_partition_recipe_desc& desc)
+{
+  switch (desc.kind)
+  {
+    case STF_PARTITION_RECIPE_BLOCKED:
+      return partition_recipe::blocked(desc.target_axis);
+    case STF_PARTITION_RECIPE_TILED:
+      return partition_recipe::tiled(static_cast<size_t>(desc.tile_size), desc.target_axis);
+    default:
+      return {};
+  }
+}
+
+void stf_partition_recipe_to_desc(const partition_recipe& recipe, stf_partition_recipe_desc* out_recipe)
+{
+  out_recipe->kind        = static_cast<stf_partition_recipe_kind>(recipe.kind());
+  out_recipe->target_axis = static_cast<int64_t>(recipe.target_axis());
+  out_recipe->tile_size   = static_cast<uint64_t>(recipe.tile_size());
+}
+
+[[nodiscard]] shape_desc stf_shape_from_view(stf_shape_view shape)
+{
+  ::std::vector<size_t> extents(shape.rank, 0);
+  for (size_t i = 0; i < shape.rank; ++i)
+  {
+    extents[i] = static_cast<size_t>(shape.extents[i]);
+  }
+  return shape_desc(extents);
+}
+
+void stf_fill_layout_view(
+  const layout_desc& layout, uint64_t* extents, int64_t* strides, stf_layout_view* out_view)
+{
+  for (size_t i = 0; i < layout.rank(); ++i)
+  {
+    extents[i] = static_cast<uint64_t>(layout.extent(i));
+    strides[i] = static_cast<int64_t>(layout.stride(i));
+  }
+  out_view->extents = extents;
+  out_view->strides = strides;
+  out_view->rank    = layout.rank();
 }
 } // namespace
 
@@ -441,6 +488,116 @@ stf_data_place_handle stf_data_place_composite(stf_exec_place_handle grid, stf_g
     return new data_place(data_place::composite(cpp_mapper, *grid_ptr));
   });
   return to_opaque(dp);
+}
+
+void stf_partition_recipe_init_blocked(stf_partition_recipe_desc* recipe, int64_t target_axis)
+{
+  _CCCL_ASSERT(recipe != nullptr, "partition recipe output must not be null");
+  recipe->kind        = STF_PARTITION_RECIPE_BLOCKED;
+  recipe->target_axis = target_axis;
+  recipe->tile_size   = 0;
+}
+
+void stf_partition_recipe_init_tiled(stf_partition_recipe_desc* recipe, uint64_t tile_size, int64_t target_axis)
+{
+  _CCCL_ASSERT(recipe != nullptr, "partition recipe output must not be null");
+  recipe->kind        = STF_PARTITION_RECIPE_TILED;
+  recipe->target_axis = target_axis;
+  recipe->tile_size   = tile_size;
+}
+
+stf_data_place_handle stf_data_place_composite_recipe(stf_exec_place_handle grid, const stf_partition_recipe_desc* recipe)
+{
+  _CCCL_ASSERT(grid != nullptr, "exec place grid handle must not be null");
+  _CCCL_ASSERT(recipe != nullptr, "partition recipe descriptor must not be null");
+  auto* grid_ptr                 = from_opaque(grid);
+  const partition_recipe cpp_recipe = stf_partition_recipe_from_desc(*recipe);
+  auto* dp                       = stf_try_allocate([grid_ptr, cpp_recipe] {
+    return new data_place(data_place::composite(cpp_recipe, *grid_ptr));
+  });
+  return to_opaque(dp);
+}
+
+int stf_data_place_has_partition_recipe(stf_data_place_handle h)
+{
+  _CCCL_ASSERT(h != nullptr, "data_place handle must not be null");
+  return from_opaque(h)->has_partition_recipe() ? 1 : 0;
+}
+
+int stf_data_place_get_partition_recipe(stf_data_place_handle h, stf_partition_recipe_desc* out_recipe)
+{
+  _CCCL_ASSERT(h != nullptr && out_recipe != nullptr, "invalid arguments");
+  if (!from_opaque(h)->has_partition_recipe())
+  {
+    return 0;
+  }
+
+  stf_partition_recipe_to_desc(from_opaque(h)->get_partition_recipe(), out_recipe);
+  return 1;
+}
+
+int stf_data_place_query_partition_instance(
+  stf_data_place_handle h, stf_shape_view logical_shape, stf_partition_instance_requirements* out_requirements)
+{
+  _CCCL_ASSERT(h != nullptr && out_requirements != nullptr, "invalid arguments");
+  if (!from_opaque(h)->has_partition_recipe())
+  {
+    return 0;
+  }
+
+  const partition_instance instance = from_opaque(h)->instantiate_partition(stf_shape_from_view(logical_shape));
+  out_requirements->partition_rank  = instance.partition_layout().rank();
+  out_requirements->offset_rank     = instance.has_offset_layout() ? instance.offset_layout().rank() : 0;
+  out_requirements->has_offset_layout = instance.has_offset_layout() ? 1 : 0;
+  out_requirements->has_owner_query   = instance.has_owner_query() ? 1 : 0;
+  return 1;
+}
+
+int stf_data_place_fill_partition_instance(
+  stf_data_place_handle h,
+  stf_shape_view logical_shape,
+  uint64_t* partition_extents,
+  int64_t* partition_strides,
+  size_t partition_capacity,
+  uint64_t* offset_extents,
+  int64_t* offset_strides,
+  size_t offset_capacity,
+  stf_partition_instance_view* out_instance)
+{
+  _CCCL_ASSERT(h != nullptr && out_instance != nullptr, "invalid arguments");
+  if (!from_opaque(h)->has_partition_recipe())
+  {
+    return 0;
+  }
+
+  const partition_instance instance = from_opaque(h)->instantiate_partition(stf_shape_from_view(logical_shape));
+  if (partition_capacity < instance.partition_layout().rank())
+  {
+    return 0;
+  }
+  if (instance.has_offset_layout() && offset_capacity < instance.offset_layout().rank())
+  {
+    return 0;
+  }
+
+  stf_fill_layout_view(instance.partition_layout(), partition_extents, partition_strides, &out_instance->partition_layout);
+  if (instance.has_offset_layout())
+  {
+    stf_fill_layout_view(instance.offset_layout(), offset_extents, offset_strides, &out_instance->offset_layout);
+  }
+  else
+  {
+    out_instance->offset_layout.extents = nullptr;
+    out_instance->offset_layout.strides = nullptr;
+    out_instance->offset_layout.rank    = 0;
+  }
+
+  out_instance->partition_axis    = static_cast<uint64_t>(instance.partition_axis());
+  out_instance->partition_size    = static_cast<uint64_t>(instance.partition_size());
+  out_instance->tile_size         = static_cast<uint64_t>(instance.tile_size());
+  out_instance->has_offset_layout = instance.has_offset_layout() ? 1 : 0;
+  out_instance->has_owner_query   = instance.has_owner_query() ? 1 : 0;
+  return 1;
 }
 
 stf_data_place_handle stf_data_place_green_ctx(stf_green_context_helper_handle helper, size_t idx)

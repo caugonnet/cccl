@@ -17,6 +17,7 @@ from cpython.bytes cimport PyBytes_FromStringAndSize
 from cpython.pycapsule cimport (
     PyCapsule_CheckExact, PyCapsule_IsValid, PyCapsule_GetPointer
 )
+from libcpp.vector cimport vector
 from libc.stddef cimport ptrdiff_t
 from libc.stdint cimport uint8_t, uint32_t, uint64_t, int64_t, uintptr_t
 from libc.string cimport memset, memcpy
@@ -71,6 +72,41 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
         uint64_t t
 
     ctypedef void (*stf_get_executor_fn)(stf_pos4* result, stf_pos4 data_coords, stf_dim4 data_dims, stf_dim4 grid_dims)
+
+    ctypedef struct stf_shape_view:
+        const uint64_t* extents
+        size_t rank
+
+    ctypedef struct stf_layout_view:
+        const uint64_t* extents
+        const int64_t* strides
+        size_t rank
+
+    cdef enum stf_partition_recipe_kind:
+        STF_PARTITION_RECIPE_NONE
+        STF_PARTITION_RECIPE_EXPLICIT_LAYOUT
+        STF_PARTITION_RECIPE_BLOCKED
+        STF_PARTITION_RECIPE_TILED
+
+    ctypedef struct stf_partition_recipe_desc:
+        stf_partition_recipe_kind kind
+        int64_t target_axis
+        uint64_t tile_size
+
+    ctypedef struct stf_partition_instance_requirements:
+        size_t partition_rank
+        size_t offset_rank
+        int has_offset_layout
+        int has_owner_query
+
+    ctypedef struct stf_partition_instance_view:
+        stf_layout_view partition_layout
+        stf_layout_view offset_layout
+        uint64_t partition_axis
+        uint64_t partition_size
+        uint64_t tile_size
+        int has_offset_layout
+        int has_owner_query
 
     # Forward-declare data place handle (needed by stf_exec_place_set_affine_data_place)
     ctypedef struct stf_data_place_opaque_t
@@ -127,6 +163,23 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     stf_data_place_handle stf_data_place_affine()
     stf_data_place_handle stf_data_place_current_device()
     stf_data_place_handle stf_data_place_composite(stf_exec_place_handle grid, stf_get_executor_fn mapper)
+    void stf_partition_recipe_init_blocked(stf_partition_recipe_desc* recipe, int64_t target_axis)
+    void stf_partition_recipe_init_tiled(stf_partition_recipe_desc* recipe, uint64_t tile_size, int64_t target_axis)
+    stf_data_place_handle stf_data_place_composite_recipe(stf_exec_place_handle grid, const stf_partition_recipe_desc* recipe)
+    int stf_data_place_has_partition_recipe(stf_data_place_handle h)
+    int stf_data_place_get_partition_recipe(stf_data_place_handle h, stf_partition_recipe_desc* out_recipe)
+    int stf_data_place_query_partition_instance(
+        stf_data_place_handle h, stf_shape_view logical_shape, stf_partition_instance_requirements* out_requirements)
+    int stf_data_place_fill_partition_instance(
+        stf_data_place_handle h,
+        stf_shape_view logical_shape,
+        uint64_t* partition_extents,
+        int64_t* partition_strides,
+        size_t partition_capacity,
+        uint64_t* offset_extents,
+        int64_t* offset_strides,
+        size_t offset_capacity,
+        stf_partition_instance_view* out_instance)
     stf_data_place_handle stf_data_place_green_ctx(stf_green_context_helper_handle helper, size_t idx)
     stf_data_place_handle stf_data_place_clone(stf_data_place_handle h)
     void stf_data_place_destroy(stf_data_place_handle h)
@@ -245,6 +298,130 @@ def _make_mapper_callback(mapper):
     callback = _mapper_cfunc_type(_trampoline)
     c_ptr = ctypes.cast(callback, ctypes.c_void_p).value
     return (callback, c_ptr)
+
+
+class shape_desc:
+    def __init__(self, extents):
+        self.extents = tuple(int(x) for x in extents)
+
+    @property
+    def rank(self):
+        return len(self.extents)
+
+    def __iter__(self):
+        return iter(self.extents)
+
+    def __len__(self):
+        return len(self.extents)
+
+    def __repr__(self):
+        return f"shape_desc(extents={self.extents})"
+
+
+class layout_desc:
+    def __init__(self, extents, strides):
+        self.extents = tuple(int(x) for x in extents)
+        self.strides = tuple(int(x) for x in strides)
+        if len(self.extents) != len(self.strides):
+            raise ValueError("layout_desc requires matching extents and strides")
+
+    @property
+    def rank(self):
+        return len(self.extents)
+
+    def __repr__(self):
+        return f"layout_desc(extents={self.extents}, strides={self.strides})"
+
+
+cdef class partition_recipe:
+    cdef stf_partition_recipe_desc _desc
+
+    def __cinit__(self):
+        self._desc.kind = STF_PARTITION_RECIPE_NONE
+        self._desc.target_axis = 0
+        self._desc.tile_size = 0
+
+    @staticmethod
+    def blocked(target_axis=-1):
+        cdef partition_recipe recipe = partition_recipe.__new__(partition_recipe)
+        stf_partition_recipe_init_blocked(&recipe._desc, int(target_axis))
+        return recipe
+
+    @staticmethod
+    def tiled(tile_size, target_axis=0):
+        cdef partition_recipe recipe = partition_recipe.__new__(partition_recipe)
+        cdef uint64_t c_tile_size = <uint64_t>int(tile_size)
+        if c_tile_size == 0:
+            raise ValueError("tile_size must be positive")
+        stf_partition_recipe_init_tiled(&recipe._desc, c_tile_size, int(target_axis))
+        return recipe
+
+    @property
+    def kind(self):
+        if self._desc.kind == STF_PARTITION_RECIPE_BLOCKED:
+            return "blocked"
+        if self._desc.kind == STF_PARTITION_RECIPE_TILED:
+            return "tiled"
+        if self._desc.kind == STF_PARTITION_RECIPE_EXPLICIT_LAYOUT:
+            return "explicit_layout"
+        return "none"
+
+    @property
+    def target_axis(self):
+        return int(self._desc.target_axis)
+
+    @property
+    def tile_size(self):
+        return int(self._desc.tile_size)
+
+    def __repr__(self):
+        return (
+            f"partition_recipe(kind={self.kind!r}, "
+            f"target_axis={self.target_axis}, tile_size={self.tile_size})"
+        )
+
+
+cdef partition_recipe _partition_recipe_from_desc(stf_partition_recipe_desc desc):
+    cdef partition_recipe recipe = partition_recipe.__new__(partition_recipe)
+    recipe._desc = desc
+    return recipe
+
+
+cdef object _layout_from_view(stf_layout_view view):
+    return layout_desc(
+        tuple(int(view.extents[i]) for i in range(view.rank)),
+        tuple(int(view.strides[i]) for i in range(view.rank)),
+    )
+
+
+class partition_instance:
+    def __init__(
+        self,
+        partition_layout,
+        offset_layout,
+        partition_axis,
+        partition_size,
+        tile_size,
+        has_owner_query,
+    ):
+        self.partition_layout = partition_layout
+        self.offset_layout = offset_layout
+        self.partition_axis = int(partition_axis)
+        self.partition_size = int(partition_size)
+        self.tile_size = int(tile_size)
+        self.has_owner_query = bool(has_owner_query)
+
+    @property
+    def has_offset_layout(self):
+        return self.offset_layout is not None
+
+    def __repr__(self):
+        return (
+            f"partition_instance(partition_layout={self.partition_layout!r}, "
+            f"offset_layout={self.offset_layout!r}, partition_axis={self.partition_axis}, "
+            f"partition_size={self.partition_size}, tile_size={self.tile_size}, "
+            f"has_owner_query={self.has_owner_query})"
+        )
 
 class AccessMode(IntFlag):
     NONE  = STF_NONE
@@ -926,40 +1103,23 @@ cdef class data_place:
         return p
 
     @staticmethod
-    def composite(exec_place grid, object mapper):
-        """Create a composite data place: grid of execution places + partition function.
-
-        The partitioner (mapper) is a callable with signature::
-
-            (data_coords, data_dims, grid_dims) -> (x, y, z, t)
-
-        Each argument/return is a 4-tuple of integers:
-
-        - *data_coords*: logical position in the data
-        - *data_dims*: full shape of the data
-        - *grid_dims*: shape of the execution place grid
-        - return: position in the grid (which place owns this data element)
-
-        Example — blocked partition along first dimension::
-
-            def blocked_1d(data_coords, data_dims, grid_dims):
-                n = data_dims[0]
-                nplaces = grid_dims[0]
-                part_size = max((n + nplaces - 1) // nplaces, 1)
-                place_x = min(data_coords[0] // part_size, nplaces - 1)
-                return (place_x, 0, 0, 0)
-
-            grid = exec_place_grid.from_devices([0, 1])
-            dplace = data_place.composite(grid, blocked_1d)
-        """
-        if not callable(mapper):
-            raise TypeError(
-                "mapper must be callable: (data_coords, data_dims, grid_dims) -> (x, y, z, t)")
-        callback_obj, c_ptr = _make_mapper_callback(mapper)
+    def composite(exec_place grid, object mapper_or_recipe):
+        """Create a composite data place from either a callback mapper or a structured recipe."""
         cdef data_place p = data_place.__new__(data_place)
-        p._mapper_callback = callback_obj
-        cdef uintptr_t ptr_val = c_ptr
-        p._h = stf_data_place_composite(grid._h, <stf_get_executor_fn>ptr_val)
+        cdef partition_recipe recipe
+        cdef uintptr_t ptr_val
+        if isinstance(mapper_or_recipe, partition_recipe):
+            recipe = <partition_recipe>mapper_or_recipe
+            p._h = stf_data_place_composite_recipe(grid._h, &recipe._desc)
+        else:
+            if not callable(mapper_or_recipe):
+                raise TypeError(
+                    "mapper_or_recipe must be either a partition_recipe or a callable "
+                    "(data_coords, data_dims, grid_dims) -> (x, y, z, t)")
+            callback_obj, c_ptr = _make_mapper_callback(mapper_or_recipe)
+            p._mapper_callback = callback_obj
+            ptr_val = c_ptr
+            p._h = stf_data_place_composite(grid._h, <stf_get_executor_fn>ptr_val)
         if p._h == NULL:
             raise RuntimeError("failed to create composite data_place")
         return p
@@ -972,6 +1132,71 @@ cdef class data_place:
     @property
     def device_id(self) -> int:
         return stf_data_place_get_device_ordinal(self._h)
+
+    @property
+    def has_partition_recipe(self):
+        return bool(stf_data_place_has_partition_recipe(self._h))
+
+    def get_partition_recipe(self):
+        cdef stf_partition_recipe_desc desc
+        if not stf_data_place_get_partition_recipe(self._h, &desc):
+            raise ValueError("data_place does not carry a structured partition recipe")
+        return _partition_recipe_from_desc(desc)
+
+    def instantiate_partition(self, logical_shape):
+        cdef stf_shape_view shape_view
+        cdef stf_partition_instance_requirements requirements
+        cdef stf_partition_instance_view instance_view
+        cdef vector[uint64_t] logical_extents
+        cdef vector[uint64_t] partition_extents
+        cdef vector[int64_t] partition_strides
+        cdef vector[uint64_t] offset_extents
+        cdef vector[int64_t] offset_strides
+        cdef size_t i
+
+        extents_obj = logical_shape.extents if isinstance(logical_shape, shape_desc) else tuple(int(x) for x in logical_shape)
+        for i in range(len(extents_obj)):
+            logical_extents.push_back(<uint64_t>int(extents_obj[i]))
+
+        shape_view.extents = logical_extents.data() if logical_extents.size() > 0 else NULL
+        shape_view.rank = logical_extents.size()
+
+        if not stf_data_place_query_partition_instance(self._h, shape_view, &requirements):
+            raise ValueError("data_place does not support structured partition instantiation")
+
+        partition_extents.resize(requirements.partition_rank)
+        partition_strides.resize(requirements.partition_rank)
+        if requirements.has_offset_layout:
+            offset_extents.resize(requirements.offset_rank)
+            offset_strides.resize(requirements.offset_rank)
+
+        if not stf_data_place_fill_partition_instance(
+            self._h,
+            shape_view,
+            partition_extents.data() if partition_extents.size() > 0 else NULL,
+            partition_strides.data() if partition_strides.size() > 0 else NULL,
+            partition_extents.size(),
+            offset_extents.data() if offset_extents.size() > 0 else NULL,
+            offset_strides.data() if offset_strides.size() > 0 else NULL,
+            offset_extents.size(),
+            &instance_view,
+        ):
+            raise RuntimeError("failed to fill partition instance")
+
+        partition_layout_obj = _layout_from_view(instance_view.partition_layout)
+        offset_layout_obj = (
+            _layout_from_view(instance_view.offset_layout)
+            if instance_view.has_offset_layout
+            else None
+        )
+        return partition_instance(
+            partition_layout_obj,
+            offset_layout_obj,
+            instance_view.partition_axis,
+            instance_view.partition_size,
+            instance_view.tile_size,
+            instance_view.has_owner_query,
+        )
 
     def allocate(self, Py_ssize_t nbytes, stream=None):
         """Allocate *nbytes* on this data place.

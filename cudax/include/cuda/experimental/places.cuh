@@ -23,10 +23,15 @@
 #include <cuda/experimental/__places/exec/cuda_stream.cuh>
 #include <cuda/experimental/__places/exec/green_context.cuh>
 #include <cuda/experimental/__places/exec/green_ctx_view.cuh>
+#include <cuda/experimental/__places/layout_desc.cuh>
 #include <cuda/experimental/__places/machine.cuh>
+#include <cuda/experimental/__places/partition_instance.cuh>
+#include <cuda/experimental/__places/partition_recipe.cuh>
+#include <cuda/experimental/__places/partition_recipe_builders.cuh>
 #include <cuda/experimental/__places/partitions/blocked_partition.cuh>
 #include <cuda/experimental/__places/partitions/cyclic_shape.cuh>
 #include <cuda/experimental/__places/partitions/tiled_partition.cuh>
 #include <cuda/experimental/__places/place_partition.cuh>
 #include <cuda/experimental/__places/places.cuh>
+#include <cuda/experimental/__places/shape_desc.cuh>
 #include <cuda/experimental/__places/stream_pool.cuh>

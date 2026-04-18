@@ -173,6 +173,7 @@ public:
   template <typename partitioner_t /*, typename scalar_exec_place_t */>
   static data_place composite(partitioner_t p, const exec_place& g);
 
+  static data_place composite(const partition_recipe& recipe, const exec_place& grid);
   static data_place composite(partition_fn_t f, const exec_place& grid);
 
 #if _CCCL_CTK_AT_LEAST(12, 4)
@@ -305,6 +306,21 @@ public:
   const partition_fn_t& get_partitioner() const
   {
     return pimpl_->get_partitioner();
+  }
+
+  bool has_partition_recipe() const
+  {
+    return pimpl_->has_partition_recipe();
+  }
+
+  const partition_recipe& get_partition_recipe() const
+  {
+    return pimpl_->get_partition_recipe();
+  }
+
+  partition_instance instantiate_partition(const shape_desc& logical_shape) const
+  {
+    return pimpl_->instantiate_partition(logical_shape);
   }
 
   // Defined later after exec_place is complete
@@ -1537,7 +1553,14 @@ class data_place_composite final : public data_place_interface
 public:
   data_place_composite(exec_place grid, partition_fn_t partitioner_func)
       : grid_(mv(grid))
-      , partitioner_func_(mv(partitioner_func))
+      , partitioner_func_(partitioner_func)
+  {}
+
+  data_place_composite(exec_place grid, partition_recipe recipe)
+      : grid_(mv(grid))
+      , partitioner_func_(nullptr)
+      , recipe_(mv(recipe))
+      , has_recipe_(true)
   {}
 
   bool is_resolved() const override
@@ -1552,7 +1575,7 @@ public:
 
   ::std::string to_string() const override
   {
-    return "composite";
+    return has_recipe_ ? "composite(recipe)" : "composite(callback)";
   }
 
   size_t hash() const override
@@ -1568,9 +1591,32 @@ public:
       return typeid(*this).before(typeid(other)) ? -1 : 1;
     }
     const auto& o = static_cast<const data_place_composite&>(other);
-    if (get_partitioner() != o.get_partitioner())
+    if (has_recipe_ != o.has_recipe_)
     {
-      return ::std::less<partition_fn_t>{}(o.get_partitioner(), get_partitioner()) ? 1 : -1;
+      return has_recipe_ ? 1 : -1;
+    }
+    if (has_recipe_)
+    {
+      if (recipe_ != o.recipe_)
+      {
+        if (recipe_.kind() != o.recipe_.kind())
+        {
+          return static_cast<int>(recipe_.kind()) < static_cast<int>(o.recipe_.kind()) ? -1 : 1;
+        }
+        if (recipe_.target_axis() != o.recipe_.target_axis())
+        {
+          return recipe_.target_axis() < o.recipe_.target_axis() ? -1 : 1;
+        }
+        if (recipe_.tile_size() != o.recipe_.tile_size())
+        {
+          return recipe_.tile_size() < o.recipe_.tile_size() ? -1 : 1;
+        }
+        return recipe_.partition_layout().to_string() < o.recipe_.partition_layout().to_string() ? -1 : 1;
+      }
+    }
+    else if (partitioner_func_ != o.partitioner_func_)
+    {
+      return ::std::less<partition_fn_t>{}(o.partitioner_func_, partitioner_func_) ? 1 : -1;
     }
     if (grid_ == o.grid_)
     {
@@ -1602,7 +1648,34 @@ public:
 
   const partition_fn_t& get_partitioner() const override
   {
+    if (partitioner_func_ == nullptr)
+    {
+      throw ::std::logic_error("get_partitioner() called on recipe-backed composite data_place");
+    }
     return partitioner_func_;
+  }
+
+  bool has_partition_recipe() const override
+  {
+    return has_recipe_;
+  }
+
+  const partition_recipe& get_partition_recipe() const override
+  {
+    if (!has_recipe_)
+    {
+      throw ::std::logic_error("get_partition_recipe() called on callback-backed composite data_place");
+    }
+    return recipe_;
+  }
+
+  partition_instance instantiate_partition(const shape_desc& logical_shape) const override
+  {
+    if (!has_recipe_)
+    {
+      throw ::std::logic_error("instantiate_partition() called on callback-backed composite data_place");
+    }
+    return recipe_.instantiate(logical_shape, shape_desc(grid_.get_dims()));
   }
 
   const exec_place& get_grid() const
@@ -1612,13 +1685,20 @@ public:
 
 private:
   exec_place grid_;
-  partition_fn_t partitioner_func_;
+  partition_fn_t partitioner_func_ = nullptr;
+  partition_recipe recipe_{};
+  bool has_recipe_ = false;
 };
 
 inline bool data_place::is_composite() const
 {
   const auto& ref = *pimpl_;
   return typeid(ref) == typeid(data_place_composite);
+}
+
+inline data_place data_place::composite(const partition_recipe& recipe, const exec_place& grid)
+{
+  return data_place(::std::make_shared<data_place_composite>(grid, recipe));
 }
 
 inline data_place data_place::composite(partition_fn_t f, const exec_place& grid)

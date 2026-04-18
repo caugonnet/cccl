@@ -453,6 +453,19 @@ When using a grid of places with CUDASTF constructs such as ``parallel_for``,
 *data partitioning policies* express how data and index spaces are dispatched
 over the different places of a grid.
 
+There are now two complementary ways to describe composite partitioning:
+
+- legacy callback-style partitioners, which expose ``apply`` / ``get_executor``
+  behavior directly and remain the escape hatch for non-structured mappings
+- structured ``partition_recipe`` objects, which instantiate into concrete
+  ``partition_instance`` values that expose inspectable ``partition_layout``
+  and optional ``offset_layout`` descriptors for cross-language and IR-facing
+  consumers
+
+Structured recipes are the portable path. Callback partitioners remain fully
+supported for runtime behavior, but they are not the canonical representation
+for inspection or IR lowering.
+
 .. code:: c++
 
    class MyPartition : public partitioner_base {
@@ -510,6 +523,20 @@ There are currently two policies readily available:
   layout, where each entry of the grid of places receives approximately
   the same contiguous portion of the shape, dispatched along the outermost
   dimension.
+
+The same semantics are also available through the structured recipe API:
+
+.. code:: c++
+
+   partition_recipe recipe = partition_recipe::blocked();
+   partition_instance instance = recipe.instantiate(shape_desc({1024}), shape_desc({4}));
+
+   data_place structured = data_place::composite(recipe, exec_place::repeat(exec_place::device(0), 4));
+
+Built-in structured partitioners such as ``blocked_partition`` and
+``tiled_partition<TILE_SIZE>`` can therefore continue to provide their current
+``apply`` / ``get_executor`` behavior while also surfacing the same partition
+semantics as structured recipes and inspectable instances.
 
 This illustrates how a 2D shape is dispatched over 3 places using the
 blocked layout:
