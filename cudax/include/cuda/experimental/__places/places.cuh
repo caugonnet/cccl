@@ -523,8 +523,8 @@ public:
      *                        derived overrides that need access to the
      *                        public-facing place).
      */
-    virtual stream_pool& get_stream_pool(
-      bool for_computation, exec_place_resources& res, [[maybe_unused]] const exec_place& self) const
+    virtual stream_pool&
+    get_stream_pool(bool for_computation, exec_place_resources& res, [[maybe_unused]] const exec_place& self) const
     {
       auto& slot = res.get(this);
       return for_computation ? slot.compute : slot.data;
@@ -673,8 +673,8 @@ public:
 
   /// @brief Convenience overload taking an `async_resources_handle`. Defined
   /// inline in `__stf/internal/async_resources_handle.cuh`.
-  inline decorated_stream
-  getStream(::cuda::experimental::stf::async_resources_handle& h, bool for_computation = true) const;
+  inline decorated_stream getStream(::cuda::experimental::stf::async_resources_handle& h,
+                                    bool for_computation = true) const;
 
   cudaStream_t pick_stream(exec_place_resources& res, bool for_computation = true) const
   {
@@ -683,8 +683,8 @@ public:
 
   /// @brief Convenience overload taking an `async_resources_handle`. Defined
   /// inline in `__stf/internal/async_resources_handle.cuh`.
-  inline cudaStream_t
-  pick_stream(::cuda::experimental::stf::async_resources_handle& h, bool for_computation = true) const;
+  inline cudaStream_t pick_stream(::cuda::experimental::stf::async_resources_handle& h,
+                                  bool for_computation = true) const;
 
   /// @brief Number of streams in this place's pool (slots, not initialized).
   inline size_t stream_pool_size(exec_place_resources& res) const;

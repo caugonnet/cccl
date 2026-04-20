@@ -646,7 +646,8 @@ public:
       auto lock = lock_ctx_graph();
 
       // Get a stream from the pool associated to the execution place
-      cudaStream_t capture_stream = get_exec_place().getStream(ctx.async_resources().get_place_resources(), true).stream;
+      cudaStream_t capture_stream =
+        get_exec_place().getStream(ctx.async_resources().get_place_resources(), true).stream;
 
       cudaGraph_t childGraph = nullptr;
       // Use relaxed capture mode to allow capturing workloads that lazily initialize

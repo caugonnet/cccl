@@ -41,7 +41,6 @@
 
 namespace cuda::experimental::stf
 {
-
 /**
  * @brief A handle which stores resources useful for an efficient asynchronous
  * execution. For example this will store the pools of CUDA streams.
@@ -314,8 +313,8 @@ namespace cuda::experimental::places
 // layer; they are only available to code that already includes
 // async_resources_handle.cuh.
 
-inline stream_pool& exec_place::get_stream_pool(bool for_computation,
-                                                ::cuda::experimental::stf::async_resources_handle& h) const
+inline stream_pool&
+exec_place::get_stream_pool(bool for_computation, ::cuda::experimental::stf::async_resources_handle& h) const
 {
   return get_stream_pool(for_computation, h.get_place_resources());
 }

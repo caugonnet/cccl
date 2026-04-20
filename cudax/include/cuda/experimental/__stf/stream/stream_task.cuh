@@ -131,9 +131,9 @@ public:
     {
       if (automatic_stream)
       {
-        bool found       = false;
-        auto& place_res  = ctx.async_resources().get_place_resources();
-        auto& pool       = e_place.get_stream_pool(true, place_res);
+        bool found      = false;
+        auto& place_res = ctx.async_resources().get_place_resources();
+        auto& pool      = e_place.get_stream_pool(true, place_res);
 
         // To avoid creating inter stream dependencies when this is not
         // necessary, we try to reuse streams which belong to the pool,

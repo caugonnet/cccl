@@ -44,7 +44,6 @@
 
 namespace cuda::experimental::places
 {
-
 /**
  * @brief Default size of each per-place stream pool created by the registry.
  *
@@ -132,5 +131,4 @@ private:
   mutable ::std::mutex mtx_;
   ::std::unordered_map<const void*, per_place_pools> map_;
 };
-
 } // namespace cuda::experimental::places
