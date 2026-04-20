@@ -4,7 +4,7 @@
 
 # distutils: language = c++
 # cython: language_level=3
-# cython: linetrace=True
+# cython: linetrace=False
 
 
 from cpython.buffer cimport (
@@ -24,19 +24,29 @@ from libc.string cimport memset, memcpy
 import numpy as np
 
 import ctypes
+import warnings
 from enum import IntFlag
 
 cdef extern from "<cuda.h>":
     cdef struct OpaqueCUstream_st
+    cdef struct OpaqueCUctx_st
     cdef struct OpaqueCUkernel_st
     cdef struct OpaqueCUlibrary_st
     cdef struct OpaqueCUfunc_st
 
     ctypedef int CUresult
+    ctypedef int CUdevice
+    ctypedef OpaqueCUctx_st *CUcontext
     ctypedef OpaqueCUstream_st *CUstream
     ctypedef OpaqueCUkernel_st *CUkernel
     ctypedef OpaqueCUlibrary_st *CUlibrary
     ctypedef OpaqueCUfunc_st *CUfunction
+
+    CUresult cuInit(unsigned int flags)
+    CUresult cuDeviceGetCount(int* count)
+    CUresult cuDeviceGet(CUdevice* device, int ordinal)
+    CUresult cuDevicePrimaryCtxRetain(CUcontext* pctx, CUdevice dev)
+    CUresult cuDevicePrimaryCtxRelease(CUdevice dev)
 
 
 cdef extern from "<cuda_runtime.h>":
@@ -113,7 +123,12 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
 
     # Place accessors
     stf_data_place_handle stf_exec_place_get_affine_data_place(stf_exec_place_handle h)
-    CUstream stf_exec_place_pick_stream(stf_exec_place_handle h)
+    ctypedef struct stf_exec_place_resources_opaque_t
+    ctypedef stf_exec_place_resources_opaque_t* stf_exec_place_resources_handle
+    stf_exec_place_resources_handle stf_exec_place_resources_create()
+    void stf_exec_place_resources_destroy(stf_exec_place_resources_handle h)
+    stf_exec_place_resources_handle stf_ctx_get_place_resources(stf_ctx_handle ctx)
+    CUstream stf_exec_place_pick_stream(stf_exec_place_resources_handle res, stf_exec_place_handle h, int for_computation)
     stf_exec_place_handle stf_exec_place_get_place(stf_exec_place_handle h, size_t idx)
     stf_exec_place_handle stf_exec_place_green_ctx(stf_green_context_helper_handle helper, size_t idx, int use_green_ctx_data_place)
     void stf_machine_init()
@@ -209,6 +224,72 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     size_t stf_host_launch_deps_size(stf_host_launch_deps_handle deps)
     void* stf_host_launch_deps_get_user_data(stf_host_launch_deps_handle deps)
 
+    #
+    # Stackable contexts (PR #8165 features ported on top of the opaque-handle
+    # C API). All stackable_* entry points reuse existing handle types where
+    # appropriate (stf_ctx_handle, stf_logical_data_handle, stf_task_handle,
+    # stf_host_launch_handle); only while/repeat scopes have their own opaque
+    # handles.
+    #
+    stf_ctx_handle stf_stackable_ctx_create()
+    void stf_stackable_ctx_finalize(stf_ctx_handle ctx) nogil
+    CUstream stf_stackable_ctx_fence(stf_ctx_handle ctx) nogil
+    void stf_stackable_push_graph(stf_ctx_handle ctx)
+    void stf_stackable_pop(stf_ctx_handle ctx)
+
+    ctypedef struct stf_while_scope_handle_t
+    ctypedef stf_while_scope_handle_t* stf_while_scope_handle
+    ctypedef struct stf_repeat_scope_handle_t
+    ctypedef stf_repeat_scope_handle_t* stf_repeat_scope_handle
+
+    stf_while_scope_handle stf_stackable_push_while(stf_ctx_handle ctx)
+    void stf_stackable_pop_while(stf_while_scope_handle scope)
+    uint64_t stf_while_scope_get_cond_handle(stf_while_scope_handle scope)
+    stf_repeat_scope_handle stf_stackable_push_repeat(stf_ctx_handle ctx, size_t count)
+    void stf_stackable_pop_repeat(stf_repeat_scope_handle scope)
+
+    cdef enum stf_compare_op:
+        STF_CMP_GT
+        STF_CMP_LT
+        STF_CMP_GE
+        STF_CMP_LE
+
+    cdef enum stf_dtype:
+        STF_DTYPE_FLOAT32
+        STF_DTYPE_FLOAT64
+        STF_DTYPE_INT32
+        STF_DTYPE_INT64
+
+    void stf_stackable_while_cond_scalar(
+        stf_ctx_handle ctx,
+        stf_while_scope_handle scope,
+        stf_logical_data_handle ld,
+        stf_compare_op op,
+        double threshold,
+        stf_dtype dtype)
+
+    stf_logical_data_handle stf_stackable_logical_data_with_place(
+        stf_ctx_handle ctx, void* addr, size_t sz, stf_data_place_handle dplace)
+    stf_logical_data_handle stf_stackable_logical_data(stf_ctx_handle ctx, void* addr, size_t sz)
+    stf_logical_data_handle stf_stackable_logical_data_empty(stf_ctx_handle ctx, size_t length)
+    stf_logical_data_handle stf_stackable_token(stf_ctx_handle ctx)
+    void stf_stackable_logical_data_set_symbol(stf_logical_data_handle ld, const char* symbol)
+    void stf_stackable_logical_data_set_read_only(stf_logical_data_handle ld)
+    void stf_stackable_logical_data_destroy(stf_logical_data_handle ld)
+    void stf_stackable_token_destroy(stf_logical_data_handle ld)
+
+    stf_task_handle stf_stackable_task_create(stf_ctx_handle ctx)
+    void stf_stackable_task_add_dep(
+        stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m)
+    void stf_stackable_task_add_dep_with_dplace(
+        stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m, stf_data_place_handle data_p)
+
+    stf_host_launch_handle stf_stackable_host_launch_create(stf_ctx_handle ctx)
+    void stf_stackable_host_launch_add_dep(
+        stf_ctx_handle ctx, stf_host_launch_handle h, stf_logical_data_handle ld, stf_access_mode m)
+    void stf_stackable_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback)
+    void stf_stackable_host_launch_destroy(stf_host_launch_handle h)
+
 # ctypes mirror structs for the partition mapper callback.
 # The C API uses an out-pointer signature for stf_get_executor_fn:
 #   void (*)(stf_pos4* result, stf_pos4 data_coords, stf_dim4 data_dims, stf_dim4 grid_dims)
@@ -277,6 +358,106 @@ class stf_cai:
     def get(self, key, default=None):
         return self.__cuda_array_interface__.get(key, default)
 
+
+# Shared "alive" sentinel used to safely no-op a child wrapper's __dealloc__
+# when its parent (stackable_)context was already finalized.
+#
+# Implementation note: we use a ``cdef class`` with a single ``bint`` field
+# rather than a Python list ``[True]`` because Python lists are GC-tracked
+# mutable containers whose contents pytest's ``gc_collect_harder`` may clear
+# (causing ``IndexError`` from an emptied list).  A ``cdef class`` instance
+# with no Python-object members is *not* GC-tracked and cannot be mutated by
+# the cycle collector, giving us a stable shared flag.
+cdef class _AliveFlag:
+    cdef bint alive
+
+    def __cinit__(self):
+        self.alive = True
+
+
+# Python-only lifetime guard for framework-owned primary CUDA contexts.
+#
+# Rationale:
+# - STF's C++ core assumes callers keep the CUDA context valid for the whole
+#   lifetime of a context.
+# - In Python that assumption is frequently violated by third-party frameworks
+#   (Numba/PyTorch/CuPy) that share the runtime primary context and may release
+#   it between tests or after wrapper objects go out of scope.
+# - The pragmatic fix is therefore localized to the Python wrappers: when
+#   Python creates an STF context, it also retains every visible primary
+#   context and releases those retains only after STF finalize() returns.
+#
+# This keeps the interop workaround out of the C++ core while still protecting
+# Python-created STF contexts against refcount-driven teardown of primary
+# contexts by foreign libraries.
+cdef class _PrimaryContextPin:
+    cdef list _devices
+    cdef bint _released
+
+    def __cinit__(self):
+        cdef int dev_count = 0
+        cdef int ordinal
+        cdef CUdevice dev = 0
+        cdef CUcontext ctx = <CUcontext>NULL
+        cdef CUresult status
+
+        self._devices = []
+        self._released = False
+
+        status = cuInit(0)
+        if status != 0:
+            raise RuntimeError(
+                f"failed to initialize CUDA driver for STF Python context pin (CUresult={status})"
+            )
+
+        status = cuDeviceGetCount(&dev_count)
+        if status != 0:
+            raise RuntimeError(
+                f"failed to enumerate CUDA devices for STF Python context pin (CUresult={status})"
+            )
+
+        for ordinal in range(dev_count):
+            status = cuDeviceGet(&dev, ordinal)
+            if status != 0:
+                self.release()
+                raise RuntimeError(
+                    f"failed to query CUDA device {ordinal} for STF Python context pin "
+                    f"(CUresult={status})"
+                )
+
+            status = cuDevicePrimaryCtxRetain(&ctx, dev)
+            if status != 0:
+                self.release()
+                raise RuntimeError(
+                    f"failed to retain CUDA primary context for device {ordinal} "
+                    f"(CUresult={status})"
+                )
+
+            self._devices.append(dev)
+
+    cdef void release(self):
+        cdef list devices
+        cdef object dev_obj
+
+        if self._released or self._devices is None:
+            return
+
+        devices = self._devices
+        self._devices = None
+        self._released = True
+
+        for dev_obj in devices:
+            # Best-effort cleanup: reset/teardown paths may already have touched
+            # the primary context; the release is only to balance our retain.
+            cuDevicePrimaryCtxRelease(<CUdevice>dev_obj)
+
+    def __dealloc__(self):
+        # Explicit-finalize policy: do not make CUDA driver calls from GC.
+        # If a context leaks without finalize(), its primary-context retain is
+        # intentionally abandoned until process exit.
+        pass
+
+
 cdef class logical_data:
     cdef stf_logical_data_handle _ld
     cdef stf_ctx_handle _ctx
@@ -291,6 +472,8 @@ cdef class logical_data:
     # the C API.  STF may access that pointer asynchronously, so the
     # source object must outlive the logical_data.
     cdef object _source_buf
+    # Shared "alive" sentinel from the parent context. See context._alive.
+    cdef _AliveFlag _alive
 
     def __cinit__(self, context ctx=None, object buf=None, data_place dplace=None, shape=None, dtype=None, str name=None):
         cdef Py_buffer view
@@ -307,9 +490,11 @@ cdef class logical_data:
             self._symbol = None
             self._is_token = False
             self._source_buf = None
+            self._alive = None
             return
 
         self._ctx = ctx._ctx
+        self._alive = ctx._alive
         self._symbol = None  # Initialize symbol
         self._is_token = False  # Initialize token flag
         self._source_buf = buf  # prevent garbage collection in the case of numpy objects
@@ -390,12 +575,15 @@ cdef class logical_data:
         return self._symbol
 
     def __dealloc__(self):
-        if self._ld != NULL:
+        # See stackable_logical_data.__dealloc__ for why _alive may be None
+        # here even though it was set in the constructor (Cython's tp_clear
+        # resets it to Py_None before tp_dealloc runs when breaking cycles).
+        if self._ld != NULL and self._alive is not None and self._alive.alive:
             try:
                 stf_logical_data_destroy(self._ld)
             except Exception as e:
                 print(f"stf.logical_data: cleanup failed: {e}")
-            self._ld = NULL
+        self._ld = NULL
 
     def __repr__(self):
         """Return a detailed string representation of the logical_data object."""
@@ -442,6 +630,7 @@ cdef class logical_data:
         out._symbol = None
         out._is_token = False
         out._source_buf = None
+        out._alive = self._alive
 
         return out
 
@@ -456,6 +645,7 @@ cdef class logical_data:
         out._symbol = None  # New object has no symbol initially
         out._is_token = True
         out._source_buf = None
+        out._alive = ctx._alive
         out._ld = stf_token(ctx._ctx)
         if out._ld == NULL:
             raise RuntimeError("failed to create STF token")
@@ -488,6 +678,7 @@ cdef class logical_data:
         out._symbol = None
         out._is_token = False
         out._source_buf = None
+        out._alive = ctx._alive
         out._ld = stf_logical_data_empty(ctx._ctx, out._len)
         if out._ld == NULL:
             raise RuntimeError("failed to create logical_data from shape")
@@ -500,11 +691,14 @@ cdef class logical_data:
     def borrow_ctx_handle(self):
         ctx = context(borrowed=True)
         ctx.borrow_from_handle(self._ctx)
+        ctx._alive = self._alive
         return ctx
 
 class dep:
     __slots__ = ("ld", "mode", "dplace")
-    def __init__(self, logical_data ld, int mode, dplace=None):
+    # ld may be either a logical_data or a stackable_logical_data; both classes
+    # call dep(self, ...) from their .read()/.write()/.rw() helpers.
+    def __init__(self, object ld, int mode, dplace=None):
         self.ld   = ld
         self.mode = mode
         self.dplace = dplace  # can be None or a data place
@@ -526,7 +720,8 @@ def machine_init():
 
     This is done automatically when creating an ``stf.context()``, but must
     be called explicitly when using places without an STF task context
-    (e.g. for direct ``exec_place`` / ``pick_stream`` usage).
+    (e.g. for direct ``exec_place`` / ``exec_place_resources`` /
+    ``pick_stream`` usage).
 
     Safe to call multiple times; only the first invocation has effect.
     """
@@ -630,6 +825,52 @@ cdef class green_context_helper:
             f"green_context_helper(device_id={self.device_id}, "
             f"count={self.get_count()})"
         )
+
+
+cdef class exec_place_resources:
+    """Standalone per-place stream-pool registry.
+
+    Owns the CUDA streams it lazily creates the first time
+    :meth:`exec_place.pick_stream` is called against a given place. Streams
+    are released when this registry is garbage-collected (or when the owning
+    STF context is finalized, for borrowed instances).
+
+    There are two ways to obtain one:
+
+    * ``exec_place_resources()`` — construct a fresh, owned registry. Use
+      this when working with the ``places`` layer without an STF context.
+    * ``ctx.place_resources`` — borrow the registry embedded in an STF
+      context's ``async_resources_handle``. The borrowed handle's lifetime
+      is bounded by ``ctx``; do not keep references past
+      ``ctx.finalize()``.
+    """
+    cdef stf_exec_place_resources_handle _h
+    # Owned registries are destroyed in __dealloc__; borrowed ones are
+    # released by the owning STF context when it is finalized.
+    cdef bint _owned
+
+    def __cinit__(self, *, bint _borrow=False):
+        self._h = NULL
+        self._owned = not _borrow
+
+    def __init__(self, *, bint _borrow=False):
+        if _borrow:
+            return
+        self._h = stf_exec_place_resources_create()
+        if self._h == NULL:
+            raise RuntimeError("failed to create exec_place_resources")
+
+    @staticmethod
+    cdef exec_place_resources _borrow_from(stf_exec_place_resources_handle h):
+        cdef exec_place_resources r = exec_place_resources.__new__(exec_place_resources, _borrow=True)
+        r._owned = False
+        r._h = h
+        return r
+
+    def __dealloc__(self):
+        if self._owned and self._h != NULL:
+            stf_exec_place_resources_destroy(self._h)
+            self._h = NULL
 
 
 cdef class exec_place:
@@ -743,15 +984,35 @@ cdef class exec_place:
         dp._h = dh
         return dp
 
-    def pick_stream(self):
+    def pick_stream(self, exec_place_resources resources, bint for_computation=True):
         """Return a :class:`CudaStream` from this place's stream pool.
 
-        The returned object implements ``__cuda_stream__`` for direct use
-        with ``cuda.compute`` and behaves like an ``int`` (raw pointer).
+        The pool is owned by ``resources`` and the returned stream remains
+        valid until that registry is destroyed (or, for a borrowed registry,
+        until the owning STF context is finalized). The returned object
+        implements ``__cuda_stream__`` for direct use with ``cuda.compute``
+        and behaves like an ``int`` (raw pointer).
 
-        Must be called inside a ``with place:`` block (or after manual scope entry).
+        Must be called inside a ``with place:`` block (or after manual scope
+        entry).
+
+        Parameters
+        ----------
+        resources : exec_place_resources
+            The registry that should hand out the stream. Construct one
+            standalone (``exec_place_resources()``) when using the places
+            layer without STF, or borrow ``ctx.place_resources`` to share
+            the pools embedded in an STF context. There is intentionally no
+            no-arg overload: every stream must be tied to a registry whose
+            lifetime governs it.
+        for_computation : bool, optional (default ``True``)
+            Hint selecting between the compute pool (``True``) and the
+            data-transfer pool (``False``). Pooled places (``device(N)``,
+            ``host()``) honor it; self-contained places ignore it.
         """
-        cdef CUstream s = stf_exec_place_pick_stream(self._h)
+        if resources is None:
+            raise TypeError("pick_stream requires an exec_place_resources argument")
+        cdef CUstream s = stf_exec_place_pick_stream(resources._h, self._h, 1 if for_computation else 0)
         return CudaStream(<uintptr_t>s)
 
     def get_place(self, size_t idx):
@@ -1035,19 +1296,25 @@ cdef class task:
     # list of logical data in deps: we need this because we can't exchange
     # dtype/shape easily through the C API of STF
     cdef list _lds_args
+    # Shared "alive" sentinel from the parent context. See context._alive.
+    cdef _AliveFlag _alive
 
     def __cinit__(self, context ctx):
         self._t = stf_task_create(ctx._ctx)
         if self._t == NULL:
             raise RuntimeError("failed to create STF task")
         self._lds_args = []
+        self._alive = ctx._alive
 
     def __dealloc__(self):
-        if self._t != NULL:
+        # See stackable_logical_data.__dealloc__ for why a None _alive must
+        # be treated as "context already gone" rather than "no parent".
+        if self._t != NULL and self._alive is not None and self._alive.alive:
             try:
                 stf_task_destroy(self._t)
             except Exception as e:
                 print(f"stf.task: cleanup failed: {e}")
+        self._t = NULL
 
     def start(self):
         # This is ignored if this is not a graph task
@@ -1205,6 +1472,8 @@ cdef class cuda_kernel:
     cdef stf_cuda_kernel_handle _k
     cdef list _lds_args
     cdef list _arg_holders  # keep ParamHolder(s) alive until end()
+    # Shared "alive" sentinel from the parent context. See context._alive.
+    cdef _AliveFlag _alive
 
     def __cinit__(self, context ctx):
         self._k = stf_cuda_kernel_create(ctx._ctx)
@@ -1212,13 +1481,17 @@ cdef class cuda_kernel:
             raise RuntimeError("failed to create STF cuda_kernel")
         self._lds_args = []
         self._arg_holders = []
+        self._alive = ctx._alive
 
     def __dealloc__(self):
-        if self._k != NULL:
+        # See stackable_logical_data.__dealloc__ for why a None _alive must
+        # be treated as "context already gone" rather than "no parent".
+        if self._k != NULL and self._alive is not None and self._alive.alive:
             try:
                 stf_cuda_kernel_destroy(self._k)
             except Exception as e:
                 print(f"stf.cuda_kernel: cleanup failed: {e}")
+        self._k = NULL
 
     def start(self):
         stf_cuda_kernel_start(self._k)
@@ -1352,16 +1625,33 @@ cdef class context:
     cdef stf_ctx_handle _ctx
     # Is this a context that we have borrowed ?
     cdef bint _borrowed
+    # Python-only primary-context retain. This is intentionally kept out of the
+    # C++ core and exists only to shield Python interop with frameworks that
+    # share and later release CUDA primary contexts.
+    cdef _PrimaryContextPin _pin
+    # Shared "alive" sentinel: an _AliveFlag whose .alive bint is flipped to
+    # False by finalize(). Every child wrapper (logical_data, task, ...)
+    # created from this context holds the same _AliveFlag by reference and
+    # consults it before calling its C destroy in __dealloc__. This prevents
+    # use-after-free when a child outlives its context (e.g. a logical_data
+    # still on the Python stack when the next test's context creation /
+    # numba kernel rebinds the CUDA primary context).
+    cdef _AliveFlag _alive
 
     def __cinit__(self, bint use_graph=False, bint borrowed=False):
         self._ctx = <stf_ctx_handle>NULL
         self._borrowed = borrowed
+        self._pin = None
+        self._alive = _AliveFlag()
         if not borrowed:
+            self._pin = _PrimaryContextPin()
             if use_graph:
                 self._ctx = stf_ctx_create_graph()
             else:
                 self._ctx = stf_ctx_create()
             if self._ctx == NULL:
+                self._pin.release()
+                self._pin = None
                 raise RuntimeError("failed to create STF context")
 
     cdef borrow_from_handle(self, stf_ctx_handle ctx_handle):
@@ -1377,23 +1667,69 @@ cdef class context:
         return f"context(handle={<uintptr_t>self._ctx}, borrowed={self._borrowed})"
 
     def __dealloc__(self):
-        if not self._borrowed:
+        if self._borrowed:
+            self._ctx = <stf_ctx_handle>NULL
+            return
+
+        if self._ctx != NULL:
+            if self._alive is not None:
+                self._alive.alive = False
             try:
-                self.finalize()
-            except Exception as e:
-                print(f"stf.context: cleanup failed: {e}")
+                warnings.warn(
+                    "cuda.stf.context was garbage-collected without an explicit finalize(); "
+                    "STF/CUDA resources were abandoned. Call finalize() explicitly or use "
+                    "'with cuda.stf.context(...) as ctx:'.",
+                    ResourceWarning,
+                )
+            except Exception:
+                pass
+            self._ctx = <stf_ctx_handle>NULL
 
     def finalize(self):
+        cdef _PrimaryContextPin pin = self._pin
+
         if self._borrowed:
             raise RuntimeError("cannot finalize borrowed context")
 
+        # Flip the shared sentinel first so every surviving child wrapper
+        # turns its __dealloc__ into a no-op. Idempotent: safe to call twice
+        # (e.g. explicit finalize() then implicit one via __dealloc__).
+        if self._alive is not None:
+            self._alive.alive = False
+
         cdef stf_ctx_handle h = self._ctx
+        self._pin = None
         if h != NULL:
             self._ctx = NULL
             with nogil:
                 stf_ctx_finalize(h)
         else:
             self._ctx = NULL
+
+        if pin is not None:
+            pin.release()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, object exc_type, object exc, object tb):
+        if not self._borrowed:
+            self.finalize()
+        return False
+
+    @property
+    def place_resources(self):
+        """Borrowed reference to this context's per-place stream-pool registry.
+
+        The returned :class:`exec_place_resources` is owned by the context;
+        do **not** keep references to it (or to streams it has handed out)
+        past :meth:`finalize`. Useful for sharing pools between STF code and
+        standalone places-layer calls within one context's lifetime.
+        """
+        if self._ctx == NULL:
+            raise RuntimeError("context has been finalized")
+        cdef stf_exec_place_resources_handle h = stf_ctx_get_place_resources(self._ctx)
+        return exec_place_resources._borrow_from(h)
 
     def fence(self):
         """Return a CUDA stream that completes when all pending tasks finish.
@@ -1799,3 +2135,574 @@ cdef class context:
             stf_host_launch_submit(h, _host_launch_trampoline)
         finally:
             stf_host_launch_destroy(h)
+
+
+# ===========================================================================
+# Stackable bindings (PR #8165 features ported on top of the opaque-handle
+# C API). The classes below mirror the non-stackable surface, but every C
+# call goes through the stf_stackable_* entry points so logical data is
+# auto-pushed across nested scopes (push_graph / push_while / push_repeat).
+# ===========================================================================
+
+cdef class stackable_logical_data:
+    cdef stf_logical_data_handle _ld
+    cdef stf_ctx_handle _ctx
+
+    cdef object _dtype
+    cdef tuple  _shape
+    cdef int    _ndim
+    cdef size_t _len
+    cdef str    _symbol
+    cdef readonly bint _is_token
+    cdef object _source_buf
+    # Shared "alive" sentinel from the parent stackable_context. See
+    # context._alive for the rationale.
+    cdef _AliveFlag _alive
+
+    def __cinit__(self):
+        self._ld = NULL
+        self._ctx = NULL
+        self._len = 0
+        self._dtype = None
+        self._shape = ()
+        self._ndim = 0
+        self._symbol = None
+        self._is_token = False
+        self._source_buf = None
+        self._alive = None
+
+    def __dealloc__(self):
+        # We must only call into STF when the parent context is still alive.
+        # Note: a None _alive may be seen here even though it was set in the
+        # constructor: Cython's tp_clear is called before tp_dealloc when
+        # breaking reference cycles, and it resets _alive to Py_None. In that
+        # case the safe action is to skip the destroy call (the parent will
+        # tear down the underlying handle, or the GC will reclaim everything
+        # at interpreter shutdown).
+        if self._ld != NULL and self._alive is not None and self._alive.alive:
+            try:
+                if self._is_token:
+                    stf_stackable_token_destroy(self._ld)
+                else:
+                    stf_stackable_logical_data_destroy(self._ld)
+            except Exception as e:
+                print(f"stf.stackable_logical_data: cleanup failed: {e}")
+        self._ld = NULL
+
+    def set_symbol(self, str name):
+        stf_stackable_logical_data_set_symbol(self._ld, name.encode())
+        self._symbol = name
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @property
+    def shape(self):
+        return self._shape
+
+    def set_read_only(self):
+        """Mark this logical data as read-only (enables concurrent reads across scopes)."""
+        stf_stackable_logical_data_set_read_only(self._ld)
+
+    def read(self, dplace=None):
+        return dep(self, AccessMode.READ.value, dplace)
+
+    def write(self, dplace=None):
+        return dep(self, AccessMode.WRITE.value, dplace)
+
+    def rw(self, dplace=None):
+        return dep(self, AccessMode.RW.value, dplace)
+
+    def empty_like(self):
+        cdef stackable_logical_data out = stackable_logical_data.__new__(stackable_logical_data)
+        out._ld = stf_stackable_logical_data_empty(self._ctx, self._len)
+        if out._ld == NULL:
+            raise RuntimeError("failed to create empty stackable_logical_data")
+        out._ctx   = self._ctx
+        out._dtype = self._dtype
+        out._shape = self._shape
+        out._ndim  = self._ndim
+        out._len   = self._len
+        out._symbol = None
+        out._is_token = False
+        out._alive = self._alive
+        return out
+
+    def __repr__(self):
+        return (f"stackable_logical_data(shape={self._shape}, dtype={self._dtype}, "
+                f"is_token={self._is_token}, symbol={self._symbol!r})")
+
+
+cdef class stackable_task:
+    cdef stf_task_handle _t
+    cdef stf_ctx_handle _ctx
+    cdef list _lds_args
+    # Shared "alive" sentinel from the parent stackable_context. See
+    # context._alive for the rationale.
+    cdef _AliveFlag _alive
+
+    def __cinit__(self, stackable_context ctx):
+        self._t = stf_stackable_task_create(ctx._ctx)
+        if self._t == NULL:
+            raise RuntimeError("failed to create STF stackable task")
+        self._ctx = ctx._ctx
+        self._lds_args = []
+        self._alive = ctx._alive
+
+    def __dealloc__(self):
+        # See stackable_logical_data.__dealloc__ for why a None _alive must
+        # be treated as "context already gone" rather than "no parent".
+        if self._t != NULL and self._alive is not None and self._alive.alive:
+            try:
+                stf_task_destroy(self._t)
+            except Exception as e:
+                print(f"stf.stackable_task: cleanup failed: {e}")
+        self._t = NULL
+
+    def start(self):
+        stf_task_enable_capture(self._t)
+        stf_task_start(self._t)
+
+    def end(self):
+        stf_task_end(self._t)
+
+    def add_dep(self, object d):
+        if not isinstance(d, dep):
+            raise TypeError("add_dep expects read(ld), write(ld) or rw(ld)")
+
+        cdef stackable_logical_data ldata = <stackable_logical_data> d.ld
+        cdef int mode_int = int(d.mode)
+        cdef stf_access_mode mode_ce = <stf_access_mode> mode_int
+        cdef data_place dp
+
+        if d.dplace is None:
+            stf_stackable_task_add_dep(self._ctx, self._t, ldata._ld, mode_ce)
+        else:
+            dp = <data_place> d.dplace
+            stf_stackable_task_add_dep_with_dplace(
+                self._ctx, self._t, ldata._ld, mode_ce, dp._h)
+
+        self._lds_args.append(ldata)
+
+    def set_symbol(self, str name):
+        stf_task_set_symbol(self._t, name.encode())
+
+    def set_exec_place(self, object exec_p):
+        if not isinstance(exec_p, exec_place):
+            raise TypeError("set_exec_place expects an exec_place argument")
+        cdef exec_place ep = <exec_place> exec_p
+        stf_task_set_exec_place(self._t, ep._h)
+
+    def stream_ptr(self):
+        cdef CUstream s = stf_task_get_custream(self._t)
+        return CudaStream(<uintptr_t>s)
+
+    def get_arg(self, index) -> int:
+        if self._lds_args[index]._is_token:
+            raise RuntimeError("cannot materialize a token argument")
+        cdef void *ptr = stf_task_get(self._t, index)
+        return <uintptr_t>ptr
+
+    def get_arg_cai(self, index):
+        ptr = self.get_arg(index)
+        return stf_cai(
+            ptr, self._lds_args[index].shape, self._lds_args[index].dtype,
+            stream=self.stream_ptr())
+
+    def args_cai(self):
+        non_token_cais = [self.get_arg_cai(i) for i in range(len(self._lds_args))
+                          if not self._lds_args[i]._is_token]
+        if len(non_token_cais) == 0:
+            return None
+        elif len(non_token_cais) == 1:
+            return non_token_cais[0]
+        return tuple(non_token_cais)
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, object exc_type, object exc, object tb):
+        self.end()
+        return False
+
+
+# Small cdef helpers so we can keep the C-typed locals out of the Python
+# context-manager classes below.
+
+cdef uintptr_t _push_while_impl(stf_ctx_handle ctx) except? 0:
+    cdef stf_while_scope_handle scope = stf_stackable_push_while(ctx)
+    if scope == NULL:
+        raise RuntimeError("stf_stackable_push_while failed")
+    return <uintptr_t>scope
+
+cdef uint64_t _get_cond_handle_impl(uintptr_t scope_ptr):
+    return stf_while_scope_get_cond_handle(<stf_while_scope_handle>scope_ptr)
+
+cdef _pop_while_impl(uintptr_t scope_ptr):
+    stf_stackable_pop_while(<stf_while_scope_handle>scope_ptr)
+
+cdef uintptr_t _push_repeat_impl(stf_ctx_handle ctx, size_t count) except? 0:
+    cdef stf_repeat_scope_handle scope = stf_stackable_push_repeat(ctx, count)
+    if scope == NULL:
+        raise RuntimeError("stf_stackable_push_repeat failed")
+    return <uintptr_t>scope
+
+cdef _pop_repeat_impl(uintptr_t scope_ptr):
+    stf_stackable_pop_repeat(<stf_repeat_scope_handle>scope_ptr)
+
+cdef _while_cond_scalar_impl(stf_ctx_handle ctx, uintptr_t scope_ptr,
+                              stf_logical_data_handle ld,
+                              int op, double threshold, int dtype_code):
+    stf_stackable_while_cond_scalar(
+        ctx,
+        <stf_while_scope_handle>scope_ptr,
+        ld,
+        <stf_compare_op>op,
+        threshold,
+        <stf_dtype>dtype_code)
+
+
+class _GraphScope:
+    """Context manager wrapping ``stf_stackable_push_graph`` / ``_pop``."""
+    def __init__(self, ctx):
+        self._ctx = ctx
+
+    def __enter__(self):
+        stf_stackable_push_graph((<stackable_context>self._ctx)._ctx)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        stf_stackable_pop((<stackable_context>self._ctx)._ctx)
+        return False
+
+
+class _WhileLoop:
+    """Context manager for a CUDA 12.4+ conditional while loop."""
+    def __init__(self, ctx):
+        self._ctx = ctx
+        self._scope = 0
+        self._cond_handle = 0
+
+    def __enter__(self):
+        self._scope = _push_while_impl((<stackable_context>self._ctx)._ctx)
+        self._cond_handle = _get_cond_handle_impl(self._scope)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        _pop_while_impl(self._scope)
+        return False
+
+    @property
+    def cond_handle(self):
+        """Raw ``cudaGraphConditionalHandle`` as ``uint64_t`` (custom kernels)."""
+        return self._cond_handle
+
+    def continue_while(self, *args):
+        """Set a built-in ``continue while (ld <op> threshold)`` condition.
+
+        Usage: ``loop.continue_while(ld, ">", threshold)``
+        """
+        if len(args) != 3:
+            raise ValueError(
+                "continue_while expects (logical_data, op_string, threshold)")
+        ld_obj, op_str, threshold = args
+        self._set_scalar_condition(ld_obj, op_str, float(threshold))
+
+    def _set_scalar_condition(self, ld_obj, str op_str, double threshold):
+        cdef int op
+        cdef int dtype_code
+        if op_str == ">":
+            op = <int>STF_CMP_GT
+        elif op_str == "<":
+            op = <int>STF_CMP_LT
+        elif op_str == ">=":
+            op = <int>STF_CMP_GE
+        elif op_str == "<=":
+            op = <int>STF_CMP_LE
+        else:
+            raise ValueError(f"Unsupported comparison operator: {op_str}")
+
+        dt = ld_obj.dtype
+        if dt == np.float32:
+            dtype_code = <int>STF_DTYPE_FLOAT32
+        elif dt == np.float64:
+            dtype_code = <int>STF_DTYPE_FLOAT64
+        elif dt == np.int32:
+            dtype_code = <int>STF_DTYPE_INT32
+        elif dt == np.int64:
+            dtype_code = <int>STF_DTYPE_INT64
+        else:
+            raise ValueError(f"Unsupported dtype for while condition: {dt}")
+
+        _while_cond_scalar_impl(
+            (<stackable_context>self._ctx)._ctx,
+            self._scope,
+            (<stackable_logical_data>ld_obj)._ld,
+            op,
+            threshold,
+            dtype_code)
+
+    def condition_task(self, *args):
+        """Return a ``stackable_task`` for manual condition setting (advanced)."""
+        return self._ctx.task(*args)
+
+
+class _RepeatScope:
+    """Context manager for a fixed-iteration repeat scope (CUDA 12.4+)."""
+    def __init__(self, ctx, count):
+        self._ctx = ctx
+        self._count = count
+        self._scope = 0
+
+    def __enter__(self):
+        self._scope = _push_repeat_impl(
+            (<stackable_context>self._ctx)._ctx, self._count)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        _pop_repeat_impl(self._scope)
+        return False
+
+
+cdef class stackable_context:
+    cdef stf_ctx_handle _ctx
+    cdef _PrimaryContextPin _pin
+    # Shared "alive" sentinel. See context._alive for the rationale.
+    cdef _AliveFlag _alive
+
+    def __cinit__(self):
+        cdef stf_ctx_handle h
+
+        self._pin = None
+        self._pin = _PrimaryContextPin()
+        self._ctx = stf_stackable_ctx_create()
+        if self._ctx == NULL:
+            self._pin.release()
+            self._pin = None
+            raise RuntimeError("failed to create STF stackable context")
+        self._alive = _AliveFlag()
+
+    def __dealloc__(self):
+        if self._ctx != NULL:
+            if self._alive is not None:
+                self._alive.alive = False
+            try:
+                warnings.warn(
+                    "cuda.stf.stackable_context was garbage-collected without an explicit finalize(); "
+                    "STF/CUDA resources were abandoned. Call finalize() explicitly or use "
+                    "'with cuda.stf.stackable_context() as ctx:'.",
+                    ResourceWarning,
+                )
+            except Exception:
+                pass
+            self._ctx = <stf_ctx_handle>NULL
+
+    def __repr__(self):
+        return f"stackable_context(handle={<uintptr_t>self._ctx})"
+
+    def finalize(self):
+        cdef _PrimaryContextPin pin = self._pin
+
+        # Flip the shared sentinel first so every surviving child wrapper
+        # turns its __dealloc__ into a no-op. Idempotent.
+        if self._alive is not None:
+            self._alive.alive = False
+
+        cdef stf_ctx_handle h = self._ctx
+        self._pin = None
+        self._ctx = NULL
+        if h != NULL:
+            with nogil:
+                stf_stackable_ctx_finalize(h)
+
+        if pin is not None:
+            pin.release()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, object exc_type, object exc, object tb):
+        self.finalize()
+        return False
+
+    def fence(self):
+        """Return the fence CUDA stream as a Python int. Must be at root level."""
+        if self._ctx == NULL:
+            raise RuntimeError("stackable_context handle is NULL")
+        cdef CUstream s
+        with nogil:
+            s = stf_stackable_ctx_fence(self._ctx)
+        return <uintptr_t>s
+
+    def logical_data(self, object buf, data_place dplace=None, str name=None):
+        """Create stackable logical data from an existing buffer."""
+        cdef stackable_logical_data out = stackable_logical_data.__new__(stackable_logical_data)
+        out._ctx = self._ctx
+        out._alive = self._alive
+        out._source_buf = buf
+        cdef Py_buffer view
+        cdef int flags
+
+        if dplace is None:
+            dplace = data_place.host()
+
+        if hasattr(buf, '__cuda_array_interface__'):
+            cai = buf.__cuda_array_interface__
+            data_ptr, readonly = cai['data']
+            original_shape = cai['shape']
+            typestr = cai['typestr']
+            if typestr.startswith('|V') and 'descr' in cai:
+                out._dtype = np.dtype(cai['descr'])
+            else:
+                out._dtype = np.dtype(typestr)
+            out._shape = original_shape
+            out._ndim = len(out._shape)
+            itemsize = out._dtype.itemsize
+            total_items = 1
+            for dim in out._shape:
+                total_items *= dim
+            out._len = total_items * itemsize
+            out._ld = stf_stackable_logical_data_with_place(
+                self._ctx, <void*><uintptr_t>data_ptr, out._len, dplace._h)
+        else:
+            flags = PyBUF_FORMAT | PyBUF_ND | PyBUF_ANY_CONTIGUOUS
+            if PyObject_GetBuffer(buf, &view, flags) != 0:
+                raise ValueError(
+                    "object doesn't support the buffer protocol, is not contiguous, "
+                    "or doesn't expose __cuda_array_interface__")
+            try:
+                out._ndim = view.ndim
+                out._len = view.len
+                out._shape = tuple(<Py_ssize_t>view.shape[i] for i in range(view.ndim))
+                out._dtype = np.dtype(view.format)
+                out._ld = stf_stackable_logical_data_with_place(
+                    self._ctx, view.buf, view.len, dplace._h)
+            finally:
+                PyBuffer_Release(&view)
+
+        if out._ld == NULL:
+            raise RuntimeError("failed to create stackable_logical_data")
+
+        if name is not None:
+            out.set_symbol(name)
+        return out
+
+    def logical_data_empty(self, shape, dtype=None, str name=None):
+        """Create stackable logical data with uninitialized values."""
+        if dtype is None:
+            dtype = np.float64
+
+        cdef stackable_logical_data out = stackable_logical_data.__new__(stackable_logical_data)
+        out._ctx = self._ctx
+        out._alive = self._alive
+        out._dtype = np.dtype(dtype)
+        out._shape = tuple(shape) if not isinstance(shape, tuple) else shape
+        out._ndim = len(out._shape)
+        cdef size_t total_items = 1
+        for dim in out._shape:
+            total_items *= dim
+        out._len = total_items * out._dtype.itemsize
+        out._ld = stf_stackable_logical_data_empty(self._ctx, out._len)
+        if out._ld == NULL:
+            raise RuntimeError("failed to create empty stackable_logical_data")
+
+        if name is not None:
+            out.set_symbol(name)
+        return out
+
+    def token(self):
+        """Create a synchronization token."""
+        cdef stackable_logical_data out = stackable_logical_data.__new__(stackable_logical_data)
+        out._ctx = self._ctx
+        out._alive = self._alive
+        out._dtype = None
+        out._shape = None
+        out._ndim = 0
+        out._len = 0
+        out._is_token = True
+        out._ld = stf_stackable_token(self._ctx)
+        if out._ld == NULL:
+            raise RuntimeError("failed to create stackable token")
+        return out
+
+    def task(self, *args, symbol=None):
+        """Create a task on the head (innermost) scope of this context."""
+        exec_place_set = False
+        t = stackable_task(self)
+        if symbol is not None:
+            t.set_symbol(symbol)
+        for d in args:
+            if isinstance(d, dep):
+                t.add_dep(d)
+            elif isinstance(d, exec_place):
+                if exec_place_set:
+                    raise ValueError("Only one exec_place can be given")
+                t.set_exec_place(d)
+                exec_place_set = True
+            else:
+                raise TypeError("Arguments must be dependency objects or an exec_place")
+        return t
+
+    def graph_scope(self):
+        """Return a context manager that pushes/pops a nested graph scope."""
+        return _GraphScope(self)
+
+    def while_loop(self):
+        """Return a context manager for a while loop (CUDA 12.4+)."""
+        return _WhileLoop(self)
+
+    def repeat(self, size_t count):
+        """Return a context manager that repeats the body ``count`` times (CUDA 12.4+)."""
+        return _RepeatScope(self, count)
+
+    def host_launch(self, *deps, fn, args=None, symbol=None):
+        """Schedule a host callback inside the current stackable scope.
+
+        Mirrors :meth:`context.host_launch` but auto-pushes stackable
+        logical data through ``stf_stackable_host_launch_add_dep``.
+        """
+        if args is None:
+            user_args = ()
+        else:
+            user_args = tuple(args)
+
+        cdef stackable_logical_data sldata
+        dep_meta = []
+        for d in deps:
+            if not isinstance(d, dep):
+                raise TypeError(
+                    "Positional arguments must be dep objects "
+                    "(use ld.read(), ld.write(), or ld.rw())")
+            sldata = <stackable_logical_data>d.ld
+            dep_meta.append((sldata._shape, sldata._dtype))
+
+        payload = (fn, user_args, dep_meta)
+        Py_INCREF(payload)
+        cdef PyObject* payload_ptr = <PyObject*>payload
+
+        cdef stf_host_launch_handle h = stf_stackable_host_launch_create(self._ctx)
+        if h == NULL:
+            Py_XDECREF(<PyObject*>payload)
+            raise RuntimeError("failed to create stackable host_launch")
+
+        cdef int mode_ce
+        try:
+            if symbol is not None:
+                sym_bytes = symbol.encode("utf-8")
+                stf_host_launch_set_symbol(h, sym_bytes)
+            for d in deps:
+                sldata = <stackable_logical_data>d.ld
+                mode_ce = <int>d.mode
+                stf_stackable_host_launch_add_dep(
+                    self._ctx, h, sldata._ld, <stf_access_mode>mode_ce)
+            stf_host_launch_set_user_data(
+                h, &payload_ptr, sizeof(PyObject*), _python_payload_destructor)
+            stf_stackable_host_launch_submit(h, _host_launch_trampoline)
+        finally:
+            stf_stackable_host_launch_destroy(h)

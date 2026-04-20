@@ -32,14 +32,46 @@ def test_scope_nested():
             pass
 
 
-def test_pick_stream():
+def test_pick_stream_standalone():
+    """Places work without an STF context: caller owns the registry."""
     stf.machine_init()
+    resources = stf.exec_place_resources()
     place = stf.exec_place.device(0)
     with place:
-        s = place.pick_stream()
+        s = place.pick_stream(resources)
         assert isinstance(s, stf.CudaStream)
         assert isinstance(s, int)
         assert s != 0
+
+
+def test_pick_stream_borrowed_from_context():
+    """STF users borrow the context's registry and share its pools."""
+    stf.machine_init()
+    place = stf.exec_place.device(0)
+    with stf.context() as ctx, place:
+        s = place.pick_stream(ctx.place_resources)
+        assert isinstance(s, stf.CudaStream)
+        assert s != 0
+
+
+def test_pick_stream_requires_resources():
+    stf.machine_init()
+    place = stf.exec_place.device(0)
+    with place:
+        with pytest.raises(TypeError):
+            place.pick_stream(None)
+
+
+def test_two_resources_handles_isolated():
+    """Independent registries hand out independent streams for the same place."""
+    stf.machine_init()
+    r1 = stf.exec_place_resources()
+    r2 = stf.exec_place_resources()
+    place = stf.exec_place.device(0)
+    with place:
+        s1 = place.pick_stream(r1)
+        s2 = place.pick_stream(r2)
+        assert int(s1) != int(s2)
 
 
 def test_affine_data_place():
@@ -97,8 +129,9 @@ def test_green_context_exec_and_data_places():
     assert place.kind == "device"
     assert place.affine_data_place.device_id == helper.device_id
 
+    resources = stf.exec_place_resources()
     with place:
-        stream = place.pick_stream()
+        stream = place.pick_stream(resources)
         assert isinstance(stream, stf.CudaStream)
         assert stream != 0
 
@@ -124,9 +157,10 @@ def test_scope_with_cuda_compute():
 
     stf.machine_init()
     place = stf.exec_place.device(0)
+    resources = stf.exec_place_resources()
 
     with place:
-        stream = place.pick_stream()
+        stream = place.pick_stream(resources)
 
         n = 1024
         h_input = np.arange(n, dtype=np.float32)
@@ -169,9 +203,10 @@ def test_data_place_allocate_deallocate():
     """Allocate on a device data_place, verify non-zero pointer, deallocate."""
     stf.machine_init()
     place = stf.exec_place.device(0)
+    resources = stf.exec_place_resources()
     with place:
         dp = place.affine_data_place
-        stream = place.pick_stream()
+        stream = place.pick_stream(resources)
         ptr = dp.allocate(1024, stream)
         assert ptr != 0
         dp.deallocate(ptr, 1024, stream)
@@ -234,9 +269,10 @@ def test_device_array_with_cuda_compute():
 
     stf.machine_init()
     place = stf.exec_place.device(0)
+    resources = stf.exec_place_resources()
     with place:
         dp = place.affine_data_place
-        stream = place.pick_stream()
+        stream = place.pick_stream(resources)
 
         h_in = np.arange(256, dtype=np.float64)
         d_in = stf.DeviceArray.from_host(h_in, dp)

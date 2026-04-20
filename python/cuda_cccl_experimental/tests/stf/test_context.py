@@ -9,8 +9,8 @@ import cuda.stf as stf
 
 
 def test_ctx():
-    ctx = stf.context()
-    del ctx
+    with stf.context():
+        pass
 
 
 def test_graph_ctx():
@@ -44,7 +44,7 @@ def test_ctx2():
     t4.start()
     t4.end()
 
-    del ctx
+    ctx.finalize()
 
 
 def test_ctx3():
@@ -69,7 +69,7 @@ def test_ctx3():
     with ctx.task(lY.read(), lZ.rw()):
         pass
 
-    del ctx
+    ctx.finalize()
 
 
 def test_task_arg_cai_v3():
@@ -198,18 +198,28 @@ def test_finalize_then_fence_raises():
 
 
 def test_dealloc_does_not_raise():
-    """Deleting objects should never raise, even on double cleanup.
-
-    This tests the __dealloc__ safety pattern: cleanup failures are
-    printed, not raised.  We create objects, manually NULL-out their
-    handles, and delete them — the __dealloc__ guards should skip the
-    C API call without incident.
-    """
+    """Deleting already-finalized objects should never raise."""
     ctx = stf.context()
     ld = ctx.logical_data(np.zeros(4, dtype=np.float32))
     ctx.finalize()
     del ld
     del ctx
+
+
+def test_context_manager_finalizes():
+    with stf.context() as ctx:
+        ld = ctx.logical_data(np.zeros(4, dtype=np.float32))
+        with ctx.task(ld.rw()):
+            pass
+
+    with pytest.raises(RuntimeError, match="context handle is NULL"):
+        ctx.fence()
+
+
+def test_unfinalized_context_warns():
+    with pytest.warns(ResourceWarning, match="without an explicit finalize"):
+        ctx = stf.context()
+        del ctx
 
 
 if __name__ == "__main__":

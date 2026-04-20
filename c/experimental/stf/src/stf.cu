@@ -111,6 +111,10 @@ template <class P>
   {
     return static_cast<stf_exec_place_scope_handle>(opaque_bits);
   }
+  else if constexpr (::std::is_same_v<P, exec_place_resources>)
+  {
+    return static_cast<stf_exec_place_resources_handle>(opaque_bits);
+  }
 #if _CCCL_CTK_AT_LEAST(12, 4)
   else if constexpr (::std::is_same_v<P, green_context_helper>)
   {
@@ -157,6 +161,10 @@ template <class Opaque>
   else if constexpr (::std::is_same_v<Opaque*, stf_exec_place_scope_handle>)
   {
     return static_cast<const exec_place_scope*>(opaque_bits);
+  }
+  else if constexpr (::std::is_same_v<Opaque*, stf_exec_place_resources_handle>)
+  {
+    return static_cast<const exec_place_resources*>(opaque_bits);
   }
 #if _CCCL_CTK_AT_LEAST(12, 4)
   else if constexpr (::std::is_same_v<Opaque*, stf_green_context_helper_handle>)
@@ -349,10 +357,25 @@ stf_data_place_handle stf_exec_place_get_affine_data_place(stf_exec_place_handle
   }));
 }
 
-CUstream stf_exec_place_pick_stream(stf_exec_place_handle h)
+stf_exec_place_resources_handle stf_exec_place_resources_create(void)
 {
+  return to_opaque(stf_try_allocate([] {
+    return new exec_place_resources{};
+  }));
+}
+
+void stf_exec_place_resources_destroy(stf_exec_place_resources_handle h)
+{
+  // Borrowed handles obtained via stf_ctx_get_place_resources() must NOT be
+  // passed here; the API contract puts that burden on the caller.
+  delete from_opaque(h);
+}
+
+CUstream stf_exec_place_pick_stream(stf_exec_place_resources_handle res, stf_exec_place_handle h, int for_computation)
+{
+  _CCCL_ASSERT(res != nullptr, "exec_place_resources handle must not be null");
   _CCCL_ASSERT(h != nullptr, "exec_place handle must not be null");
-  return reinterpret_cast<CUstream>(from_opaque(h)->pick_stream());
+  return reinterpret_cast<CUstream>(from_opaque(h)->pick_stream(*from_opaque(res), for_computation != 0));
 }
 
 stf_exec_place_handle stf_exec_place_get_place(stf_exec_place_handle h, size_t idx)
@@ -541,6 +564,15 @@ void stf_ctx_finalize(stf_ctx_handle ctx)
   auto* context_ptr = from_opaque(ctx);
   context_ptr->finalize();
   delete context_ptr;
+}
+
+stf_exec_place_resources_handle stf_ctx_get_place_resources(stf_ctx_handle ctx)
+{
+  _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");
+  // Borrowed reference into the context's `async_resources_handle`. The
+  // returned handle is NOT to be destroyed by the caller; its lifetime
+  // matches that of `ctx`.
+  return to_opaque(&from_opaque(ctx)->async_resources().get_place_resources());
 }
 
 cudaStream_t stf_fence(stf_ctx_handle ctx)
@@ -960,6 +992,417 @@ void* stf_host_launch_deps_get_user_data(stf_host_launch_deps_handle deps)
 
   auto* d = from_opaque(deps);
   return d->user_data();
+}
+
+} // extern "C"
+
+// ============================================================================
+// Stackable Context API
+// ============================================================================
+//
+// The stackable C API mirrors the modern opaque-handle convention used by the
+// regular STF C API, but reuses a few existing handle types (stf_ctx_handle,
+// stf_logical_data_handle, stf_task_handle, stf_host_launch_handle) so that
+// non-stackable accessors (stf_task_start, stf_logical_data_set_symbol via the
+// underlying context, ...) keep working transparently.  Internally the
+// pointee types differ from the regular STF objects (stackable_ctx vs context,
+// stackable_logical_data<slice<char>> vs logical_data_untyped, ...), so
+// stackable handles must be created and destroyed through the matching
+// stf_stackable_* entry points only.
+
+namespace
+{
+using stackable_ld_t    = stackable_logical_data<slice<char>>;
+using stackable_token_t = stackable_logical_data<void_interface>;
+
+// Convert the new stf_while_scope_handle / stf_repeat_scope_handle opaque
+// types to / from their concrete C++ counterparts.  Kept local to the
+// stackable section so the main to_opaque/from_opaque dispatchers stay focused
+// on the regular API.
+[[nodiscard]] auto to_opaque_while(stackable_ctx::while_graph_scope_guard* p) noexcept
+{
+  return static_cast<stf_while_scope_handle>(static_cast<void*>(p));
+}
+
+[[nodiscard]] auto* from_opaque_while(stf_while_scope_handle h) noexcept
+{
+  return static_cast<stackable_ctx::while_graph_scope_guard*>(static_cast<void*>(h));
+}
+
+[[nodiscard]] auto to_opaque_repeat(repeat_graph_scope_guard* p) noexcept
+{
+  return static_cast<stf_repeat_scope_handle>(static_cast<void*>(p));
+}
+
+[[nodiscard]] auto* from_opaque_repeat(stf_repeat_scope_handle h) noexcept
+{
+  return static_cast<repeat_graph_scope_guard*>(static_cast<void*>(h));
+}
+
+// Stackable handles are typedef-aliased to existing handle types, so the
+// generic to_opaque/from_opaque dispatchers cannot disambiguate.  Use these
+// thin local helpers instead.
+[[nodiscard]] stf_ctx_handle to_opaque_sctx(stackable_ctx* p) noexcept
+{
+  return static_cast<stf_ctx_handle>(static_cast<void*>(p));
+}
+
+[[nodiscard]] stackable_ctx* from_opaque_sctx(stf_ctx_handle h) noexcept
+{
+  return static_cast<stackable_ctx*>(static_cast<void*>(h));
+}
+
+[[nodiscard]] stf_logical_data_handle to_opaque_sld(stackable_ld_t* p) noexcept
+{
+  return static_cast<stf_logical_data_handle>(static_cast<void*>(p));
+}
+
+[[nodiscard]] stackable_ld_t* from_opaque_sld(stf_logical_data_handle h) noexcept
+{
+  return static_cast<stackable_ld_t*>(static_cast<void*>(h));
+}
+
+#if _CCCL_CTK_AT_LEAST(12, 4)
+// Built-in condition kernel for while_cond_scalar.  Reads the head of the
+// scalar logical data, applies the requested comparison and updates the
+// conditional handle in place.  Lives outside extern "C" because it is a
+// device kernel template.
+template <typename T>
+__global__ void
+stf_stackable_while_cond_kernel(const T* value, cudaGraphConditionalHandle handle, double threshold, int op)
+{
+  const double v = static_cast<double>(*value);
+  bool result;
+  switch (op)
+  {
+    case STF_CMP_GT:
+      result = v > threshold;
+      break;
+    case STF_CMP_LT:
+      result = v < threshold;
+      break;
+    case STF_CMP_GE:
+      result = v >= threshold;
+      break;
+    case STF_CMP_LE:
+      result = v <= threshold;
+      break;
+    default:
+      result = false;
+      break;
+  }
+  cudaGraphSetConditional(handle, result ? 1 : 0);
+}
+#endif // _CCCL_CTK_AT_LEAST(12, 4)
+} // namespace
+
+extern "C" {
+
+stf_ctx_handle stf_stackable_ctx_create(void)
+{
+  return to_opaque_sctx(stf_try_allocate([] {
+    return new stackable_ctx{};
+  }));
+}
+
+void stf_stackable_ctx_finalize(stf_ctx_handle ctx)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  auto* sctx = from_opaque_sctx(ctx);
+  sctx->finalize();
+  delete sctx;
+}
+
+cudaStream_t stf_stackable_ctx_fence(stf_ctx_handle ctx)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  return from_opaque_sctx(ctx)->fence();
+}
+
+void stf_stackable_push_graph(stf_ctx_handle ctx)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  from_opaque_sctx(ctx)->push();
+}
+
+void stf_stackable_pop(stf_ctx_handle ctx)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  from_opaque_sctx(ctx)->pop();
+}
+
+#if _CCCL_CTK_AT_LEAST(12, 4)
+
+stf_while_scope_handle stf_stackable_push_while(stf_ctx_handle ctx)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  auto* sctx = from_opaque_sctx(ctx);
+  // default_launch_value=1 so the loop body executes at least once (matches the C++ factory).
+  return to_opaque_while(stf_try_allocate([sctx] {
+    return new stackable_ctx::while_graph_scope_guard(*sctx, /*default_launch_value=*/1);
+  }));
+}
+
+void stf_stackable_pop_while(stf_while_scope_handle scope)
+{
+  delete from_opaque_while(scope);
+}
+
+uint64_t stf_while_scope_get_cond_handle(stf_while_scope_handle scope)
+{
+  _CCCL_ASSERT(scope != nullptr, "while scope handle must not be null");
+  return static_cast<uint64_t>(from_opaque_while(scope)->cond_handle());
+}
+
+stf_repeat_scope_handle stf_stackable_push_repeat(stf_ctx_handle ctx, size_t count)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  auto* sctx = from_opaque_sctx(ctx);
+  return to_opaque_repeat(stf_try_allocate([sctx, count] {
+    return new repeat_graph_scope_guard(*sctx, count);
+  }));
+}
+
+void stf_stackable_pop_repeat(stf_repeat_scope_handle scope)
+{
+  delete from_opaque_repeat(scope);
+}
+
+void stf_stackable_while_cond_scalar(
+  stf_ctx_handle ctx,
+  stf_while_scope_handle scope,
+  stf_logical_data_handle ld,
+  stf_compare_op op,
+  double threshold,
+  stf_dtype dtype)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  _CCCL_ASSERT(scope != nullptr, "while scope handle must not be null");
+  _CCCL_ASSERT(ld != nullptr, "stackable logical data handle must not be null");
+
+  auto* sctx                             = from_opaque_sctx(ctx);
+  auto* sld                              = from_opaque_sld(ld);
+  auto* guard                            = from_opaque_while(scope);
+  cudaGraphConditionalHandle cond_handle = guard->cond_handle();
+
+  const int offset = sctx->get_head_offset();
+
+  // Validate (and auto-push if necessary) the read access on this scope.
+  sld->validate_access(offset, *sctx, access_mode::read);
+
+  auto& underlying_ld = sld->get_ld(offset);
+  logical_data_untyped ld_ut{underlying_ld};
+
+  auto& underlying_ctx = sctx->get_ctx(offset);
+  auto task            = underlying_ctx.task();
+  task.add_deps(task_dep_untyped(ld_ut, access_mode::read));
+  task.set_symbol("while_condition");
+  task.enable_capture();
+  task.start();
+
+  auto stream     = task.get_stream();
+  auto s          = task.template get<slice<const char>>(0);
+  const void* ptr = s.data_handle();
+
+  switch (dtype)
+  {
+    case STF_DTYPE_FLOAT32:
+      stf_stackable_while_cond_kernel<float>
+        <<<1, 1, 0, stream>>>(static_cast<const float*>(ptr), cond_handle, threshold, op);
+      break;
+    case STF_DTYPE_FLOAT64:
+      stf_stackable_while_cond_kernel<double>
+        <<<1, 1, 0, stream>>>(static_cast<const double*>(ptr), cond_handle, threshold, op);
+      break;
+    case STF_DTYPE_INT32:
+      stf_stackable_while_cond_kernel<int>
+        <<<1, 1, 0, stream>>>(static_cast<const int*>(ptr), cond_handle, threshold, op);
+      break;
+    case STF_DTYPE_INT64:
+      stf_stackable_while_cond_kernel<long long>
+        <<<1, 1, 0, stream>>>(static_cast<const long long*>(ptr), cond_handle, threshold, op);
+      break;
+    default:
+      _CCCL_ASSERT(false, "unsupported dtype for stf_stackable_while_cond_scalar");
+      break;
+  }
+
+  task.end();
+}
+
+#endif // _CCCL_CTK_AT_LEAST(12, 4)
+
+stf_logical_data_handle
+stf_stackable_logical_data_with_place(stf_ctx_handle ctx, void* addr, size_t sz, stf_data_place_handle dplace)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  _CCCL_ASSERT(dplace != nullptr, "data_place handle must not be null");
+
+  auto* sctx = from_opaque_sctx(ctx);
+  auto sld   = sctx->logical_data(make_slice(static_cast<char*>(addr), sz), *from_opaque(dplace));
+  return to_opaque_sld(stf_try_allocate([&sld] {
+    return new stackable_ld_t{::std::move(sld)};
+  }));
+}
+
+stf_logical_data_handle stf_stackable_logical_data(stf_ctx_handle ctx, void* addr, size_t sz)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+
+  auto* sctx = from_opaque_sctx(ctx);
+  auto sld   = sctx->logical_data(make_slice(static_cast<char*>(addr), sz), data_place::host());
+  return to_opaque_sld(stf_try_allocate([&sld] {
+    return new stackable_ld_t{::std::move(sld)};
+  }));
+}
+
+stf_logical_data_handle stf_stackable_logical_data_empty(stf_ctx_handle ctx, size_t length)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+
+  auto* sctx = from_opaque_sctx(ctx);
+  auto sld   = sctx->logical_data(shape_of<slice<char>>(length));
+  return to_opaque_sld(stf_try_allocate([&sld] {
+    return new stackable_ld_t{::std::move(sld)};
+  }));
+}
+
+stf_logical_data_handle stf_stackable_token(stf_ctx_handle ctx)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+
+  auto* sctx = from_opaque_sctx(ctx);
+  auto token = sctx->token();
+  // Tokens use void_interface internally, store as the dedicated alias and
+  // require stf_stackable_token_destroy() for release.
+  return static_cast<stf_logical_data_handle>(static_cast<void*>(stf_try_allocate([&token] {
+    return new stackable_token_t{::std::move(token)};
+  })));
+}
+
+void stf_stackable_logical_data_set_symbol(stf_logical_data_handle ld, const char* symbol)
+{
+  _CCCL_ASSERT(ld != nullptr, "stackable logical data handle must not be null");
+  _CCCL_ASSERT(symbol != nullptr, "symbol must not be null");
+  from_opaque_sld(ld)->set_symbol(symbol);
+}
+
+void stf_stackable_logical_data_set_read_only(stf_logical_data_handle ld)
+{
+  _CCCL_ASSERT(ld != nullptr, "stackable logical data handle must not be null");
+  from_opaque_sld(ld)->set_read_only();
+}
+
+void stf_stackable_logical_data_destroy(stf_logical_data_handle ld)
+{
+  delete from_opaque_sld(ld);
+}
+
+void stf_stackable_token_destroy(stf_logical_data_handle ld)
+{
+  delete static_cast<stackable_token_t*>(static_cast<void*>(ld));
+}
+
+stf_task_handle stf_stackable_task_create(stf_ctx_handle ctx)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+
+  auto* sctx           = from_opaque_sctx(ctx);
+  const int offset     = sctx->get_head_offset();
+  auto& underlying_ctx = sctx->get_ctx(offset);
+  return to_opaque(stf_try_allocate([&underlying_ctx] {
+    return new context::unified_task<>{underlying_ctx.task()};
+  }));
+}
+
+void stf_stackable_task_add_dep(stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  _CCCL_ASSERT(t != nullptr, "task handle must not be null");
+  _CCCL_ASSERT(ld != nullptr, "stackable logical data handle must not be null");
+
+  auto* sctx     = from_opaque_sctx(ctx);
+  auto* task_ptr = from_opaque(t);
+  auto* sld      = from_opaque_sld(ld);
+
+  const int offset = sctx->get_head_offset();
+  // Validate access and auto-push data across scope boundaries before binding.
+  sld->validate_access(offset, *sctx, access_mode(m));
+
+  auto& underlying_ld = sld->get_ld(offset);
+  logical_data_untyped ld_ut{underlying_ld};
+  task_ptr->add_deps(task_dep_untyped(ld_ut, access_mode(m)));
+}
+
+void stf_stackable_task_add_dep_with_dplace(
+  stf_ctx_handle ctx, stf_task_handle t, stf_logical_data_handle ld, stf_access_mode m, stf_data_place_handle data_p)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  _CCCL_ASSERT(t != nullptr, "task handle must not be null");
+  _CCCL_ASSERT(ld != nullptr, "stackable logical data handle must not be null");
+  _CCCL_ASSERT(data_p != nullptr, "data_place handle must not be null");
+
+  auto* sctx     = from_opaque_sctx(ctx);
+  auto* task_ptr = from_opaque(t);
+  auto* sld      = from_opaque_sld(ld);
+
+  const int offset = sctx->get_head_offset();
+  sld->validate_access(offset, *sctx, access_mode(m));
+
+  auto& underlying_ld = sld->get_ld(offset);
+  logical_data_untyped ld_ut{underlying_ld};
+  task_ptr->add_deps(task_dep_untyped(ld_ut, access_mode(m), *from_opaque(data_p)));
+}
+
+stf_host_launch_handle stf_stackable_host_launch_create(stf_ctx_handle ctx)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+
+  auto* sctx           = from_opaque_sctx(ctx);
+  const int offset     = sctx->get_head_offset();
+  auto& underlying_ctx = sctx->get_ctx(offset);
+  return to_opaque(stf_try_allocate([&underlying_ctx] {
+    return new context::host_launch_builder{underlying_ctx.host_launch()};
+  }));
+}
+
+void stf_stackable_host_launch_add_dep(
+  stf_ctx_handle ctx, stf_host_launch_handle h, stf_logical_data_handle ld, stf_access_mode m)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
+  _CCCL_ASSERT(ld != nullptr, "stackable logical data handle must not be null");
+
+  auto* sctx      = from_opaque_sctx(ctx);
+  auto* scope_ptr = static_cast<context::host_launch_builder*>(static_cast<void*>(h));
+  auto* sld       = from_opaque_sld(ld);
+
+  const int offset = sctx->get_head_offset();
+  sld->validate_access(offset, *sctx, access_mode(m));
+
+  auto& underlying_ld = sld->get_ld(offset);
+  logical_data_untyped ld_ut{underlying_ld};
+  scope_ptr->add_deps(task_dep_untyped(ld_ut, access_mode(m)));
+}
+
+void stf_stackable_host_launch_submit(stf_host_launch_handle h, stf_host_callback_fn callback)
+{
+  _CCCL_ASSERT(h != nullptr, "host launch handle must not be null");
+  _CCCL_ASSERT(callback != nullptr, "callback must not be null");
+
+  auto* scope_ptr = static_cast<context::host_launch_builder*>(static_cast<void*>(h));
+  (*scope_ptr)->*[callback](reserved::host_launch_deps& deps) {
+    callback(to_opaque(&deps));
+  };
+}
+
+void stf_stackable_host_launch_destroy(stf_host_launch_handle h)
+{
+  if (h == nullptr)
+  {
+    return;
+  }
+  delete static_cast<context::host_launch_builder*>(static_cast<void*>(h));
 }
 
 } // extern "C"

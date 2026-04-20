@@ -367,20 +367,44 @@ C2H_TEST("exec_place_get_affine_data_place", "[places][accessor]")
   stf_exec_place_destroy(dev0);
 }
 
-C2H_TEST("exec_place_pick_stream", "[places][scope][stream]")
+C2H_TEST("exec_place_pick_stream standalone", "[places][scope][stream]")
 {
   stf_machine_init();
+  // Standalone use: no STF context required, just a registry the caller owns.
+  stf_exec_place_resources_handle res = stf_exec_place_resources_create();
+  REQUIRE(res != nullptr);
+
   stf_exec_place_handle dev0 = stf_exec_place_device(0);
   REQUIRE(dev0 != nullptr);
 
   stf_exec_place_scope_handle scope = stf_exec_place_scope_enter(dev0, 0);
   REQUIRE(scope != nullptr);
 
-  CUstream s = stf_exec_place_pick_stream(dev0);
+  CUstream s = stf_exec_place_pick_stream(res, dev0, /*for_computation=*/1);
   REQUIRE(s != nullptr);
 
   stf_exec_place_scope_exit(scope);
   stf_exec_place_destroy(dev0);
+  stf_exec_place_resources_destroy(res);
+}
+
+C2H_TEST("exec_place_pick_stream borrowed from context", "[places][scope][stream][ctx]")
+{
+  stf_machine_init();
+  stf_ctx_handle ctx                  = stf_ctx_create();
+  stf_exec_place_resources_handle res = stf_ctx_get_place_resources(ctx);
+  REQUIRE(res != nullptr);
+
+  stf_exec_place_handle dev0        = stf_exec_place_device(0);
+  stf_exec_place_scope_handle scope = stf_exec_place_scope_enter(dev0, 0);
+
+  CUstream s = stf_exec_place_pick_stream(res, dev0, /*for_computation=*/1);
+  REQUIRE(s != nullptr);
+
+  stf_exec_place_scope_exit(scope);
+  stf_exec_place_destroy(dev0);
+  // `res` is borrowed: do NOT destroy it; ctx finalize releases it.
+  stf_ctx_finalize(ctx);
 }
 
 C2H_TEST("exec_place_get_place on grid", "[places][accessor][grid]")
@@ -437,13 +461,14 @@ C2H_TEST("machine_init idempotent", "[places][machine]")
 
 C2H_TEST("data_place_allocate_device", "[places][allocate]")
 {
-  stf_exec_place_handle ep = stf_exec_place_device(0);
+  stf_exec_place_resources_handle res = stf_exec_place_resources_create();
+  stf_exec_place_handle ep            = stf_exec_place_device(0);
   REQUIRE(ep != nullptr);
 
   stf_exec_place_scope_handle scope = stf_exec_place_scope_enter(ep, 0);
   REQUIRE(scope != nullptr);
 
-  CUstream stream              = stf_exec_place_pick_stream(ep);
+  CUstream stream              = stf_exec_place_pick_stream(res, ep, /*for_computation=*/0);
   stf_data_place_handle dplace = stf_exec_place_get_affine_data_place(ep);
   REQUIRE(dplace != nullptr);
 
@@ -455,6 +480,7 @@ C2H_TEST("data_place_allocate_device", "[places][allocate]")
   stf_data_place_destroy(dplace);
   stf_exec_place_scope_exit(scope);
   stf_exec_place_destroy(ep);
+  stf_exec_place_resources_destroy(res);
 }
 
 C2H_TEST("data_place_allocate_host", "[places][allocate]")
