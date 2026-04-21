@@ -4,56 +4,91 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 """
-Python implementation of Cholesky decomposition using CUDA STF and CuPy (CUBLAS/CUSOLVER).
+Python implementation of tiled Cholesky decomposition using CUDA STF with
+direct cuBLAS / cuSOLVER bindings provided by nvmath-python.
 
 This example demonstrates:
-- Tiled matrix operations with STF logical data
-- Integration of CuPy's CUBLAS and CUSOLVER functions with STF tasks
-- Multi-device execution with automatic data placement
-- Task-based parallelism for linear algebra operations
+- Tiled matrix operations with STF logical data.
+- Direct in-place calls to cuSOLVER (``potrf``) and cuBLAS (``trsm``, ``syrk``,
+  ``gemm``) through ``nvmath.bindings``; no hidden CuPy temporary allocations.
+- STF-managed per-task scratch buffers declared as ``logical_data_empty`` with
+  ``.write()`` access, exactly mirroring the C++ workspace pattern in
+  ``cudax/examples/stf/linear_algebra/07-cholesky.cu``.
+- Multi-device execution with automatic data placement.
+- Task-based parallelism for linear algebra operations.
 
-Note: CUDASTF automatically manages device context within tasks via exec_place.device().
-There's no need to manually set the current device in task bodies - just use the STF stream.
+Storage convention: tiles are numpy/CuPy row-major (``shape=(mb, nb)``). cuBLAS /
+cuSOLVER are column-major, so every call flips ``uplo``, ``side``, and the
+operand order using the standard row-major-wrapper trick. The user-facing ops
+below (``DPOTRF``, ``DTRSM``, ``DSYRK``, ``DGEMM``) expose row-major semantics.
 """
 
+import ctypes
 import sys
 
 import numpy as np
 
 try:
     import cupy as cp
-    from cupyx.scipy import linalg as cp_linalg
 except ImportError:
     raise ImportError(
-        "This example requires CuPy. Install it with: pip install cupy-cuda12x (or cupy-cuda11x)"
+        "This example requires CuPy. Install it with: pip install cupy-cuda13x (or cupy-cuda12x)"
+    ) from None
+
+try:
+    from nvmath.bindings import cublas as _cb
+    from nvmath.bindings import cusolverDn as _cdn
+except ImportError:
+    raise ImportError(
+        "This example requires nvmath-python. Install it with: pip install 'nvmath-python[cu13]'"
     ) from None
 
 import cuda.stf as stf
 
+# ---------------------------------------------------------------------------
+# Direct cuBLAS / cuSOLVER helpers
+# ---------------------------------------------------------------------------
+#
+# One handle per process is enough: all nvmath submissions are serialized by
+# the Python GIL, and ``set_stream`` is called at the top of each task body so
+# the asynchronous work lands on ``t.stream_ptr()``.
+_cublas_handle = 0
+_cusolver_handle = 0
 
-class CAIWrapper:
-    """Wrapper to expose CUDA Array Interface dict as a proper CAI object."""
 
-    def __init__(self, cai_dict):
-        self.__cuda_array_interface__ = cai_dict
+def _cublas():
+    global _cublas_handle
+    if _cublas_handle == 0:
+        _cublas_handle = _cb.create()
+    return _cublas_handle
 
 
-def get_cupy_arrays(task):
+def _cusolver():
+    global _cusolver_handle
+    if _cusolver_handle == 0:
+        _cusolver_handle = _cdn.create()
+    return _cusolver_handle
+
+
+# Row-major → column-major parameter translation tables.
+# cuSOLVER reuses cuBLAS' enum types for uplo / diag, so we share them.
+_FILL_FLIP = {"L": int(_cb.FillMode.UPPER), "U": int(_cb.FillMode.LOWER)}
+_SIDE_FLIP = {"L": int(_cb.SideMode.RIGHT), "R": int(_cb.SideMode.LEFT)}
+_OP_SAME = {"N": int(_cb.Operation.N), "T": int(_cb.Operation.T), "C": int(_cb.Operation.T)}
+_OP_FLIP = {"N": int(_cb.Operation.T), "T": int(_cb.Operation.N), "C": int(_cb.Operation.N)}
+_DIAG = {"N": int(_cb.DiagType.NON_UNIT), "U": int(_cb.DiagType.UNIT)}
+_CUDA_R_64F = 1  # cudaDataType_t, per <library_types.h>
+
+
+def _scalar_ptr(val):
+    """Return ``(ptr, owner)`` for an f64 scalar passed by reference to cuBLAS.
+
+    cuBLAS' default pointer mode is HOST, so the scalar is read synchronously
+    during the API call — keeping ``owner`` alive until after the call
+    returns is sufficient.
     """
-    Get all CuPy arrays from STF task arguments.
-
-    Usage:
-        d_a, d_b, d_c = get_cupy_arrays(t)
-    """
-    arrays = []
-    idx = 0
-    while True:
-        try:
-            arrays.append(cp.asarray(CAIWrapper(task.get_arg_cai(idx))))
-            idx += 1
-        except Exception:
-            break
-    return tuple(arrays) if len(arrays) > 1 else arrays[0] if arrays else None
+    owner = np.array([val], dtype=np.float64)
+    return owner.ctypes.data, owner
 
 
 def cai_to_numpy(cai_dict):
@@ -250,76 +285,146 @@ class TiledMatrix:
 
 
 def DPOTRF(ctx, a):
-    """Cholesky factorization of a diagonal block: A = L*L^T (lower triangular)"""
-    with ctx.task(stf.exec_place.device(a.devid()), a.handle().rw()) as t:
-        d_block = get_cupy_arrays(t)
-        with cp.cuda.ExternalStream(t.stream_ptr()):
-            d_block[:] = cp.linalg.cholesky(d_block)
+    """Cholesky factorization of a diagonal block: A = L*L^T (row-major lower).
+
+    cuSOLVER is column-major, so a "lower row-major" block is the same bytes
+    as an "upper column-major" block; we therefore call ``dpotrf`` with
+    ``uplo=UPPER``. The scratch buffer and the ``devInfo`` integer are both
+    declared as STF workspaces (``logical_data_empty(...).write()``) so STF
+    allocates/frees them around the task, just like the C++ example.
+    """
+    n = a.matrix.mb
+
+    # Query the workspace size; cuSOLVER treats this as pointer/value-invariant
+    # (the ``a`` pointer and ``lda`` are ignored for the size-only query), so
+    # it is safe to run outside any task.
+    lwork = _cdn.dpotrf_buffer_size(_cusolver(), _FILL_FLIP["L"], n, 0, n)
+
+    potrf_buffer = ctx.logical_data_empty(
+        (lwork,), np.float64, name=f"DPOTRF_ws_{a.row}_{a.col}"
+    )
+    dev_info = ctx.logical_data_empty(
+        (1,), np.int32, name=f"DPOTRF_info_{a.row}_{a.col}"
+    )
+
+    with ctx.task(
+        stf.exec_place.device(a.devid()),
+        a.handle().rw(),
+        potrf_buffer.write(),
+        dev_info.write(),
+    ) as t:
+        _cdn.set_stream(_cusolver(), t.stream_ptr())
+        _cdn.dpotrf(
+            _cusolver(),
+            _FILL_FLIP["L"],
+            n,
+            t.get_arg_cai(0).ptr,
+            n,
+            t.get_arg_cai(1).ptr,
+            lwork,
+            t.get_arg_cai(2).ptr,
+        )
 
 
 def DTRSM(ctx, a, b, side="L", uplo="L", transa="T", diag="N", alpha=1.0):
-    """Triangular solve: B = alpha * op(A)^{-1} @ B or B = alpha * B @ op(A)^{-1}"""
+    """Triangular solve via cuBLAS dtrsm (in-place on B).
+
+    Row-major → column-major translation: swap ``side``, swap ``uplo``, keep
+    ``trans`` and ``diag`` the same, and exchange ``m`` / ``n``.
+    """
+    mb_b, nb_b = b.matrix.mb, b.matrix.nb
+    nb_a = a.matrix.nb  # square diagonal block: mb_a == nb_a
+    alpha_ptr, _alpha_owner = _scalar_ptr(alpha)
+
     with ctx.task(
         stf.exec_place.device(b.devid()), a.handle().read(), b.handle().rw()
     ) as t:
-        d_a, d_b = get_cupy_arrays(t)
-        with cp.cuda.ExternalStream(t.stream_ptr()):
-            if side == "L":
-                if transa == "N":
-                    d_b[:] = cp_linalg.solve_triangular(d_a, d_b, lower=(uplo == "L"))
-                else:
-                    d_b[:] = cp_linalg.solve_triangular(d_a.T, d_b, lower=(uplo != "L"))
-                if alpha != 1.0:
-                    d_b *= alpha
-            else:
-                if transa == "N":
-                    d_b[:] = cp_linalg.solve_triangular(
-                        d_a.T, d_b.T, lower=(uplo != "L")
-                    ).T
-                else:
-                    d_b[:] = cp_linalg.solve_triangular(
-                        d_a, d_b.T, lower=(uplo == "L")
-                    ).T
-                if alpha != 1.0:
-                    d_b *= alpha
+        _cb.set_stream(_cublas(), t.stream_ptr())
+        _cb.dtrsm(
+            _cublas(),
+            _SIDE_FLIP[side],
+            _FILL_FLIP[uplo],
+            _OP_SAME[transa],
+            _DIAG[diag],
+            nb_b,
+            mb_b,
+            alpha_ptr,
+            t.get_arg_cai(0).ptr,
+            nb_a,
+            t.get_arg_cai(1).ptr,
+            nb_b,
+        )
 
 
 def DGEMM(ctx, a, b, c, transa="N", transb="N", alpha=1.0, beta=1.0):
-    """Matrix multiplication: C = alpha * op(A) @ op(B) + beta * C"""
+    """General matrix multiplication: C = alpha * op(A) @ op(B) + beta * C.
+
+    Row-major → column-major: swap A↔B, swap ``transa``↔``transb``, swap
+    ``m``↔``n``; ``k`` stays the same. Leading dims are the row-major column
+    counts of each tile (for contiguous row-major storage ``lda_cm = nb_rm``).
+    """
+    mb_c, nb_c = c.matrix.mb, c.matrix.nb
+    nb_a = a.matrix.nb
+    nb_b = b.matrix.nb
+    # k = cols of op(A) row-major = rows of op(B) row-major
+    k = a.matrix.nb if transa == "N" else a.matrix.mb
+    alpha_ptr, _alpha_owner = _scalar_ptr(alpha)
+    beta_ptr, _beta_owner = _scalar_ptr(beta)
+
     with ctx.task(
         stf.exec_place.device(c.devid()),
         a.handle().read(),
         b.handle().read(),
         c.handle().rw(),
     ) as t:
-        d_a, d_b, d_c = get_cupy_arrays(t)
-        with cp.cuda.ExternalStream(t.stream_ptr()):
-            op_a = d_a.T if transa != "N" else d_a
-            op_b = d_b.T if transb != "N" else d_b
-
-            if beta == 0.0:
-                d_c[:] = alpha * (op_a @ op_b)
-            elif beta == 1.0:
-                d_c[:] += alpha * (op_a @ op_b)
-            else:
-                d_c[:] = alpha * (op_a @ op_b) + beta * d_c
+        _cb.set_stream(_cublas(), t.stream_ptr())
+        _cb.dgemm(
+            _cublas(),
+            _OP_SAME[transb],
+            _OP_SAME[transa],
+            nb_c,
+            mb_c,
+            k,
+            alpha_ptr,
+            t.get_arg_cai(1).ptr,
+            nb_b,
+            t.get_arg_cai(0).ptr,
+            nb_a,
+            beta_ptr,
+            t.get_arg_cai(2).ptr,
+            nb_c,
+        )
 
 
 def DSYRK(ctx, a, c, uplo="L", trans="N", alpha=1.0, beta=1.0):
-    """Symmetric rank-k update: C = alpha * op(A) @ op(A).T + beta * C"""
+    """Symmetric rank-k update: C = alpha * op(A) @ op(A)^T + beta * C.
+
+    Row-major → column-major: flip ``uplo`` and flip ``trans`` (N↔T); leading
+    dims use the row-major column counts as usual.
+    """
+    n = c.matrix.mb  # C is square n x n
+    k = a.matrix.nb if trans == "N" else a.matrix.mb
+    nb_a = a.matrix.nb
+    alpha_ptr, _alpha_owner = _scalar_ptr(alpha)
+    beta_ptr, _beta_owner = _scalar_ptr(beta)
+
     with ctx.task(
         stf.exec_place.device(c.devid()), a.handle().read(), c.handle().rw()
     ) as t:
-        d_a, d_c = get_cupy_arrays(t)
-        with cp.cuda.ExternalStream(t.stream_ptr()):
-            op_a = d_a.T if trans != "N" else d_a
-
-            if beta == 0.0:
-                d_c[:] = alpha * (op_a @ op_a.T)
-            elif beta == 1.0:
-                d_c[:] += alpha * (op_a @ op_a.T)
-            else:
-                d_c[:] = alpha * (op_a @ op_a.T) + beta * d_c
+        _cb.set_stream(_cublas(), t.stream_ptr())
+        _cb.dsyrk(
+            _cublas(),
+            _FILL_FLIP[uplo],
+            _OP_FLIP[trans],
+            n,
+            k,
+            alpha_ptr,
+            t.get_arg_cai(0).ptr,
+            nb_a,
+            beta_ptr,
+            t.get_arg_cai(1).ptr,
+            n,
+        )
 
 
 # High-level algorithms
