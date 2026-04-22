@@ -272,6 +272,7 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
         stf_ctx_handle ctx, void* addr, size_t sz, stf_data_place_handle dplace)
     stf_logical_data_handle stf_stackable_logical_data(stf_ctx_handle ctx, void* addr, size_t sz)
     stf_logical_data_handle stf_stackable_logical_data_empty(stf_ctx_handle ctx, size_t length)
+    stf_logical_data_handle stf_stackable_logical_data_no_export_empty(stf_ctx_handle ctx, size_t length)
     stf_logical_data_handle stf_stackable_token(stf_ctx_handle ctx)
     void stf_stackable_logical_data_set_symbol(stf_logical_data_handle ld, const char* symbol)
     void stf_stackable_logical_data_set_read_only(stf_logical_data_handle ld)
@@ -2593,8 +2594,15 @@ cdef class stackable_context:
             out.set_symbol(name)
         return out
 
-    def logical_data_empty(self, shape, dtype=None, str name=None):
-        """Create stackable logical data with uninitialized values."""
+    def logical_data_empty(self, shape, dtype=None, str name=None, *, bint no_export=False):
+        """Create stackable logical data with uninitialized values.
+
+        If ``no_export=True``, the logical data is local to the current
+        stackable scope (head context) and is not exported to parent scopes.
+        Useful for temporaries inside ``while_loop`` / ``repeat_scope`` bodies
+        so each iteration gets its own buffer instead of reusing one that
+        escapes into the enclosing graph.
+        """
         if dtype is None:
             dtype = np.float64
 
@@ -2608,7 +2616,10 @@ cdef class stackable_context:
         for dim in out._shape:
             total_items *= dim
         out._len = total_items * out._dtype.itemsize
-        out._ld = stf_stackable_logical_data_empty(self._ctx, out._len)
+        if no_export:
+            out._ld = stf_stackable_logical_data_no_export_empty(self._ctx, out._len)
+        else:
+            out._ld = stf_stackable_logical_data_empty(self._ctx, out._len)
         if out._ld == NULL:
             raise RuntimeError("failed to create empty stackable_logical_data")
 

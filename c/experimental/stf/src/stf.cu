@@ -1267,6 +1267,17 @@ stf_logical_data_handle stf_stackable_logical_data_empty(stf_ctx_handle ctx, siz
   }));
 }
 
+stf_logical_data_handle stf_stackable_logical_data_no_export_empty(stf_ctx_handle ctx, size_t length)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+
+  auto* sctx = from_opaque_sctx(ctx);
+  auto sld   = sctx->logical_data_no_export(shape_of<slice<char>>(length));
+  return to_opaque_sld(stf_try_allocate([&sld] {
+    return new stackable_ld_t{::std::move(sld)};
+  }));
+}
+
 stf_logical_data_handle stf_stackable_token(stf_ctx_handle ctx)
 {
   _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");

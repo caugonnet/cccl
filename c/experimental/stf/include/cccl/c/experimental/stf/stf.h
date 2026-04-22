@@ -1610,6 +1610,13 @@ stf_logical_data_handle stf_stackable_logical_data(stf_ctx_handle ctx, void* add
 //! \brief Create empty stackable logical data of \p length bytes (no host backing).
 stf_logical_data_handle stf_stackable_logical_data_empty(stf_ctx_handle ctx, size_t length);
 
+//! \brief Create empty stackable logical data that is local to the current stackable scope.
+//!
+//! The underlying logical data is created at the current head context and is
+//! not exported to parent scopes. Intended for temporaries whose lifetime is
+//! bounded by the enclosing stackable scope (e.g. bodies of while/repeat).
+stf_logical_data_handle stf_stackable_logical_data_no_export_empty(stf_ctx_handle ctx, size_t length);
+
 //! \brief Create a stackable synchronization token (no payload).
 stf_logical_data_handle stf_stackable_token(stf_ctx_handle ctx);
 
