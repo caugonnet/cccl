@@ -1626,6 +1626,30 @@ void stf_stackable_logical_data_set_symbol(stf_logical_data_handle ld, const cha
 //! \brief Mark stackable logical data as read-only (enables concurrent reads across scopes).
 void stf_stackable_logical_data_set_read_only(stf_logical_data_handle ld);
 
+//! \brief Explicitly import (push) a stackable logical data into the current
+//!        (innermost) scope with the given access mode and, optionally, data
+//!        place.
+//!
+//! By default, the very first task that touches a piece of data inside a
+//! nested scope auto-pushes it through the intermediate contexts with a
+//! conservative mode (typically \c STF_RW), which in turn serialises sibling
+//! scopes that only need to read it. \c stf_stackable_logical_data_push() gives
+//! the caller control over that import: the data is made visible in the
+//! current scope with exactly \c m, so e.g. calling it with \c STF_READ from
+//! inside each of several sibling graph scopes lets those scopes execute
+//! concurrently without having to mark the data globally read-only via
+//! \c stf_stackable_logical_data_set_read_only().
+//!
+//! Must be called while a stackable scope is open on \c ctx (i.e. after
+//! \c stf_stackable_push_graph() / \c stf_stackable_push_while() /
+//! \c stf_stackable_push_repeat() and before the matching pop).
+//!
+//! \param ld     Stackable logical data handle.
+//! \param m      Desired access mode in the current scope.
+//! \param dplace Optional data place; pass \c NULL for the default placement.
+void stf_stackable_logical_data_push(
+  stf_logical_data_handle ld, stf_access_mode m, stf_data_place_handle dplace);
+
 //! \brief Destroy stackable logical data created by \c stf_stackable_logical_data*().
 void stf_stackable_logical_data_destroy(stf_logical_data_handle ld);
 

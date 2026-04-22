@@ -276,6 +276,8 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     stf_logical_data_handle stf_stackable_token(stf_ctx_handle ctx)
     void stf_stackable_logical_data_set_symbol(stf_logical_data_handle ld, const char* symbol)
     void stf_stackable_logical_data_set_read_only(stf_logical_data_handle ld)
+    void stf_stackable_logical_data_push(
+        stf_logical_data_handle ld, stf_access_mode m, stf_data_place_handle dplace)
     void stf_stackable_logical_data_destroy(stf_logical_data_handle ld)
     void stf_stackable_token_destroy(stf_logical_data_handle ld)
 
@@ -2209,6 +2211,32 @@ cdef class stackable_logical_data:
     def set_read_only(self):
         """Mark this logical data as read-only (enables concurrent reads across scopes)."""
         stf_stackable_logical_data_set_read_only(self._ld)
+
+    def push(self, mode, data_place dplace=None):
+        """Explicitly import this logical data into the current stackable scope.
+
+        Must be called while a ``graph_scope`` / ``while_loop`` / ``repeat``
+        scope is open on the parent context. By default, the first access to a
+        logical data from a nested scope auto-pushes it with a conservative
+        (read-write) mode, which serialises sibling scopes that only need to
+        read it. Calling ``ld.push(AccessMode.READ)`` inside each sibling scope
+        lets them execute concurrently without having to mark the data
+        globally read-only via :meth:`set_read_only`.
+
+        Parameters
+        ----------
+        mode : AccessMode or int
+            Desired access mode for the data inside the current scope
+            (typically ``AccessMode.READ``).
+        dplace : data_place, optional
+            Data placement for the imported view. ``None`` (default) uses the
+            default placement.
+        """
+        cdef int m = int(mode)
+        cdef stf_data_place_handle dh = NULL
+        if dplace is not None:
+            dh = dplace._h
+        stf_stackable_logical_data_push(self._ld, <stf_access_mode>m, dh)
 
     def read(self, dplace=None):
         return dep(self, AccessMode.READ.value, dplace)

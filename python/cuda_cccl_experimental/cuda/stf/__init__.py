@@ -17,6 +17,7 @@ if not _BINDINGS_AVAILABLE:
         )
 else:
     from ._stf_bindings import (
+        AccessMode,
         CudaStream,
         context,
         data_place,
@@ -33,6 +34,7 @@ else:
 
     __all__ = [
         "_BINDINGS_AVAILABLE",
+        "AccessMode",
         "CudaStream",
         "DeviceArray",
         "context",

@@ -1304,6 +1304,20 @@ void stf_stackable_logical_data_set_read_only(stf_logical_data_handle ld)
   from_opaque_sld(ld)->set_read_only();
 }
 
+void stf_stackable_logical_data_push(
+  stf_logical_data_handle ld, stf_access_mode m, stf_data_place_handle dplace)
+{
+  _CCCL_ASSERT(ld != nullptr, "stackable logical data handle must not be null");
+  if (dplace != nullptr)
+  {
+    from_opaque_sld(ld)->push(access_mode(m), *from_opaque(dplace));
+  }
+  else
+  {
+    from_opaque_sld(ld)->push(access_mode(m));
+  }
+}
+
 void stf_stackable_logical_data_destroy(stf_logical_data_handle ld)
 {
   delete from_opaque_sld(ld);
