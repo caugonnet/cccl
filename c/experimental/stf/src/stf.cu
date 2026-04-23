@@ -558,6 +558,70 @@ stf_ctx_handle stf_ctx_create_graph(void)
   }));
 }
 
+// Opaque bridge types for the extern-C `async_resources_handle` wrapper.
+// `async_resources_handle` is defined in cudax and not listed in the generic
+// `to_opaque/from_opaque` registry above, so we just reinterpret the pointer
+// directly here.
+namespace
+{
+inline stf_async_resources_handle async_resources_to_opaque(async_resources_handle* p) noexcept
+{
+  return reinterpret_cast<stf_async_resources_handle>(p);
+}
+inline async_resources_handle* async_resources_from_opaque(stf_async_resources_handle h) noexcept
+{
+  return reinterpret_cast<async_resources_handle*>(h);
+}
+} // namespace
+
+stf_async_resources_handle stf_async_resources_create(void)
+{
+  return async_resources_to_opaque(stf_try_allocate([] {
+    return new async_resources_handle{};
+  }));
+}
+
+void stf_async_resources_destroy(stf_async_resources_handle h)
+{
+  delete async_resources_from_opaque(h);
+}
+
+stf_ctx_handle stf_ctx_create_ex(const stf_ctx_options* opts)
+{
+  // NULL => defaults (matches stf_ctx_create()).
+  const stf_ctx_options defaults{};
+  const stf_ctx_options& o = opts ? *opts : defaults;
+
+  cudaStream_t stream       = o.stream;
+  async_resources_handle ah = o.handle ? *async_resources_from_opaque(o.handle) : async_resources_handle{nullptr};
+
+  // Dispatch on backend. We forward to the C++ context constructors in
+  // cudax/include/cuda/experimental/__stf/internal/context.cuh. When the
+  // caller provides neither a stream nor a handle, fall back to the
+  // zero-arg constructor so the default behavior is bit-for-bit identical
+  // to stf_ctx_create() / stf_ctx_create_graph().
+  const bool has_overrides = (stream != nullptr) || (o.handle != nullptr);
+
+  return to_opaque(stf_try_allocate([&]() -> context* {
+    switch (o.backend)
+    {
+      case STF_BACKEND_GRAPH:
+        if (has_overrides)
+        {
+          return new context{graph_ctx(stream, ah)};
+        }
+        return new context{graph_ctx()};
+      case STF_BACKEND_STREAM:
+      default:
+        if (has_overrides)
+        {
+          return new context{stream_ctx(stream, ah)};
+        }
+        return new context{};
+    }
+  }));
+}
+
 void stf_ctx_finalize(stf_ctx_handle ctx)
 {
   _CCCL_ASSERT(ctx != nullptr, "context handle must not be null");

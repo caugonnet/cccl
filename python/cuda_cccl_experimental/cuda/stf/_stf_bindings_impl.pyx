@@ -66,6 +66,25 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     CUstream stf_fence(stf_ctx_handle ctx) nogil
 
     #
+    # Shareable async_resources_handle (opaque) and unified ctx factory
+    #
+    ctypedef struct stf_async_resources_opaque_t
+    ctypedef stf_async_resources_opaque_t* stf_async_resources_handle
+    stf_async_resources_handle stf_async_resources_create()
+    void stf_async_resources_destroy(stf_async_resources_handle h)
+
+    ctypedef enum stf_backend_kind:
+        STF_BACKEND_STREAM
+        STF_BACKEND_GRAPH
+
+    ctypedef struct stf_ctx_options:
+        stf_backend_kind backend
+        cudaStream_t stream
+        stf_async_resources_handle handle
+
+    stf_ctx_handle stf_ctx_create_ex(const stf_ctx_options* opts)
+
+    #
     # 4D position/dimensions for partition mapping
     #
     ctypedef struct stf_pos4:
@@ -1624,6 +1643,40 @@ cdef void _host_launch_trampoline(stf_host_launch_deps_handle deps_h) noexcept w
 
     fn(*dep_arrays, *user_args)
 
+cdef class async_resources:
+    """Shareable ``async_resources_handle`` for STF contexts.
+
+    Wraps the C++ ``async_resources_handle``. Reusing a single instance
+    across multiple ``context`` constructions lets the graph backend amortize
+    graph-instantiation cost and lets every context share the same per-place
+    stream pools. Mirrors the C++ pattern::
+
+        async_resources_handle h;
+        for (...) {
+            graph_ctx ctx(stream, h);   // or stream_ctx(stream, h)
+            // ...
+            ctx.finalize();
+        }
+
+    The handle must outlive every context it was passed to: ``finalize()``
+    those contexts before dropping the Python handle.
+    """
+    cdef stf_async_resources_handle _h
+
+    def __cinit__(self):
+        self._h = stf_async_resources_create()
+        if self._h == NULL:
+            raise RuntimeError("failed to create stf async_resources handle")
+
+    def __dealloc__(self):
+        if self._h != NULL:
+            stf_async_resources_destroy(self._h)
+            self._h = <stf_async_resources_handle>NULL
+
+    def __repr__(self):
+        return f"async_resources(handle={<uintptr_t>self._h})"
+
+
 cdef class context:
     cdef stf_ctx_handle _ctx
     # Is this a context that we have borrowed ?
@@ -1640,22 +1693,69 @@ cdef class context:
     # still on the Python stack when the next test's context creation /
     # numba kernel rebinds the CUDA primary context).
     cdef _AliveFlag _alive
+    # Keep-alive reference to a caller-provided async_resources, if any,
+    # so Python-side GC cannot destroy it while this context still uses it.
+    cdef async_resources _handle_ref
 
-    def __cinit__(self, bint use_graph=False, bint borrowed=False):
+    def __cinit__(self, bint use_graph=False, bint borrowed=False,
+                  stream=None, async_resources handle=None):
+        """Create an STF context.
+
+        Parameters
+        ----------
+        use_graph : bool, default False
+            If ``True``, use the CUDA-graph backend (equivalent to C++
+            ``graph_ctx``). Otherwise the default stream backend.
+        borrowed : bool, default False
+            Internal: wrap an externally-owned ``stf_ctx_handle``.
+        stream : optional
+            CUDA stream to inherit (any object implementing the
+            ``__cuda_stream__`` protocol, or a pointer-valued int).
+            When provided, STF emits its work on top of this stream
+            instead of picking one from its internal pool. Mirrors the
+            C++ ``stream_ctx ctx(stream)`` / ``graph_ctx ctx(stream)``.
+        handle : async_resources, optional
+            Shareable resources handle. Reusing one across many contexts
+            lets the graph backend cache instantiated graphs and lets the
+            stream backend reuse its stream pools. Mirrors the C++
+            ``stream_ctx ctx(stream, handle)`` / ``graph_ctx ctx(stream,
+            handle)``.
+        """
         self._ctx = <stf_ctx_handle>NULL
         self._borrowed = borrowed
         self._pin = None
         self._alive = _AliveFlag()
-        if not borrowed:
-            self._pin = _PrimaryContextPin()
-            if use_graph:
-                self._ctx = stf_ctx_create_graph()
+        self._handle_ref = None
+        if borrowed:
+            return
+
+        self._pin = _PrimaryContextPin()
+
+        cdef bint has_overrides = (stream is not None) or (handle is not None)
+        cdef stf_ctx_options opts
+        cdef uintptr_t stream_val = 0
+
+        if has_overrides:
+            opts.backend = STF_BACKEND_GRAPH if use_graph else STF_BACKEND_STREAM
+            if stream is not None:
+                stream_val = <uintptr_t>int(stream)
+            opts.stream = <cudaStream_t>stream_val
+            if handle is not None:
+                opts.handle = handle._h
+                self._handle_ref = handle
             else:
-                self._ctx = stf_ctx_create()
-            if self._ctx == NULL:
-                self._pin.release()
-                self._pin = None
-                raise RuntimeError("failed to create STF context")
+                opts.handle = <stf_async_resources_handle>NULL
+            self._ctx = stf_ctx_create_ex(&opts)
+        elif use_graph:
+            self._ctx = stf_ctx_create_graph()
+        else:
+            self._ctx = stf_ctx_create()
+
+        if self._ctx == NULL:
+            self._handle_ref = None
+            self._pin.release()
+            self._pin = None
+            raise RuntimeError("failed to create STF context")
 
     cdef borrow_from_handle(self, stf_ctx_handle ctx_handle):
         if self._ctx != NULL:
@@ -1708,6 +1808,11 @@ cdef class context:
                 stf_ctx_finalize(h)
         else:
             self._ctx = NULL
+
+        # Drop the keep-alive on the shared async_resources only after the
+        # context has been finalized -- until then the C++ ctx holds a copy
+        # that the underlying shared state must still back.
+        self._handle_ref = None
 
         if pin is not None:
             pin.release()

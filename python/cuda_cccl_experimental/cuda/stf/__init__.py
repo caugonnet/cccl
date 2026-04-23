@@ -19,6 +19,7 @@ else:
     from ._stf_bindings import (
         AccessMode,
         CudaStream,
+        async_resources,
         context,
         data_place,
         dep,
@@ -37,6 +38,7 @@ else:
         "AccessMode",
         "CudaStream",
         "DeviceArray",
+        "async_resources",
         "context",
         "dep",
         "exec_place",
