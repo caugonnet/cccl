@@ -24,11 +24,8 @@
 #include <cub/util_type.cuh>
 
 #include <cuda/__device/arch_id.h>
+#include <cuda/std/__host_stdlib/ostream>
 #include <cuda/std/concepts>
-
-#if !_CCCL_COMPILER(NVRTC)
-#  include <ostream>
-#endif
 
 CUB_NAMESPACE_BEGIN
 
@@ -53,16 +50,6 @@ struct ThreeWayPartitionPolicyWrapper<StaticPolicyT, ::cuda::std::void_t<typenam
   {}
 
   CUB_DEFINE_SUB_POLICY_GETTER(ThreeWayPartition)
-
-#if defined(CUB_ENABLE_POLICY_PTX_JSON)
-  _CCCL_DEVICE static constexpr auto EncodedPolicy()
-  {
-    using namespace ptx_json;
-    return object<key<"ThreeWayPartitionPolicy">() = ThreeWayPartition().EncodedPolicy(),
-                  key<"DelayConstructor">() =
-                    StaticPolicyT::ThreeWayPartitionPolicy::detail::delay_constructor_t::EncodedConstructor()>();
-  }
-#endif
 };
 
 // TODO(bgruber): drop in CCCL 4.0

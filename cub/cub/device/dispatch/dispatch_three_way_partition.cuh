@@ -25,15 +25,12 @@
 #include <cuda/__cmath/ceil_div.h>
 #include <cuda/std/__algorithm/max.h>
 #include <cuda/std/__algorithm/min.h>
+#include <cuda/std/__host_stdlib/sstream>
 #include <cuda/std/__utility/swap.h>
 #include <cuda/std/cstdint>
 #include <cuda/std/limits>
 
 #include <nv/target>
-
-#if !_CCCL_COMPILER(NVRTC) && defined(CUB_DEBUG_LOG)
-#  include <sstream>
-#endif // !_CCCL_COMPILER(NVRTC) && defined(CUB_DEBUG_LOG)
 
 CUB_NAMESPACE_BEGIN
 
@@ -480,9 +477,11 @@ CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE auto dispatch(
 
 #if !_CCCL_COMPILER(NVRTC) && defined(CUB_DEBUG_LOG)
   NV_IF_TARGET(
-    NV_IS_HOST,
-    (std::stringstream ss; ss << active_policy;
-     _CubLog("Dispatching DeviceThreeWayPartition to arch %d with tuning: %s\n", (int) arch_id, ss.str().c_str());))
+    NV_IS_HOST, ({
+      ::std::stringstream ss;
+      ss << active_policy;
+      _CubLog("Dispatching DeviceThreeWayPartition to arch %d with tuning: %s\n", (int) arch_id, ss.str().c_str());
+    }))
 #endif // !_CCCL_COMPILER(NVRTC) && defined(CUB_DEBUG_LOG)
 
   struct fake_hub

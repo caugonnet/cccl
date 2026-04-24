@@ -20,9 +20,8 @@
 #include <thrust/detail/type_traits.h>
 #include <thrust/system/detail/errno.h>
 
-#if !_CCCL_COMPILER(NVRTC)
-#  include <iostream>
-#endif // !_CCCL_COMPILER(NVRTC)
+#include <cuda/std/__host_stdlib/istream>
+#include <cuda/std/__host_stdlib/ostream>
 
 THRUST_NAMESPACE_BEGIN
 
@@ -244,7 +243,7 @@ public:
 // XXX WAR msvc's problem with enable_if
 #if !_CCCL_COMPILER(MSVC)
              ,
-             ::cuda::std::enable_if_t<is_error_code_enum<ErrorCodeEnum>::value>* = 0
+             ::cuda::std::enable_if_t<is_error_code_enum<ErrorCodeEnum>::value, int> = 0
 #endif // !_CCCL_COMPILER(MSVC)
   );
 
@@ -357,7 +356,7 @@ public:
 // XXX WAR msvc's problem with enable_if
 #if !_CCCL_COMPILER(MSVC)
                   ,
-                  ::cuda::std::enable_if_t<is_error_condition_enum<ErrorConditionEnum>::value>* = 0
+                  ::cuda::std::enable_if_t<is_error_condition_enum<ErrorConditionEnum>::value, int> = 0
 #endif // !_CCCL_COMPILER(MSVC)
   );
 
