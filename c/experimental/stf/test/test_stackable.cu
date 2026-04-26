@@ -327,6 +327,108 @@ C2H_TEST("stackable: launchable graph() embed into outer graph", "[stackable][la
   cudaFreeHost(host_data);
 }
 
+C2H_TEST("stackable: shared pop_prologue dup/free releases only at last free", "[stackable][launchable]")
+{
+  const size_t N      = 128;
+  const int relaunchN = 5;
+
+  stf_ctx_handle ctx = stf_stackable_ctx_create();
+  REQUIRE(ctx != nullptr);
+
+  double* host_data;
+  cudaMallocHost(&host_data, N * sizeof(double));
+  for (size_t i = 0; i < N; i++)
+  {
+    host_data[i] = 0.0;
+  }
+
+  stf_logical_data_handle lA = stf_stackable_logical_data(ctx, host_data, N * sizeof(double));
+  REQUIRE(lA != nullptr);
+
+  stf_stackable_push_graph(ctx);
+  {
+    stf_task_handle t = stf_stackable_task_create(ctx);
+    REQUIRE(t != nullptr);
+    stf_stackable_task_add_dep(ctx, t, lA, STF_RW);
+    stf_task_enable_capture(t);
+    stf_task_start(t);
+    double* d = static_cast<double*>(stf_task_get(t, 0));
+    increment_kernel<<<2, 64, 0, (cudaStream_t) stf_task_get_custream(t)>>>(static_cast<int>(N), d);
+    stf_task_end(t);
+    stf_task_destroy(t);
+  }
+
+  stf_launchable_graph_shared h1 = nullptr;
+  REQUIRE(stf_stackable_pop_prologue_shared(ctx, &h1) == 0);
+  REQUIRE(h1 != nullptr);
+  REQUIRE(stf_launchable_graph_shared_valid(h1) == 1);
+  REQUIRE(stf_launchable_graph_shared_stream(h1) != nullptr);
+
+  // Dup before launching anything: both handles must be able to drive the
+  // same underlying graph.
+  stf_launchable_graph_shared h2 = nullptr;
+  REQUIRE(stf_launchable_graph_shared_dup(h1, &h2) == 0);
+  REQUIRE(h2 != nullptr);
+  REQUIRE(stf_launchable_graph_shared_valid(h2) == 1);
+
+  for (int k = 0; k < relaunchN; ++k)
+  {
+    // Alternate between the two handles - both must work.
+    if ((k & 1) == 0)
+    {
+      stf_launchable_graph_shared_launch(h1);
+    }
+    else
+    {
+      stf_launchable_graph_shared_launch(h2);
+    }
+  }
+
+  // Free one handle; the other must still launch. No pop_epilogue yet.
+  stf_launchable_graph_shared_free(h1);
+  REQUIRE(stf_launchable_graph_shared_valid(h2) == 1);
+  stf_launchable_graph_shared_launch(h2);
+
+  // Free the last handle: pop_epilogue runs automatically here.
+  stf_launchable_graph_shared_free(h2);
+
+  // The context must be usable again after the shared release.
+  stf_stackable_push_graph(ctx);
+  {
+    stf_task_handle t = stf_stackable_task_create(ctx);
+    REQUIRE(t != nullptr);
+    stf_stackable_task_add_dep(ctx, t, lA, STF_RW);
+    stf_task_enable_capture(t);
+    stf_task_start(t);
+    double* d = static_cast<double*>(stf_task_get(t, 0));
+    scale_kernel<<<1, 64, 0, (cudaStream_t) stf_task_get_custream(t)>>>(static_cast<int>(N), d, 2.0);
+    stf_task_end(t);
+    stf_task_destroy(t);
+  }
+  stf_stackable_pop(ctx);
+
+  stf_stackable_logical_data_destroy(lA);
+  stf_stackable_ctx_finalize(ctx);
+
+  // Each launch added +1; final scale doubled; relaunchN launches via h1/h2
+  // plus one extra launch via h2 after free(h1) -> (relaunchN + 1) * 2.
+  const double expected = 2.0 * (static_cast<double>(relaunchN) + 1.0);
+  for (size_t i = 0; i < N; i++)
+  {
+    REQUIRE(std::fabs(host_data[i] - expected) < 1e-10);
+  }
+
+  cudaFreeHost(host_data);
+}
+
+C2H_TEST("stackable: shared pop_prologue tolerates NULL free", "[stackable][launchable]")
+{
+  // stf_launchable_graph_shared_free(NULL) must be a no-op just like the
+  // other destroy entry points. The valid() probe returns 0 for NULL.
+  stf_launchable_graph_shared_free(nullptr);
+  REQUIRE(stf_launchable_graph_shared_valid(nullptr) == 0);
+}
+
 C2H_TEST("stackable: nested push_graph scopes", "[stackable]")
 {
   const size_t N = 128;

@@ -1121,6 +1121,21 @@ using stackable_token_t = stackable_logical_data<void_interface>;
   return static_cast<launchable_graph_handle*>(static_cast<void*>(h));
 }
 
+// Each C shared opaque is one heap-allocated C++ `launchable_graph` by value,
+// which itself holds one std::shared_ptr to the shared state. Duplicating the
+// C handle therefore amounts to allocating a new launchable_graph that
+// copy-constructs from the original (bumping the shared_ptr refcount);
+// freeing destroys that one launchable_graph which releases its reference.
+[[nodiscard]] auto to_opaque_launchable_shared(stackable_ctx::launchable_graph* p) noexcept
+{
+  return static_cast<stf_launchable_graph_shared>(static_cast<void*>(p));
+}
+
+[[nodiscard]] auto* from_opaque_launchable_shared(stf_launchable_graph_shared h) noexcept
+{
+  return static_cast<stackable_ctx::launchable_graph*>(static_cast<void*>(h));
+}
+
 // Stackable handles are typedef-aliased to existing handle types, so the
 // generic to_opaque/from_opaque dispatchers cannot disambiguate.  Use these
 // thin local helpers instead.
@@ -1256,6 +1271,82 @@ void stf_launchable_graph_destroy(stf_launchable_graph_handle h)
 {
   // NULL is a no-op, matching the pattern used by other destroy entry points.
   delete from_opaque_launchable(h);
+}
+
+int stf_stackable_pop_prologue_shared(stf_ctx_handle ctx, stf_launchable_graph_shared* out)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  _CCCL_ASSERT(out != nullptr, "output pointer must not be null");
+  auto* sctx = from_opaque_sctx(ctx);
+  auto* p    = stf_try_allocate([sctx] {
+    return new stackable_ctx::launchable_graph(sctx->pop_prologue_shared());
+  });
+  if (p == nullptr)
+  {
+    *out = nullptr;
+    return 1;
+  }
+  *out = to_opaque_launchable_shared(p);
+  return 0;
+}
+
+int stf_launchable_graph_shared_dup(stf_launchable_graph_shared h, stf_launchable_graph_shared* out)
+{
+  _CCCL_ASSERT(h != nullptr, "shared launchable graph handle must not be null");
+  _CCCL_ASSERT(out != nullptr, "output pointer must not be null");
+  auto* src = from_opaque_launchable_shared(h);
+  auto* p   = stf_try_allocate([src] {
+    return new stackable_ctx::launchable_graph(*src); // shared_ptr copy -> bumps refcount
+  });
+  if (p == nullptr)
+  {
+    *out = nullptr;
+    return 1;
+  }
+  *out = to_opaque_launchable_shared(p);
+  return 0;
+}
+
+void stf_launchable_graph_shared_free(stf_launchable_graph_shared h)
+{
+  // NULL is a no-op, matching the pattern used by other destroy entry points.
+  // Destruction drops the shared_ptr held inside the launchable_graph; when
+  // the last C-side handle is freed the state destructor runs and triggers
+  // ctx.pop_epilogue() automatically.
+  delete from_opaque_launchable_shared(h);
+}
+
+int stf_launchable_graph_shared_valid(stf_launchable_graph_shared h)
+{
+  if (h == nullptr)
+  {
+    return 0;
+  }
+  return from_opaque_launchable_shared(h)->valid() ? 1 : 0;
+}
+
+void stf_launchable_graph_shared_launch(stf_launchable_graph_shared h)
+{
+  _CCCL_ASSERT(h != nullptr, "shared launchable graph handle must not be null");
+  from_opaque_launchable_shared(h)->launch();
+}
+
+cudaGraphExec_t stf_launchable_graph_shared_exec(stf_launchable_graph_shared h)
+{
+  _CCCL_ASSERT(h != nullptr, "shared launchable graph handle must not be null");
+  return from_opaque_launchable_shared(h)->exec();
+}
+
+cudaStream_t stf_launchable_graph_shared_stream(stf_launchable_graph_shared h)
+{
+  _CCCL_ASSERT(h != nullptr, "shared launchable graph handle must not be null");
+  return from_opaque_launchable_shared(h)->stream();
+}
+
+cudaGraph_t stf_launchable_graph_shared_graph(stf_launchable_graph_shared h)
+{
+  _CCCL_ASSERT(h != nullptr, "shared launchable graph handle must not be null");
+  return from_opaque_launchable_shared(h)->graph();
 }
 
 #if _CCCL_CTK_AT_LEAST(12, 4)

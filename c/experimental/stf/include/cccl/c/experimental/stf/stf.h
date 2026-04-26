@@ -1693,6 +1693,82 @@ cudaGraph_t stf_launchable_graph_graph(stf_launchable_graph_handle h);
 //! \param h Launchable graph handle (or NULL).
 void stf_launchable_graph_destroy(stf_launchable_graph_handle h);
 
+//! \brief Opaque handle for a shared-ownership, storable launchable graph.
+//!
+//! Returned by \c stf_stackable_pop_prologue_shared(). Every call to
+//! \c stf_launchable_graph_shared_dup() produces a new opaque handle that
+//! shares ownership of the same underlying CUDA graph; each of these
+//! handles must be released independently with
+//! \c stf_launchable_graph_shared_free(). The final \c _free call runs
+//! \c stf_stackable_pop_epilogue() automatically, so users do not call the
+//! epilogue manually.
+//!
+//! Typical use:
+//! \code
+//!   stf_stackable_push_graph(ctx);
+//!   // ... submit tasks ...
+//!   stf_launchable_graph_shared h;
+//!   stf_stackable_pop_prologue_shared(ctx, &h);
+//!
+//!   for (int i = 0; i < 1000; ++i) {
+//!     stf_launchable_graph_shared_launch(h);
+//!   }
+//!
+//!   stf_launchable_graph_shared_free(h);   // last ref -> pop_epilogue
+//! \endcode
+typedef struct stf_launchable_graph_shared_t* stf_launchable_graph_shared;
+
+//! \brief Shared-ownership flavor of \c stf_stackable_pop_prologue().
+//!
+//! Runs the prologue and wraps the resulting handle into a shared-ownership
+//! opaque. Copies made via \c stf_launchable_graph_shared_dup() share the
+//! same underlying graph; the epilogue runs when the last copy is freed.
+//!
+//! \param ctx Stackable context handle (must not be NULL).
+//! \param out Receives the new shared handle on success (non-NULL).
+//! \return Zero on success, non-zero on allocation failure.
+int stf_stackable_pop_prologue_shared(stf_ctx_handle ctx, stf_launchable_graph_shared* out);
+
+//! \brief Duplicate a shared launchable-graph handle (bumps the shared count).
+//!
+//! The new handle must be released separately with
+//! \c stf_launchable_graph_shared_free(). Aborts if \p h is NULL.
+//!
+//! \param h Shared handle to duplicate (must not be NULL).
+//! \param out Receives the duplicated handle on success (non-NULL).
+//! \return Zero on success, non-zero on allocation failure.
+int stf_launchable_graph_shared_dup(stf_launchable_graph_shared h, stf_launchable_graph_shared* out);
+
+//! \brief Release one shared reference. When this was the last one,
+//!        runs \c stf_stackable_pop_epilogue() automatically.
+//!
+//! NULL is a no-op, matching the pattern used by other destroy entry points.
+//!
+//! \param h Shared handle (or NULL).
+void stf_launchable_graph_shared_free(stf_launchable_graph_shared h);
+
+//! \brief Query whether the shared handle still refers to a live graph.
+//!
+//! Returns 0 for a NULL handle or after some other code path
+//! (for example a manual \c stf_stackable_pop_epilogue()) has released the
+//! underlying state.
+int stf_launchable_graph_shared_valid(stf_launchable_graph_shared h);
+
+//! \brief Launch the graph once. Aborts if \p h is NULL or invalid.
+void stf_launchable_graph_shared_launch(stf_launchable_graph_shared h);
+
+//! \brief Return the executable graph. Triggers lazy instantiation + dep-A
+//!        sync on the first call. Aborts if \p h is NULL or invalid.
+cudaGraphExec_t stf_launchable_graph_shared_exec(stf_launchable_graph_shared h);
+
+//! \brief Return the support stream. Purely observational. Aborts if \p h
+//!        is NULL or invalid.
+cudaStream_t stf_launchable_graph_shared_stream(stf_launchable_graph_shared h);
+
+//! \brief Return the underlying \c cudaGraph_t topology (for embedding as a
+//!        child graph). Aborts if \p h is NULL or invalid.
+cudaGraph_t stf_launchable_graph_shared_graph(stf_launchable_graph_shared h);
+
 //! \brief Opaque handle for a while-loop scope (CUDA 12.4+).
 typedef struct stf_while_scope_handle_t* stf_while_scope_handle;
 
