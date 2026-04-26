@@ -45,10 +45,39 @@ using ::cuda::experimental::stf::mv;
 class exec_place;
 
 /**
+ * @brief Is this stream currently in graph-capture mode?
+ *
+ * Most CUDA driver metadata queries (``cuStreamGetId``, ``cudaStreamGetDevice``,
+ * ...) are not capture-safe: under ``cudaStreamCaptureModeThreadLocal`` /
+ * ``Global`` the driver both rejects them with
+ * ``cudaErrorStreamCaptureUnsupported`` *and* invalidates the in-progress
+ * capture. We therefore gate such queries on this probe, which is itself
+ * capture-safe.
+ */
+inline bool is_stream_capturing(cudaStream_t stream)
+{
+  cudaStreamCaptureStatus status = cudaStreamCaptureStatusNone;
+  cuda_try(cudaStreamIsCapturing(stream, &status));
+  return status != cudaStreamCaptureStatusNone;
+}
+
+/**
  * @brief Computes the CUDA device in which the stream was created
  */
 inline int get_device_from_stream(cudaStream_t stream)
 {
+  // If the stream is currently capturing, ``cudaStreamGetDevice`` /
+  // ``cuStreamGetCtx`` are not allowed and would invalidate the capture.
+  // Fall back to the current device: STF's own stream pool is allocated
+  // against the caller's active device context, and a user stream passed in
+  // while that context is captured is assumed to live on that same device.
+  if (is_stream_capturing(stream))
+  {
+    int device = 0;
+    cuda_try(cudaGetDevice(&device));
+    return device;
+  }
+
 #if _CCCL_CTK_AT_LEAST(12, 8)
   int device = 0;
   cuda_try(cudaStreamGetDevice(stream, &device));
@@ -77,6 +106,19 @@ inline constexpr unsigned long long k_no_stream_id = static_cast<unsigned long l
  */
 inline unsigned long long get_stream_id(cudaStream_t stream)
 {
+  // ``cuStreamGetId`` is not capture-safe: during
+  // ``cudaStreamCaptureModeThreadLocal`` / ``Global`` it rejects the query
+  // *and* invalidates the capture itself. Gate on ``cudaStreamIsCapturing``
+  // (which is safe) and use the ``cudaStream_t`` pointer value as a stable,
+  // unique-per-process stream identifier while capture is in flight. STF only
+  // uses this ID to key its internal per-stream tracking; the pointer is just
+  // as suitable as ``cuStreamGetId``'s nonce for that purpose, and cannot
+  // collide with a valid ID because ``k_no_stream_id`` is ``~0ULL``.
+  if (is_stream_capturing(stream))
+  {
+    return static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(stream));
+  }
+
   unsigned long long id = 0;
   cuda_try(cuStreamGetId(reinterpret_cast<CUstream>(stream), &id));
   _CCCL_ASSERT(id != k_no_stream_id, "Internal error: cuStreamGetId returned k_no_stream_id");
@@ -134,11 +176,47 @@ class stream_pool
     // Construct from a decorated stream, this is used to create a stream pool with a single stream.
     explicit impl(decorated_stream ds)
         : payload(1, mv(ds))
+        , externally_owned(true)
     {}
+
+    // Release every stream the pool has lazily created. We intentionally
+    // skip entries that came from an externally-owned `decorated_stream`
+    // (single-stream pool built from a user-supplied stream, used for
+    // `exec_place::cuda_stream(s)`); those are not ours to destroy.
+    //
+    // `cudaStreamDestroy` is documented to be asynchronous when work is
+    // still pending on the stream: the call returns immediately and CUDA
+    // releases the stream's resources once the device has completed its
+    // pending work. That contract is what makes it safe to tear the pool
+    // down at the end of an STF context without blocking on a caller stream
+    // synchronize, as long as the outbound event chain has already been
+    // recorded back onto the user stream.
+    ~impl()
+    {
+      if (externally_owned)
+      {
+        return;
+      }
+      for (auto& ds : payload)
+      {
+        if (ds.stream != nullptr)
+        {
+          // Best-effort: never throw from a destructor, and never crash a
+          // process that has already torn down its CUDA primary context
+          // (e.g. after `cudaDeviceReset()`).
+          [[maybe_unused]] cudaError_t err = cudaStreamDestroy(ds.stream);
+          ds.stream                        = nullptr;
+        }
+      }
+    }
+
+    impl(const impl&)            = delete;
+    impl& operator=(const impl&) = delete;
 
     mutable ::std::mutex mtx;
     ::std::vector<decorated_stream> payload;
-    size_t index = 0;
+    size_t index          = 0;
+    bool externally_owned = false;
   };
 
   ::std::shared_ptr<impl> pimpl;

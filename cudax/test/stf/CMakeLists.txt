@@ -55,6 +55,7 @@ set(
   interface/cuda_kernel_empty_args.cu
   interface/move_operator.cu
   local_stf/legacy_to_stf.cu
+  local_stf/legacy_to_stf_in_capture.cu
   local_stf/logical_data_t_template.cu
   local_stf/stackable.cu
   local_stf/stackable2.cu
@@ -67,6 +68,7 @@ set(
   local_stf/stackable_nested_while.cu
   local_stf/stackable_nested.cu
   local_stf/stackable_node_pool_growth.cu
+  local_stf/stream_ctx_lifetime_btb.cu
   local_stf/stackable_read_only.cu
   local_stf/stackable_threads.cu
   local_stf/stackable_token.cu

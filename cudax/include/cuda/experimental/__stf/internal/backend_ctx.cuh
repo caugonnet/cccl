@@ -43,6 +43,7 @@
 
 #include <atomic>
 #include <fstream>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -116,14 +117,29 @@ protected:
     impl(async_resources_handle async_resources = async_resources_handle())
         : auto_scheduler(reserved::scheduler::make(getenv("CUDASTF_SCHEDULE")))
         , auto_reorderer(reserved::reorderer::make(getenv("CUDASTF_TASK_ORDER")))
+        // Record whether the handle was supplied by the caller *before* we
+        // move it into ``async_resources``. Relies on declaration order:
+        // ``user_provided_handle`` is declared before ``async_resources``.
+        , user_provided_handle(bool(async_resources))
         , async_resources(async_resources ? mv(async_resources) : async_resources_handle())
     {
-      // Forces init
-      cudaError_t ret = cudaFree(0);
-
-      // If we are running the task in the context of a CUDA callback, we are
-      // not allowed to issue any CUDA API call.
-      EXPECT((ret == cudaSuccess || ret == cudaErrorNotPermitted));
+      // Force CUDA runtime init exactly once per process. Previous versions
+      // called ``cudaFree(0)`` unconditionally on every context construction,
+      // but ``cudaFree(0)`` is not capture-safe: under
+      // ``cudaStreamCaptureModeThreadLocal`` / ``Global`` (what Warp's
+      // ``ScopedCapture`` uses) it is rejected with
+      // ``cudaErrorStreamCaptureUnsupported`` *and* invalidates the current
+      // capture, poisoning every subsequent CUDA call on that capture chain.
+      // Running it once, before any user code might enter a capture region, is
+      // sufficient: CUDA init is a process-wide state that does not need to be
+      // re-checked per STF context.
+      static ::std::once_flag cuda_init_flag;
+      ::std::call_once(cuda_init_flag, [] {
+        cudaError_t ret = cudaFree(0);
+        // If we are running the task in the context of a CUDA callback, we
+        // are not allowed to issue any CUDA API call.
+        EXPECT((ret == cudaSuccess || ret == cudaErrorNotPermitted));
+      });
 
       // Enable peer memory accesses (if not done already)
       machine::instance().enable_peer_accesses();
@@ -348,6 +364,13 @@ protected:
     // Keep track of the number of completed tasks in that context
     ::std::atomic<size_t> total_finished_task_cnt = 0;
 #endif
+
+    // True iff the ``async_resources_handle`` was supplied by the caller at
+    // context construction time (as opposed to being freshly created
+    // internally). Set from ``bool(async_resources)`` *before* the handle is
+    // moved into ``async_resources`` -- see the member initializer list. Must
+    // therefore be declared before ``async_resources``.
+    bool user_provided_handle = false;
 
     // This data structure contains all resources useful for an efficient
     // asynchronous execution. This will for example contain pools of CUDA
