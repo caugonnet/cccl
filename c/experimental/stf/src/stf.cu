@@ -592,30 +592,38 @@ stf_ctx_handle stf_ctx_create_ex(const stf_ctx_options* opts)
   const stf_ctx_options defaults{};
   const stf_ctx_options& o = opts ? *opts : defaults;
 
-  cudaStream_t stream       = o.stream;
+  const bool has_stream     = (o.has_stream != 0);
   async_resources_handle ah = o.handle ? *async_resources_from_opaque(o.handle) : async_resources_handle{nullptr};
 
-  // Dispatch on backend. We forward to the C++ context constructors in
-  // cudax/include/cuda/experimental/__stf/internal/context.cuh. When the
-  // caller provides neither a stream nor a handle, fall back to the
-  // zero-arg constructor so the default behavior is bit-for-bit identical
-  // to stf_ctx_create() / stf_ctx_create_graph().
-  const bool has_overrides = (stream != nullptr) || (o.handle != nullptr);
-
+  // Dispatch to the matching C++ overload in
+  // cudax/include/cuda/experimental/__stf/{stream,graph}/..._ctx.cuh.
+  // C++ uses overload resolution (effectively optional<cudaStream_t>) to
+  // distinguish "user bound a stream" from "user did not"; we mirror that
+  // using the explicit has_stream flag. Using o.stream alone is insufficient
+  // since cudaStream_t is a pointer and 0/nullptr is the default NULL stream
+  // -- a legitimate value a caller may want to bind.
   return to_opaque(stf_try_allocate([&]() -> context* {
     switch (o.backend)
     {
       case STF_BACKEND_GRAPH:
-        if (has_overrides)
+        if (has_stream)
         {
-          return new context{graph_ctx(stream, ah)};
+          return new context{graph_ctx(o.stream, ah)};
+        }
+        if (o.handle != nullptr)
+        {
+          return new context{graph_ctx(ah)};
         }
         return new context{graph_ctx()};
       case STF_BACKEND_STREAM:
       default:
-        if (has_overrides)
+        if (has_stream)
         {
-          return new context{stream_ctx(stream, ah)};
+          return new context{stream_ctx(o.stream, ah)};
+        }
+        if (o.handle != nullptr)
+        {
+          return new context{stream_ctx(ah)};
         }
         return new context{};
     }
@@ -1103,6 +1111,16 @@ using stackable_token_t = stackable_logical_data<void_interface>;
   return static_cast<repeat_graph_scope_guard*>(static_cast<void*>(h));
 }
 
+[[nodiscard]] auto to_opaque_launchable(launchable_graph_handle* p) noexcept
+{
+  return static_cast<stf_launchable_graph_handle>(static_cast<void*>(p));
+}
+
+[[nodiscard]] auto* from_opaque_launchable(stf_launchable_graph_handle h) noexcept
+{
+  return static_cast<launchable_graph_handle*>(static_cast<void*>(h));
+}
+
 // Stackable handles are typedef-aliased to existing handle types, so the
 // generic to_opaque/from_opaque dispatchers cannot disambiguate.  Use these
 // thin local helpers instead.
@@ -1193,6 +1211,51 @@ void stf_stackable_pop(stf_ctx_handle ctx)
 {
   _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
   from_opaque_sctx(ctx)->pop();
+}
+
+stf_launchable_graph_handle stf_stackable_pop_prologue(stf_ctx_handle ctx)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  auto* sctx = from_opaque_sctx(ctx);
+  return to_opaque_launchable(stf_try_allocate([sctx] {
+    return new launchable_graph_handle(sctx->pop_prologue());
+  }));
+}
+
+void stf_stackable_pop_epilogue(stf_ctx_handle ctx)
+{
+  _CCCL_ASSERT(ctx != nullptr, "stackable context handle must not be null");
+  from_opaque_sctx(ctx)->pop_epilogue();
+}
+
+void stf_launchable_graph_launch(stf_launchable_graph_handle h)
+{
+  _CCCL_ASSERT(h != nullptr, "launchable graph handle must not be null");
+  from_opaque_launchable(h)->launch();
+}
+
+cudaGraphExec_t stf_launchable_graph_exec(stf_launchable_graph_handle h)
+{
+  _CCCL_ASSERT(h != nullptr, "launchable graph handle must not be null");
+  return from_opaque_launchable(h)->exec();
+}
+
+cudaStream_t stf_launchable_graph_stream(stf_launchable_graph_handle h)
+{
+  _CCCL_ASSERT(h != nullptr, "launchable graph handle must not be null");
+  return from_opaque_launchable(h)->stream();
+}
+
+cudaGraph_t stf_launchable_graph_graph(stf_launchable_graph_handle h)
+{
+  _CCCL_ASSERT(h != nullptr, "launchable graph handle must not be null");
+  return from_opaque_launchable(h)->graph();
+}
+
+void stf_launchable_graph_destroy(stf_launchable_graph_handle h)
+{
+  // NULL is a no-op, matching the pattern used by other destroy entry points.
+  delete from_opaque_launchable(h);
 }
 
 #if _CCCL_CTK_AT_LEAST(12, 4)

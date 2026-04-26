@@ -53,6 +53,10 @@ cdef extern from "<cuda_runtime.h>":
     cdef struct dim3:
         unsigned int x, y, z
     ctypedef OpaqueCUstream_st *cudaStream_t
+    cdef struct CUgraphExec_st
+    ctypedef CUgraphExec_st *cudaGraphExec_t
+    cdef struct CUgraph_st
+    ctypedef CUgraph_st *cudaGraph_t
 
 cdef extern from "cccl/c/experimental/stf/stf.h":
     #
@@ -79,6 +83,7 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
 
     ctypedef struct stf_ctx_options:
         stf_backend_kind backend
+        int has_stream
         cudaStream_t stream
         stf_async_resources_handle handle
 
@@ -266,6 +271,17 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     uint64_t stf_while_scope_get_cond_handle(stf_while_scope_handle scope)
     stf_repeat_scope_handle stf_stackable_push_repeat(stf_ctx_handle ctx, size_t count)
     void stf_stackable_pop_repeat(stf_repeat_scope_handle scope)
+
+    ctypedef struct stf_launchable_graph_handle_t
+    ctypedef stf_launchable_graph_handle_t* stf_launchable_graph_handle
+
+    stf_launchable_graph_handle stf_stackable_pop_prologue(stf_ctx_handle ctx)
+    void stf_stackable_pop_epilogue(stf_ctx_handle ctx)
+    void stf_launchable_graph_launch(stf_launchable_graph_handle h) nogil
+    cudaGraphExec_t stf_launchable_graph_exec(stf_launchable_graph_handle h)
+    cudaStream_t stf_launchable_graph_stream(stf_launchable_graph_handle h)
+    cudaGraph_t stf_launchable_graph_graph(stf_launchable_graph_handle h)
+    void stf_launchable_graph_destroy(stf_launchable_graph_handle h)
 
     cdef enum stf_compare_op:
         STF_CMP_GT
@@ -1737,8 +1753,13 @@ cdef class context:
 
         if has_overrides:
             opts.backend = STF_BACKEND_GRAPH if use_graph else STF_BACKEND_STREAM
+            # has_stream distinguishes "user explicitly passed a stream" from
+            # "user omitted stream" (unlike nullptr, which is a valid NULL stream).
             if stream is not None:
                 stream_val = <uintptr_t>int(stream)
+                opts.has_stream = 1
+            else:
+                opts.has_stream = 0
             opts.stream = <cudaStream_t>stream_val
             if handle is not None:
                 opts.handle = handle._h
@@ -2502,6 +2523,33 @@ cdef _while_cond_scalar_impl(stf_ctx_handle ctx, uintptr_t scope_ptr,
         <stf_dtype>dtype_code)
 
 
+cdef uintptr_t _pop_prologue_impl(stf_ctx_handle ctx) except? 0:
+    cdef stf_launchable_graph_handle h = stf_stackable_pop_prologue(ctx)
+    if h == NULL:
+        raise RuntimeError("stf_stackable_pop_prologue failed")
+    return <uintptr_t>h
+
+cdef _pop_epilogue_impl(stf_ctx_handle ctx):
+    stf_stackable_pop_epilogue(ctx)
+
+cdef _launchable_launch_impl(uintptr_t h):
+    cdef stf_launchable_graph_handle handle = <stf_launchable_graph_handle>h
+    with nogil:
+        stf_launchable_graph_launch(handle)
+
+cdef uintptr_t _launchable_exec_impl(uintptr_t h):
+    return <uintptr_t>stf_launchable_graph_exec(<stf_launchable_graph_handle>h)
+
+cdef uintptr_t _launchable_stream_impl(uintptr_t h):
+    return <uintptr_t>stf_launchable_graph_stream(<stf_launchable_graph_handle>h)
+
+cdef uintptr_t _launchable_graph_impl(uintptr_t h):
+    return <uintptr_t>stf_launchable_graph_graph(<stf_launchable_graph_handle>h)
+
+cdef _launchable_destroy_impl(uintptr_t h):
+    stf_launchable_graph_destroy(<stf_launchable_graph_handle>h)
+
+
 class _GraphScope:
     """Context manager wrapping ``stf_stackable_push_graph`` / ``_pop``."""
     def __init__(self, ctx):
@@ -2513,6 +2561,82 @@ class _GraphScope:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         stf_stackable_pop((<stackable_context>self._ctx)._ctx)
+        return False
+
+
+class _LaunchableGraphScope:
+    """Context manager exposing the re-launchable ``pop_prologue`` API.
+
+    On ``__enter__`` pushes a graph scope. ``stf_stackable_pop_prologue`` is
+    called lazily on the first call to any of :py:meth:`launch`,
+    :py:attr:`exec_graph`, :py:attr:`stream` or :py:attr:`graph`; that step
+    only finalizes the nested ``cudaGraph_t``. Actual
+    ``cudaGraphInstantiate`` is deferred until :py:meth:`launch` or
+    :py:attr:`exec_graph` is used, so callers that only want the graph
+    topology (via :py:attr:`graph`) pay no instantiation cost. ``__exit__``
+    always runs ``stf_stackable_pop_epilogue`` so that the context unfreezes
+    cleanly even when the user never launched the graph.
+
+    Usage::
+
+        with ctx.launchable_graph_scope() as scope:
+            ctx.parallel_for(...)
+            for _ in range(N):
+                scope.launch()
+    """
+    def __init__(self, ctx):
+        self._ctx = ctx
+        self._h = 0
+
+    def __enter__(self):
+        stf_stackable_push_graph((<stackable_context>self._ctx)._ctx)
+        return self
+
+    def _ensure_prepared(self):
+        if self._h == 0:
+            self._h = _pop_prologue_impl((<stackable_context>self._ctx)._ctx)
+
+    def launch(self):
+        """Launch the instantiated graph once on its support stream."""
+        self._ensure_prepared()
+        _launchable_launch_impl(self._h)
+
+    @property
+    def exec_graph(self) -> int:
+        """Raw ``cudaGraphExec_t`` as a plain Python ``int``."""
+        self._ensure_prepared()
+        return _launchable_exec_impl(self._h)
+
+    @property
+    def stream(self) -> int:
+        """Raw ``cudaStream_t`` as a plain Python ``int``."""
+        self._ensure_prepared()
+        return _launchable_stream_impl(self._h)
+
+    @property
+    def graph(self) -> int:
+        """Raw (non-executable) ``cudaGraph_t`` as a plain Python ``int``.
+
+        Intended for embedding the nested graph as a child node into another
+        graph (``cudaGraphAddChildGraphNode``). Unlike :py:attr:`exec_graph`,
+        this property does NOT force ``cudaGraphInstantiate``. The graph
+        stays valid only until the scope's ``__exit__`` runs; clone it with
+        ``cudaGraphClone`` if you need a longer lifetime.
+        """
+        self._ensure_prepared()
+        return _launchable_graph_impl(self._h)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # If the user never touched launch/exec/stream we still need to run
+        # the prologue+epilogue pair so that data pushed in the scope gets
+        # unfrozen (matches the default ``pop()`` semantics).
+        if self._h == 0:
+            self._h = _pop_prologue_impl((<stackable_context>self._ctx)._ctx)
+        try:
+            _pop_epilogue_impl((<stackable_context>self._ctx)._ctx)
+        finally:
+            _launchable_destroy_impl(self._h)
+            self._h = 0
         return False
 
 
@@ -2796,6 +2920,17 @@ cdef class stackable_context:
     def graph_scope(self):
         """Return a context manager that pushes/pops a nested graph scope."""
         return _GraphScope(self)
+
+    def launchable_graph_scope(self):
+        """Return a context manager exposing the re-launchable graph API.
+
+        The returned scope behaves like :meth:`graph_scope` but instantiates
+        the nested graph into a reusable ``cudaGraphExec_t`` that can be
+        launched one or more times via :py:meth:`_LaunchableGraphScope.launch`
+        (or directly via :py:attr:`_LaunchableGraphScope.exec_graph` /
+        :py:attr:`_LaunchableGraphScope.stream`) before the scope exits.
+        """
+        return _LaunchableGraphScope(self)
 
     def while_loop(self):
         """Return a context manager for a while loop (CUDA 12.4+)."""

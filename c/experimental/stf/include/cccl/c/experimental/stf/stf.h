@@ -489,9 +489,12 @@ typedef enum stf_backend_kind
 
 typedef struct stf_ctx_options
 {
-  stf_backend_kind           backend; //!< Backend selector (default: STF_BACKEND_STREAM)
-  cudaStream_t               stream;  //!< Caller-owned stream to inherit, or 0 for "pick default"
-  stf_async_resources_handle handle;  //!< Shared resources handle, or NULL for "create fresh"
+  stf_backend_kind           backend;    //!< Backend selector (default: STF_BACKEND_STREAM)
+  int                        has_stream; //!< 0: no caller stream; non-zero: inherit `stream`
+  cudaStream_t               stream;     //!< Caller-owned stream (used iff `has_stream != 0`).
+                                         //!< `cudaStream_t` is a pointer; `nullptr` is the NULL stream,
+                                         //!< not a sentinel -- use `has_stream` to say "no stream".
+  stf_async_resources_handle handle;     //!< Shared resources handle, or NULL for "create fresh"
 } stf_ctx_options;
 
 //!
@@ -515,9 +518,10 @@ typedef struct stf_ctx_options
 //! stf_async_resources_handle h = stf_async_resources_create();
 //! for (int i = 0; i < N; ++i) {
 //!   stf_ctx_options opts = {0};
-//!   opts.backend = STF_BACKEND_GRAPH;
-//!   opts.stream  = user_stream;
-//!   opts.handle  = h;
+//!   opts.backend    = STF_BACKEND_GRAPH;
+//!   opts.has_stream = 1;           // opt-in to caller stream binding
+//!   opts.stream     = user_stream; // may be 0 for the default/NULL stream
+//!   opts.handle     = h;
 //!   stf_ctx_handle ctx = stf_ctx_create_ex(&opts);
 //!   // ... submit tasks ...
 //!   stf_ctx_finalize(ctx);
@@ -1588,6 +1592,106 @@ void stf_stackable_push_graph(stf_ctx_handle ctx);
 //!
 //! \param ctx Stackable context handle
 void stf_stackable_pop(stf_ctx_handle ctx);
+
+//! \brief Opaque handle for a re-launchable graph produced by
+//!        \c stf_stackable_pop_prologue().
+//!
+//! The handle remains valid between a matching \c stf_stackable_pop_prologue()
+//! and \c stf_stackable_pop_epilogue() pair. Calling \c stf_launchable_graph_launch(),
+//! \c stf_launchable_graph_exec() or \c stf_launchable_graph_stream() after the
+//! epilogue aborts with a clear message (the underlying C++ layer invalidates
+//! every outstanding copy of the handle in one shot).
+//!
+//! The handle wrapper itself must be released with \c stf_launchable_graph_destroy()
+//! to reclaim the small heap allocation made by \c stf_stackable_pop_prologue().
+typedef struct stf_launchable_graph_handle_t* stf_launchable_graph_handle;
+
+//! \brief First phase of a two-phase pop of a top-level graph scope.
+//!
+//! Runs the same prologue as \c stf_stackable_pop() (pops any pushed data,
+//! finalises the child graph, instantiates or fetches a \c cudaGraphExec_t
+//! from the cache) but does not launch the graph and does not release
+//! resources. Returns a handle the caller can use to launch the graph one
+//! or more times (via \c stf_launchable_graph_launch()) before finishing
+//! the pop with \c stf_stackable_pop_epilogue().
+//!
+//! Only legal when the innermost scope is a top-level graph (its parent is
+//! the stream-backed root). Aborts otherwise.
+//!
+//! \param ctx Stackable context handle (must not be NULL).
+//! \return Launchable graph handle (non-NULL on success; NULL only on
+//!         heap-allocation failure, in which case an explanatory message
+//!         is printed to stderr). Release with \c stf_launchable_graph_destroy().
+//!
+//! \see stf_stackable_pop_epilogue()
+//! \see stf_launchable_graph_launch()
+stf_launchable_graph_handle stf_stackable_pop_prologue(stf_ctx_handle ctx);
+
+//! \brief Second phase of a two-phase pop: release resources and unfreeze data.
+//!
+//! Runs the deferred portion of \c stf_stackable_pop() that was skipped by
+//! \c stf_stackable_pop_prologue(). Invalidates every outstanding
+//! \c stf_launchable_graph_handle produced by the matching prologue; the
+//! handle wrapper itself is not freed and must still be released with
+//! \c stf_launchable_graph_destroy().
+//!
+//! \param ctx Stackable context handle (must not be NULL).
+//!
+//! \see stf_stackable_pop_prologue()
+void stf_stackable_pop_epilogue(stf_ctx_handle ctx);
+
+//! \brief Launch the instantiated graph once.
+//!
+//! On the first call, syncs the context's prerequisite events into the
+//! support stream. Subsequent calls skip the sync and issue the launch
+//! directly. Aborts if the handle has been invalidated by
+//! \c stf_stackable_pop_epilogue().
+//!
+//! \param h Launchable graph handle (must not be NULL).
+void stf_launchable_graph_launch(stf_launchable_graph_handle h);
+
+//! \brief Return the underlying \c cudaGraphExec_t for advanced use
+//!        (e.g. launching on a user-supplied stream).
+//!
+//! Aborts if \p h has been invalidated by \c stf_stackable_pop_epilogue().
+//!
+//! \param h Launchable graph handle (must not be NULL).
+//! \return \c cudaGraphExec_t owned by the STF graph cache.
+cudaGraphExec_t stf_launchable_graph_exec(stf_launchable_graph_handle h);
+
+//! \brief Return the internal support stream the graph was prepared against.
+//!
+//! Aborts if \p h has been invalidated by \c stf_stackable_pop_epilogue().
+//!
+//! \param h Launchable graph handle (must not be NULL).
+//! \return \c cudaStream_t used by the default \c stf_launchable_graph_launch().
+cudaStream_t stf_launchable_graph_stream(stf_launchable_graph_handle h);
+
+//! \brief Return the underlying (non-executable) CUDA graph topology.
+//!
+//! Intended for callers who want to embed the graph as a child node into
+//! another graph (via \c cudaGraphAddChildGraphNode) rather than launching
+//! the pre-instantiated executable graph returned by
+//! \c stf_launchable_graph_exec(). Unlike that function, this accessor does
+//! NOT trigger \c cudaGraphInstantiate and performs no synchronization.
+//!
+//! The graph stays valid only until \c stf_stackable_pop_epilogue() is
+//! called. Clone it with \c cudaGraphClone if you need it to outlive the
+//! epilogue.
+//!
+//! Aborts if \p h has been invalidated by \c stf_stackable_pop_epilogue().
+//!
+//! \param h Launchable graph handle (must not be NULL).
+//! \return \c cudaGraph_t owned by the nested stackable context.
+cudaGraph_t stf_launchable_graph_graph(stf_launchable_graph_handle h);
+
+//! \brief Release the heap-allocated handle wrapper.
+//!
+//! Does not affect graph validity (that is driven by
+//! \c stf_stackable_pop_epilogue()). NULL is a no-op.
+//!
+//! \param h Launchable graph handle (or NULL).
+void stf_launchable_graph_destroy(stf_launchable_graph_handle h);
 
 //! \brief Opaque handle for a while-loop scope (CUDA 12.4+).
 typedef struct stf_while_scope_handle_t* stf_while_scope_handle;
