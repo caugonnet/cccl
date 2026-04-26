@@ -283,6 +283,18 @@ cdef extern from "cccl/c/experimental/stf/stf.h":
     cudaGraph_t stf_launchable_graph_graph(stf_launchable_graph_handle h)
     void stf_launchable_graph_destroy(stf_launchable_graph_handle h)
 
+    ctypedef struct stf_launchable_graph_shared_t
+    ctypedef stf_launchable_graph_shared_t* stf_launchable_graph_shared
+
+    int stf_stackable_pop_prologue_shared(stf_ctx_handle ctx, stf_launchable_graph_shared* out)
+    int stf_launchable_graph_shared_dup(stf_launchable_graph_shared h, stf_launchable_graph_shared* out)
+    void stf_launchable_graph_shared_free(stf_launchable_graph_shared h) nogil
+    int stf_launchable_graph_shared_valid(stf_launchable_graph_shared h)
+    void stf_launchable_graph_shared_launch(stf_launchable_graph_shared h) nogil
+    cudaGraphExec_t stf_launchable_graph_shared_exec(stf_launchable_graph_shared h)
+    cudaStream_t stf_launchable_graph_shared_stream(stf_launchable_graph_shared h)
+    cudaGraph_t stf_launchable_graph_shared_graph(stf_launchable_graph_shared h)
+
     cdef enum stf_compare_op:
         STF_CMP_GT
         STF_CMP_LT
@@ -2550,6 +2562,168 @@ cdef _launchable_destroy_impl(uintptr_t h):
     stf_launchable_graph_destroy(<stf_launchable_graph_handle>h)
 
 
+# ---- Shared-ownership flavor -----------------------------------------------
+
+cdef uintptr_t _pop_prologue_shared_impl(stf_ctx_handle ctx) except? 0:
+    cdef stf_launchable_graph_shared h = NULL
+    cdef int rc = stf_stackable_pop_prologue_shared(ctx, &h)
+    if rc != 0 or h == NULL:
+        raise RuntimeError("stf_stackable_pop_prologue_shared failed")
+    return <uintptr_t>h
+
+cdef uintptr_t _launchable_shared_dup_impl(uintptr_t h) except? 0:
+    cdef stf_launchable_graph_shared out = NULL
+    cdef int rc = stf_launchable_graph_shared_dup(<stf_launchable_graph_shared>h, &out)
+    if rc != 0 or out == NULL:
+        raise RuntimeError("stf_launchable_graph_shared_dup failed")
+    return <uintptr_t>out
+
+cdef int _launchable_shared_valid_impl(uintptr_t h):
+    return stf_launchable_graph_shared_valid(<stf_launchable_graph_shared>h)
+
+cdef _launchable_shared_launch_impl(uintptr_t h):
+    cdef stf_launchable_graph_shared handle = <stf_launchable_graph_shared>h
+    with nogil:
+        stf_launchable_graph_shared_launch(handle)
+
+cdef uintptr_t _launchable_shared_exec_impl(uintptr_t h):
+    return <uintptr_t>stf_launchable_graph_shared_exec(<stf_launchable_graph_shared>h)
+
+cdef uintptr_t _launchable_shared_stream_impl(uintptr_t h):
+    return <uintptr_t>stf_launchable_graph_shared_stream(<stf_launchable_graph_shared>h)
+
+cdef uintptr_t _launchable_shared_graph_impl(uintptr_t h):
+    return <uintptr_t>stf_launchable_graph_shared_graph(<stf_launchable_graph_shared>h)
+
+
+cdef class LaunchableGraph:
+    """Shared-ownership, storable handle for a re-launchable stackable graph.
+
+    Returned by :py:meth:`stackable_context.pop_prologue_shared`. Unlike the
+    ``launchable_graph_scope`` context manager, a :class:`LaunchableGraph`
+    can be stashed as a data member, placed in a ``list``/``dict``, or
+    returned from a factory function -- making it the natural fit for a
+    classic "build once, launch many times, release later" graph cache.
+
+    Each Python :class:`LaunchableGraph` holds a single C-level shared
+    reference. When the last Python reference dies (via normal refcounting
+    or an explicit :py:meth:`reset`) the underlying STF ``pop_epilogue``
+    runs automatically.
+
+    Examples
+    --------
+    Stash graphs in a dict, launch at will::
+
+        class Engine:
+            def __init__(self):
+                self.ctx = stf.stackable_context()
+                self.graphs = {}
+
+            def build(self, name, n, alpha):
+                self.ctx.push()
+                la = self.ctx.logical_data(np.zeros(n, dtype=np.float64))
+                # ... submit parallel_for / task blocks ...
+                self.graphs[name] = self.ctx.pop_prologue_shared()
+
+            def step(self, name):
+                self.graphs[name].launch()
+
+            def drop(self, name):
+                del self.graphs[name]   # last ref -> pop_epilogue
+
+    Explicit ``reset()`` semantics::
+
+        g = ctx.pop_prologue_shared()
+        h = g                        # shares the same Python object
+        g.reset()                    # no-op here (same object)
+        assert h.valid
+
+    Context-manager shorthand (distinct from
+    :py:meth:`stackable_context.launchable_graph_scope`: the latter also
+    runs ``push()`` for you and cannot be moved or stored)::
+
+        with ctx.pop_prologue_shared() as g:
+            for _ in range(100):
+                g.launch()
+    """
+    cdef uintptr_t _h
+
+    def __cinit__(self):
+        self._h = 0
+
+    def __dealloc__(self):
+        cdef uintptr_t h = self._h
+        self._h = 0
+        if h != 0:
+            with nogil:
+                stf_launchable_graph_shared_free(<stf_launchable_graph_shared>h)
+
+    def reset(self):
+        """Drop this shared reference eagerly.
+
+        When this was the last live reference to the underlying graph,
+        ``stf_stackable_pop_epilogue`` runs now instead of at destruction
+        time. Subsequent accessors / :py:meth:`launch` raise.
+        Idempotent.
+        """
+        cdef uintptr_t h = self._h
+        self._h = 0
+        if h != 0:
+            with nogil:
+                stf_launchable_graph_shared_free(<stf_launchable_graph_shared>h)
+
+    def _check_valid(self):
+        if self._h == 0:
+            raise RuntimeError("LaunchableGraph has been reset")
+
+    @property
+    def valid(self) -> bool:
+        """True iff this handle still refers to a live graph.
+
+        Returns ``False`` after :py:meth:`reset`, or after some other code
+        path (e.g. a manual ``ctx.pop_epilogue()`` behind STF's back) has
+        released the underlying state.
+        """
+        if self._h == 0:
+            return False
+        return bool(_launchable_shared_valid_impl(self._h))
+
+    def launch(self):
+        """Launch the graph once on its support stream."""
+        self._check_valid()
+        _launchable_shared_launch_impl(self._h)
+
+    @property
+    def exec_graph(self) -> int:
+        """Raw ``cudaGraphExec_t`` as a plain Python ``int``."""
+        self._check_valid()
+        return _launchable_shared_exec_impl(self._h)
+
+    @property
+    def stream(self) -> int:
+        """Raw ``cudaStream_t`` as a plain Python ``int``."""
+        self._check_valid()
+        return _launchable_shared_stream_impl(self._h)
+
+    @property
+    def graph(self) -> int:
+        """Raw (non-executable) ``cudaGraph_t`` as a plain Python ``int``.
+
+        Intended for embedding the nested graph as a child node into another
+        graph (``cudaGraphAddChildGraphNode``). Unlike :py:attr:`exec_graph`,
+        this property does NOT force ``cudaGraphInstantiate``.
+        """
+        self._check_valid()
+        return _launchable_shared_graph_impl(self._h)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.reset()
+        return False
+
+
 class _GraphScope:
     """Context manager wrapping ``stf_stackable_push_graph`` / ``_pop``."""
     def __init__(self, ctx):
@@ -2921,6 +3095,20 @@ cdef class stackable_context:
         """Return a context manager that pushes/pops a nested graph scope."""
         return _GraphScope(self)
 
+    def push(self):
+        """Push a nested graph scope (decoupled from :meth:`pop`).
+
+        Prefer :meth:`graph_scope` (RAII) whenever possible. This raw form
+        only exists so that callers who want to build a graph and return a
+        :class:`LaunchableGraph` from :meth:`pop_prologue_shared` can
+        decouple the push from the final release.
+        """
+        stf_stackable_push_graph(self._ctx)
+
+    def pop(self):
+        """Pop the innermost graph scope (matches an unmatched :meth:`push`)."""
+        stf_stackable_pop(self._ctx)
+
     def launchable_graph_scope(self):
         """Return a context manager exposing the re-launchable graph API.
 
@@ -2931,6 +3119,33 @@ cdef class stackable_context:
         :py:attr:`_LaunchableGraphScope.stream`) before the scope exits.
         """
         return _LaunchableGraphScope(self)
+
+    def pop_prologue_shared(self) -> LaunchableGraph:
+        """Shared-ownership flavor of ``pop_prologue``.
+
+        Runs the same prologue as :meth:`pop` on the innermost graph scope,
+        but returns a :class:`LaunchableGraph` whose destructor runs
+        ``pop_epilogue`` when the last shared reference dies. Use this when
+        you want to **build a graph, store it** (as a data member, in a
+        ``list`` / ``dict`` or returned across function boundaries) and
+        **launch it many times before releasing**. For a purely lexical
+        scope, prefer :meth:`launchable_graph_scope` which also handles the
+        matching ``push`` for you.
+
+        Usage::
+
+            self.ctx.push()
+            # ... submit tasks ...
+            self.step_graph = self.ctx.pop_prologue_shared()
+
+            for _ in range(1000):
+                self.step_graph.launch()   # outside the originating scope
+            # self.step_graph drops its last ref (or is explicitly .reset())
+            # -> pop_epilogue runs automatically.
+        """
+        cdef LaunchableGraph g = LaunchableGraph.__new__(LaunchableGraph)
+        g._h = _pop_prologue_shared_impl(self._ctx)
+        return g
 
     def while_loop(self):
         """Return a context manager for a while loop (CUDA 12.4+)."""

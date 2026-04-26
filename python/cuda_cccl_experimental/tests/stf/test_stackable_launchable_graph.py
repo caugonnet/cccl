@@ -155,9 +155,164 @@ def test_launchable_graph_scope_graph_only():
     assert np.allclose(X_host, 0.0), f"Expected 0.0, got {X_host[0]}"
 
 
+def test_pop_prologue_shared_basic():
+    """Shared launchable graph: launch N times, drop the last ref, verify."""
+    n = 256
+    N = 5
+    X_host = np.zeros(n, dtype=np.float32)
+
+    ctx = stf.stackable_context()
+    lX = ctx.logical_data(X_host, name="X")
+
+    tpb = 128
+    bpg = (n + tpb - 1) // tpb
+
+    ctx.push()
+    with ctx.task(lX.rw()) as t:
+        nb_stream = cuda.external_stream(t.stream_ptr())
+        dX = numba_arguments(t)
+        add_kernel[bpg, tpb, nb_stream](dX, 1.0)
+    g = ctx.pop_prologue_shared()
+    assert g.valid
+    assert g.stream != 0
+
+    for _ in range(N):
+        g.launch()
+
+    # Dropping the sole Python reference triggers the C _free which fires
+    # pop_epilogue; the ctx is usable for a fresh push afterwards.
+    del g
+
+    with ctx.graph_scope():
+        with ctx.task(lX.rw()) as t:
+            nb_stream = cuda.external_stream(t.stream_ptr())
+            dX = numba_arguments(t)
+            scale_kernel[bpg, tpb, nb_stream](dX, 2.0)
+
+    ctx.finalize()
+
+    expected = float(N) * 2.0
+    assert np.allclose(X_host, expected), f"Expected {expected}, got {X_host[0]}"
+
+
+def test_pop_prologue_shared_stored_in_list():
+    """Handle kept in a Python list outside the creating function."""
+    n = 128
+    X_host = np.zeros(n, dtype=np.float32)
+
+    ctx = stf.stackable_context()
+    lX = ctx.logical_data(X_host, name="X")
+
+    tpb = 128
+    bpg = (n + tpb - 1) // tpb
+
+    cache = []
+
+    def build_step():
+        ctx.push()
+        with ctx.task(lX.rw()) as t:
+            nb_stream = cuda.external_stream(t.stream_ptr())
+            dX = numba_arguments(t)
+            add_kernel[bpg, tpb, nb_stream](dX, 1.0)
+        cache.append(ctx.pop_prologue_shared())
+
+    build_step()
+    assert cache[0].valid
+
+    for _ in range(4):
+        cache[0].launch()
+
+    # Clearing the list drops the last reference, which fires pop_epilogue.
+    cache.clear()
+
+    # Context must be reusable after the shared release.
+    with ctx.graph_scope():
+        with ctx.task(lX.rw()) as t:
+            nb_stream = cuda.external_stream(t.stream_ptr())
+            dX = numba_arguments(t)
+            add_kernel[bpg, tpb, nb_stream](dX, 10.0)
+
+    ctx.finalize()
+
+    assert np.allclose(X_host, 14.0), f"Expected 14.0, got {X_host[0]}"
+
+
+def test_pop_prologue_shared_reset_is_idempotent():
+    """Double ``reset()`` is safe; accessors raise after reset."""
+    n = 64
+    X_host = np.zeros(n, dtype=np.float32)
+
+    ctx = stf.stackable_context()
+    lX = ctx.logical_data(X_host, name="X")
+
+    tpb = 64
+    bpg = (n + tpb - 1) // tpb
+
+    ctx.push()
+    with ctx.task(lX.rw()) as t:
+        nb_stream = cuda.external_stream(t.stream_ptr())
+        dX = numba_arguments(t)
+        add_kernel[bpg, tpb, nb_stream](dX, 1.0)
+    g = ctx.pop_prologue_shared()
+    g.launch()
+
+    g.reset()
+    assert not g.valid
+    g.reset()  # idempotent; no-op
+    assert not g.valid
+
+    # launch() / accessors must refuse a reset handle.
+    import pytest
+
+    with pytest.raises(RuntimeError):
+        g.launch()
+    with pytest.raises(RuntimeError):
+        _ = g.exec_graph
+    with pytest.raises(RuntimeError):
+        _ = g.stream
+    with pytest.raises(RuntimeError):
+        _ = g.graph
+
+    ctx.finalize()
+
+    assert np.allclose(X_host, 1.0), f"Expected 1.0, got {X_host[0]}"
+
+
+def test_pop_prologue_shared_context_manager():
+    """``with`` shorthand: __exit__ resets the handle."""
+    n = 64
+    X_host = np.zeros(n, dtype=np.float32)
+
+    ctx = stf.stackable_context()
+    lX = ctx.logical_data(X_host, name="X")
+
+    tpb = 64
+    bpg = (n + tpb - 1) // tpb
+
+    ctx.push()
+    with ctx.task(lX.rw()) as t:
+        nb_stream = cuda.external_stream(t.stream_ptr())
+        dX = numba_arguments(t)
+        add_kernel[bpg, tpb, nb_stream](dX, 1.0)
+    with ctx.pop_prologue_shared() as g:
+        for _ in range(3):
+            g.launch()
+        assert g.valid
+    # After the with-block the handle is reset.
+    assert not g.valid
+
+    ctx.finalize()
+
+    assert np.allclose(X_host, 3.0), f"Expected 3.0, got {X_host[0]}"
+
+
 if __name__ == "__main__":
     test_launchable_graph_scope_relaunch()
     test_launchable_graph_scope_zero_launches()
     test_launchable_graph_scope_exec_and_stream()
     test_launchable_graph_scope_graph_only()
+    test_pop_prologue_shared_basic()
+    test_pop_prologue_shared_stored_in_list()
+    test_pop_prologue_shared_reset_is_idempotent()
+    test_pop_prologue_shared_context_manager()
     print("All launchable_graph_scope tests passed!")
