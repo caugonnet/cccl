@@ -1581,9 +1581,22 @@ public:
   // nested-name syntax for backward compatibility.
   class graph_scope_guard;
   class launchable_graph_scope;
+  class launchable_graph;
 #if _CCCL_CTK_AT_LEAST(12, 4) && !defined(CUDASTF_DISABLE_CODE_GENERATION) && defined(__CUDACC__)
   class while_graph_scope_guard;
 #endif
+
+  //! \brief Shared-ownership flavor of pop_prologue().
+  //!
+  //! Runs pop_prologue() and wraps the resulting launchable_graph_handle into
+  //! a copyable / storable `launchable_graph` whose destructor runs
+  //! pop_epilogue() when the last shared copy dies. Use this when you want to
+  //! build a graph, stash it as a data member / in a container / return it
+  //! across function boundaries, and launch it many times before releasing.
+  //!
+  //! Defined out-of-line in stackable_ctx.cuh since the return type is only
+  //! declared there.
+  inline launchable_graph pop_prologue_shared();
 
   [[nodiscard]] graph_scope_guard
   graph_scope(const ::cuda::std::source_location& loc = ::cuda::std::source_location::current());
