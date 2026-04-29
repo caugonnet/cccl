@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <cstring>
 #include <exception>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -1149,14 +1150,41 @@ using stackable_token_t = stackable_logical_data<void_interface>;
   return static_cast<stackable_ctx*>(static_cast<void*>(h));
 }
 
-[[nodiscard]] stf_logical_data_handle to_opaque_sld(stackable_ld_t* p) noexcept
+// The C-facade stores stackable logical data behind an opaque handle.  Two
+// concrete pointee types exist: stackable_ld_t (for byte-buffer data created
+// by stf_stackable_logical_data*()) and stackable_token_t (for tokens created
+// by stf_stackable_token()).  They have distinct C++ types (different
+// stackable_logical_data<T> instantiations carrying different frozen_ld<T>
+// machinery across nested scopes), so we cannot collapse them at the opaque
+// boundary.  Instead, every stf_logical_data_handle coming from the stackable
+// API points at a tiny wrapper that records which kind of pointee it holds,
+// and every entry point dispatches through visit_sld() so the right concrete
+// type is used.
+struct stackable_ld_opaque
 {
-  return static_cast<stf_logical_data_handle>(static_cast<void*>(p));
+  bool is_token;
+  void* impl; // stackable_ld_t* if !is_token, stackable_token_t* otherwise
+};
+
+[[nodiscard]] stf_logical_data_handle to_opaque_sld(stackable_ld_opaque* w) noexcept
+{
+  return static_cast<stf_logical_data_handle>(static_cast<void*>(w));
 }
 
-[[nodiscard]] stackable_ld_t* from_opaque_sld(stf_logical_data_handle h) noexcept
+[[nodiscard]] stackable_ld_opaque* from_opaque_sld_wrapper(stf_logical_data_handle h) noexcept
 {
-  return static_cast<stackable_ld_t*>(static_cast<void*>(h));
+  return static_cast<stackable_ld_opaque*>(static_cast<void*>(h));
+}
+
+// Dispatch on the wrapper kind and forward the concrete stackable_logical_data<T>
+// reference to `f`.  Both instantiations expose the same member surface
+// (validate_access, get_ld, push, set_symbol, set_read_only, ...), so `f` is
+// a generic lambda accepting `auto&`.
+template <class F>
+decltype(auto) visit_sld(stf_logical_data_handle h, F&& f)
+{
+  auto* w = from_opaque_sld_wrapper(h);
+  return w->is_token ? f(*static_cast<stackable_token_t*>(w->impl)) : f(*static_cast<stackable_ld_t*>(w->impl));
 }
 
 #if _CCCL_CTK_AT_LEAST(12, 4)
@@ -1399,17 +1427,21 @@ void stf_stackable_while_cond_scalar(
   _CCCL_ASSERT(ld != nullptr, "stackable logical data handle must not be null");
 
   auto* sctx                             = from_opaque_sctx(ctx);
-  auto* sld                              = from_opaque_sld(ld);
   auto* guard                            = from_opaque_while(scope);
   cudaGraphConditionalHandle cond_handle = guard->cond_handle();
 
   const int offset = sctx->get_head_offset();
 
-  // Validate (and auto-push if necessary) the read access on this scope.
-  sld->validate_access(offset, *sctx, access_mode::read);
-
-  auto& underlying_ld = sld->get_ld(offset);
-  logical_data_untyped ld_ut{underlying_ld};
+  // Validate (and auto-push if necessary) the read access on this scope,
+  // then materialise the untyped logical_data for the task dep.  The
+  // concrete stackable_logical_data<T> is dispatched through visit_sld()
+  // so both slice<char>-backed data and void_interface tokens resolve
+  // correctly; the while-condition kernel below only makes sense on a
+  // scalar-typed slice, but validate_access/get_ld are type-agnostic.
+  logical_data_untyped ld_ut = visit_sld(ld, [&](auto& sld) {
+    sld.validate_access(offset, *sctx, access_mode::read);
+    return logical_data_untyped{sld.get_ld(offset)};
+  });
 
   auto& underlying_ctx = sctx->get_ctx(offset);
   auto task            = underlying_ctx.task();
@@ -1459,7 +1491,10 @@ stf_stackable_logical_data_with_place(stf_ctx_handle ctx, void* addr, size_t sz,
   auto* sctx = from_opaque_sctx(ctx);
   auto sld   = sctx->logical_data(make_slice(static_cast<char*>(addr), sz), *from_opaque(dplace));
   return to_opaque_sld(stf_try_allocate([&sld] {
-    return new stackable_ld_t{::std::move(sld)};
+    ::std::unique_ptr<stackable_ld_t> inner{new stackable_ld_t{::std::move(sld)}};
+    auto* w = new stackable_ld_opaque{false, inner.get()};
+    inner.release();
+    return w;
   }));
 }
 
@@ -1470,7 +1505,10 @@ stf_logical_data_handle stf_stackable_logical_data(stf_ctx_handle ctx, void* add
   auto* sctx = from_opaque_sctx(ctx);
   auto sld   = sctx->logical_data(make_slice(static_cast<char*>(addr), sz), data_place::host());
   return to_opaque_sld(stf_try_allocate([&sld] {
-    return new stackable_ld_t{::std::move(sld)};
+    ::std::unique_ptr<stackable_ld_t> inner{new stackable_ld_t{::std::move(sld)}};
+    auto* w = new stackable_ld_opaque{false, inner.get()};
+    inner.release();
+    return w;
   }));
 }
 
@@ -1481,7 +1519,10 @@ stf_logical_data_handle stf_stackable_logical_data_empty(stf_ctx_handle ctx, siz
   auto* sctx = from_opaque_sctx(ctx);
   auto sld   = sctx->logical_data(shape_of<slice<char>>(length));
   return to_opaque_sld(stf_try_allocate([&sld] {
-    return new stackable_ld_t{::std::move(sld)};
+    ::std::unique_ptr<stackable_ld_t> inner{new stackable_ld_t{::std::move(sld)}};
+    auto* w = new stackable_ld_opaque{false, inner.get()};
+    inner.release();
+    return w;
   }));
 }
 
@@ -1492,7 +1533,10 @@ stf_logical_data_handle stf_stackable_logical_data_no_export_empty(stf_ctx_handl
   auto* sctx = from_opaque_sctx(ctx);
   auto sld   = sctx->logical_data_no_export(shape_of<slice<char>>(length));
   return to_opaque_sld(stf_try_allocate([&sld] {
-    return new stackable_ld_t{::std::move(sld)};
+    ::std::unique_ptr<stackable_ld_t> inner{new stackable_ld_t{::std::move(sld)}};
+    auto* w = new stackable_ld_opaque{false, inner.get()};
+    inner.release();
+    return w;
   }));
 }
 
@@ -1502,48 +1546,74 @@ stf_logical_data_handle stf_stackable_token(stf_ctx_handle ctx)
 
   auto* sctx = from_opaque_sctx(ctx);
   auto token = sctx->token();
-  // Tokens use void_interface internally, store as the dedicated alias and
-  // require stf_stackable_token_destroy() for release.
-  return static_cast<stf_logical_data_handle>(static_cast<void*>(stf_try_allocate([&token] {
-    return new stackable_token_t{::std::move(token)};
-  })));
+  // Tokens use void_interface internally; the wrapper's is_token flag tells
+  // every entry point to dispatch through stackable_token_t (see visit_sld).
+  // stf_stackable_token_destroy() is still required for release so callers
+  // can match creation / destruction by name.
+  return to_opaque_sld(stf_try_allocate([&token] {
+    ::std::unique_ptr<stackable_token_t> inner{new stackable_token_t{::std::move(token)}};
+    auto* w = new stackable_ld_opaque{true, inner.get()};
+    inner.release();
+    return w;
+  }));
 }
 
 void stf_stackable_logical_data_set_symbol(stf_logical_data_handle ld, const char* symbol)
 {
   _CCCL_ASSERT(ld != nullptr, "stackable logical data handle must not be null");
   _CCCL_ASSERT(symbol != nullptr, "symbol must not be null");
-  from_opaque_sld(ld)->set_symbol(symbol);
+  visit_sld(ld, [symbol](auto& sld) {
+    sld.set_symbol(symbol);
+  });
 }
 
 void stf_stackable_logical_data_set_read_only(stf_logical_data_handle ld)
 {
   _CCCL_ASSERT(ld != nullptr, "stackable logical data handle must not be null");
-  from_opaque_sld(ld)->set_read_only();
+  visit_sld(ld, [](auto& sld) {
+    sld.set_read_only();
+  });
 }
 
-void stf_stackable_logical_data_push(
-  stf_logical_data_handle ld, stf_access_mode m, stf_data_place_handle dplace)
+void stf_stackable_logical_data_push(stf_logical_data_handle ld, stf_access_mode m, stf_data_place_handle dplace)
 {
   _CCCL_ASSERT(ld != nullptr, "stackable logical data handle must not be null");
-  if (dplace != nullptr)
-  {
-    from_opaque_sld(ld)->push(access_mode(m), *from_opaque(dplace));
-  }
-  else
-  {
-    from_opaque_sld(ld)->push(access_mode(m));
-  }
+  visit_sld(ld, [m, dplace](auto& sld) {
+    if (dplace != nullptr)
+    {
+      sld.push(access_mode(m), *from_opaque(dplace));
+    }
+    else
+    {
+      sld.push(access_mode(m));
+    }
+  });
 }
 
 void stf_stackable_logical_data_destroy(stf_logical_data_handle ld)
 {
-  delete from_opaque_sld(ld);
+  if (ld == nullptr)
+  {
+    return;
+  }
+  auto* w = from_opaque_sld_wrapper(ld);
+  _CCCL_ASSERT(!w->is_token,
+               "stf_stackable_logical_data_destroy called on a token handle; use stf_stackable_token_destroy instead");
+  delete static_cast<stackable_ld_t*>(w->impl);
+  delete w;
 }
 
 void stf_stackable_token_destroy(stf_logical_data_handle ld)
 {
-  delete static_cast<stackable_token_t*>(static_cast<void*>(ld));
+  if (ld == nullptr)
+  {
+    return;
+  }
+  auto* w = from_opaque_sld_wrapper(ld);
+  _CCCL_ASSERT(w->is_token,
+               "stf_stackable_token_destroy called on a non-token handle; use stf_stackable_logical_data_destroy");
+  delete static_cast<stackable_token_t*>(w->impl);
+  delete w;
 }
 
 stf_task_handle stf_stackable_task_create(stf_ctx_handle ctx)
@@ -1566,14 +1636,16 @@ void stf_stackable_task_add_dep(stf_ctx_handle ctx, stf_task_handle t, stf_logic
 
   auto* sctx     = from_opaque_sctx(ctx);
   auto* task_ptr = from_opaque(t);
-  auto* sld      = from_opaque_sld(ld);
 
   const int offset = sctx->get_head_offset();
-  // Validate access and auto-push data across scope boundaries before binding.
-  sld->validate_access(offset, *sctx, access_mode(m));
-
-  auto& underlying_ld = sld->get_ld(offset);
-  logical_data_untyped ld_ut{underlying_ld};
+  // Validate access and auto-push data across scope boundaries before
+  // binding, dispatching on the concrete stackable_logical_data<T> kind so
+  // that slice<char>-backed data and void_interface tokens both flow through
+  // the correct freeze/unfreeze machinery.
+  logical_data_untyped ld_ut = visit_sld(ld, [&](auto& sld) {
+    sld.validate_access(offset, *sctx, access_mode(m));
+    return logical_data_untyped{sld.get_ld(offset)};
+  });
   task_ptr->add_deps(task_dep_untyped(ld_ut, access_mode(m)));
 }
 
@@ -1587,13 +1659,12 @@ void stf_stackable_task_add_dep_with_dplace(
 
   auto* sctx     = from_opaque_sctx(ctx);
   auto* task_ptr = from_opaque(t);
-  auto* sld      = from_opaque_sld(ld);
 
-  const int offset = sctx->get_head_offset();
-  sld->validate_access(offset, *sctx, access_mode(m));
-
-  auto& underlying_ld = sld->get_ld(offset);
-  logical_data_untyped ld_ut{underlying_ld};
+  const int offset           = sctx->get_head_offset();
+  logical_data_untyped ld_ut = visit_sld(ld, [&](auto& sld) {
+    sld.validate_access(offset, *sctx, access_mode(m));
+    return logical_data_untyped{sld.get_ld(offset)};
+  });
   task_ptr->add_deps(task_dep_untyped(ld_ut, access_mode(m), *from_opaque(data_p)));
 }
 
@@ -1618,13 +1689,12 @@ void stf_stackable_host_launch_add_dep(
 
   auto* sctx      = from_opaque_sctx(ctx);
   auto* scope_ptr = static_cast<context::host_launch_builder*>(static_cast<void*>(h));
-  auto* sld       = from_opaque_sld(ld);
 
-  const int offset = sctx->get_head_offset();
-  sld->validate_access(offset, *sctx, access_mode(m));
-
-  auto& underlying_ld = sld->get_ld(offset);
-  logical_data_untyped ld_ut{underlying_ld};
+  const int offset           = sctx->get_head_offset();
+  logical_data_untyped ld_ut = visit_sld(ld, [&](auto& sld) {
+    sld.validate_access(offset, *sctx, access_mode(m));
+    return logical_data_untyped{sld.get_ld(offset)};
+  });
   scope_ptr->add_deps(task_dep_untyped(ld_ut, access_mode(m)));
 }
 
