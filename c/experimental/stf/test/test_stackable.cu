@@ -582,7 +582,7 @@ C2H_TEST("stackable: while-body K chained rw tasks sweep", "[stackable][while][c
     // family used by the probe.
     double* host_done;
     cudaMallocHost(&host_done, sizeof(double));
-    host_done[0] = 1.0;
+    host_done[0]               = 1.0;
     stf_logical_data_handle lD = stf_stackable_logical_data(ctx, host_done, sizeof(double));
     REQUIRE(lD != nullptr);
 

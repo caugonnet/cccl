@@ -33,12 +33,10 @@ import pytest
 torch = pytest.importorskip("torch")
 
 import warp as wp  # noqa: E402
-
-import cuda.stf as stf  # noqa: E402
-
 import wp_stf  # noqa: E402
 from pytorch_task import pytorch_task  # noqa: E402
 
+import cuda.stf as stf  # noqa: E402
 
 N = 1 << 14
 FRAMES = 3

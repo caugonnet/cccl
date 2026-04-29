@@ -86,8 +86,16 @@ def _cusolver():
 # cuSOLVER reuses cuBLAS' enum types for uplo / diag, so we share them.
 _FILL_FLIP = {"L": int(_cb.FillMode.UPPER), "U": int(_cb.FillMode.LOWER)}
 _SIDE_FLIP = {"L": int(_cb.SideMode.RIGHT), "R": int(_cb.SideMode.LEFT)}
-_OP_SAME = {"N": int(_cb.Operation.N), "T": int(_cb.Operation.T), "C": int(_cb.Operation.T)}
-_OP_FLIP = {"N": int(_cb.Operation.T), "T": int(_cb.Operation.N), "C": int(_cb.Operation.N)}
+_OP_SAME = {
+    "N": int(_cb.Operation.N),
+    "T": int(_cb.Operation.T),
+    "C": int(_cb.Operation.T),
+}
+_OP_FLIP = {
+    "N": int(_cb.Operation.T),
+    "T": int(_cb.Operation.N),
+    "C": int(_cb.Operation.N),
+}
 _DIAG = {"N": int(_cb.DiagType.NON_UNIT), "U": int(_cb.DiagType.UNIT)}
 _CUDA_R_64F = 1  # cudaDataType_t, per <library_types.h>
 
@@ -144,7 +152,6 @@ def _tricopy_kernel(uplo):
 
 def cai_to_numpy(cai_dict):
     """Convert CUDA Array Interface dict to NumPy array (for host memory)."""
-    import ctypes
 
     # Extract CAI fields
     data_ptr, readonly = cai_dict["data"]

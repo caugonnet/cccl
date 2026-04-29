@@ -1954,7 +1954,7 @@ inline void test_pop_prologue_manual_exec_launch()
   // Manual launches only: never call handle.launch(). exec() must be the
   // one to lazily sync the support stream behind the freeze events.
   cudaGraphExec_t ex = handle.exec();
-  cudaStream_t s    = handle.stream();
+  cudaStream_t s     = handle.stream();
   for (int k = 0; k < N; ++k)
   {
     cuda_safe_call(cudaGraphLaunch(ex, s));
@@ -2304,7 +2304,7 @@ UNITTEST("pop_prologue_shared tolerates manual pop_epilogue")
 #    if _CCCL_CTK_AT_LEAST(12, 4) && !defined(CUDASTF_DISABLE_CODE_GENERATION)
 inline void test_pop_prologue_with_while_graph_scope()
 {
-  constexpr int N = 3; // re-launch the whole while-graph 3 times
+  constexpr int N              = 3; // re-launch the whole while-graph 3 times
   constexpr size_t inner_iters = 4; // each launch runs the body 4 times
 
   stackable_ctx ctx;

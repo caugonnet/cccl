@@ -22,16 +22,15 @@
 // that share ONLY the caller stream (no handle). If the contract holds,
 // the final buffer must contain the LAST write (value 2).
 
-#include <cuda_runtime.h>
-
 #include <vector>
+
+#include <cuda_runtime.h>
 
 #include <c2h/catch2_test_helper.h>
 #include <cccl/c/experimental/stf/stf.h>
 
 namespace
 {
-
 // Writes `value` into every slot of `arr`. The inner busy loop widens the
 // kernel window so that a failure to chain ctx2-after-ctx1 is observable:
 // ctx1 is still running when ctx2's kernel races in.
@@ -77,12 +76,10 @@ void submit_set(stf_ctx_handle ctx, int* d_arr, int n, int value, int iters)
 
   stf_logical_data_destroy(tok);
 }
-
 } // namespace
 
 namespace
 {
-
 // Submits `K` concurrent token-tasks in a single context; each writes
 // `value` into its own slice of `d_arr`. Mirrors the failing MLP shape:
 // multiple independent tokens per context, so STF spreads the kernels
@@ -110,10 +107,10 @@ void run_ctx_k_concurrent(cudaStream_t s, int* d_arr, int N, int K, int value, i
     stf_task_add_dep(t, tok, STF_RW);
     stf_task_start(t);
 
-    CUstream ts         = stf_task_get_custream(t);
-    const int threads   = 128;
-    const int blocks    = (per + threads - 1) / threads;
-    int* slice          = d_arr + k * per;
+    CUstream ts       = stf_task_get_custream(t);
+    const int threads = 128;
+    const int blocks  = (per + threads - 1) / threads;
+    int* slice        = d_arr + k * per;
     slow_set_kernel<<<blocks, threads, 0, (cudaStream_t) ts>>>(slice, per, value, iters);
 
     stf_task_end(t);
@@ -123,7 +120,6 @@ void run_ctx_k_concurrent(cudaStream_t s, int* d_arr, int N, int K, int value, i
 
   stf_ctx_finalize(ctx);
 }
-
 } // namespace
 
 C2H_TEST("stf_ctx_create_ex: 1 token per context, back-to-back, stream-only", "[context][stream]")
@@ -181,7 +177,6 @@ C2H_TEST("stf_ctx_create_ex: 1 token per context, back-to-back, stream-only", "[
 
 namespace
 {
-
 // More faithful MLP mimic: K concurrent tokens, each with T chained tasks
 // (sequential RW on the same token), so each token effectively owns a
 // chain of T slow kernels on one pool stream. With K tokens, we get K
@@ -189,8 +184,7 @@ namespace
 // context (no shared handle) destructs while some of these chains are
 // still in flight, are the pool streams / pool-owned events / pool-owned
 // mempool freed too early?
-void run_ctx_k_chains(
-  cudaStream_t s, int* d_arr, int N, int K, int chain_len, int value, int iters)
+void run_ctx_k_chains(cudaStream_t s, int* d_arr, int N, int K, int chain_len, int value, int iters)
 {
   stf_ctx_options opts{};
   opts.backend    = STF_BACKEND_STREAM;
@@ -239,17 +233,15 @@ void run_ctx_k_chains(
   // before in-flight pool work drains, that's the bug we expect to see.
   stf_ctx_finalize(ctx);
 }
-
 } // namespace
 
-C2H_TEST(
-  "stf_ctx_create_ex: K chains of T tasks per token, back-to-back, stream-only, no handle "
-  "(mirrors the MLP-ensemble shape: pool lifetime vs in-flight outbound events)",
-  "[context][stream][tokens][lifetime]")
+C2H_TEST("stf_ctx_create_ex: K chains of T tasks per token, back-to-back, stream-only, no handle "
+         "(mirrors the MLP-ensemble shape: pool lifetime vs in-flight outbound events)",
+         "[context][stream][tokens][lifetime]")
 {
   constexpr int N         = 1 << 16;
-  constexpr int K         = 8;   // concurrent chains
-  constexpr int CHAIN_LEN = 20;  // 4 steps * 5 kernels per step in the MLP
+  constexpr int K         = 8; // concurrent chains
+  constexpr int CHAIN_LEN = 20; // 4 steps * 5 kernels per step in the MLP
   constexpr int ITERS     = 1 << 18;
 
   cudaStream_t s{};
@@ -283,9 +275,7 @@ C2H_TEST(
         }
       }
     }
-    INFO("iter=" << iter
-                 << " mismatches=" << mismatches
-                 << " first_bad_idx=" << first_bad_i
+    INFO("iter=" << iter << " mismatches=" << mismatches << " first_bad_idx=" << first_bad_i
                  << " first_bad_val=" << first_bad_v);
     REQUIRE(mismatches == 0);
   }
@@ -294,13 +284,12 @@ C2H_TEST(
   REQUIRE(cudaStreamDestroy(s) == cudaSuccess);
 }
 
-C2H_TEST(
-  "stf_ctx_create_ex: K concurrent tokens per context, back-to-back, stream-only "
-  "(mirrors the failing MLP-ensemble shape)",
-  "[context][stream][tokens]")
+C2H_TEST("stf_ctx_create_ex: K concurrent tokens per context, back-to-back, stream-only "
+         "(mirrors the failing MLP-ensemble shape)",
+         "[context][stream][tokens]")
 {
   constexpr int N     = 1 << 16;
-  constexpr int K     = 8;   // concurrent tokens per context
+  constexpr int K     = 8; // concurrent tokens per context
   constexpr int ITERS = 1 << 18;
 
   cudaStream_t s{};
@@ -324,9 +313,9 @@ C2H_TEST(
     std::vector<int> h_arr(N, 0);
     REQUIRE(cudaMemcpy(h_arr.data(), d_arr, N * sizeof(int), cudaMemcpyDeviceToHost) == cudaSuccess);
 
-    int mismatches   = 0;
-    int first_bad_i  = -1;
-    int first_bad_v  = 0;
+    int mismatches  = 0;
+    int first_bad_i = -1;
+    int first_bad_v = 0;
     for (int i = 0; i < N; ++i)
     {
       if (h_arr[i] != 2)
@@ -339,9 +328,7 @@ C2H_TEST(
         }
       }
     }
-    INFO("iter=" << iter
-                 << " mismatches=" << mismatches
-                 << " first_bad_idx=" << first_bad_i
+    INFO("iter=" << iter << " mismatches=" << mismatches << " first_bad_idx=" << first_bad_i
                  << " first_bad_val=" << first_bad_v);
     REQUIRE(mismatches == 0);
   }

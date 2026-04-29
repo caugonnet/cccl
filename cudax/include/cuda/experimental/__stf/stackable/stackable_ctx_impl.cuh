@@ -1150,11 +1150,7 @@ public:
       pending_epilogue_token_       = ::std::make_shared<int>(0);
       pending_epilogue_node_offset_ = head_offset;
 
-      return pop_prologue_result{
-        pending_epilogue_token_,
-        gnode->get_graph(),
-        gnode->support_stream,
-        head_offset};
+      return pop_prologue_result{pending_epilogue_token_, gnode->get_graph(), gnode->support_stream, head_offset};
     }
 
     /**
