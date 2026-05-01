@@ -61,6 +61,7 @@
 //!          Define CCCL_C_EXPERIMENTAL to acknowledge this.
 
 #pragma once
+// NOLINTBEGIN(modernize-use-using)
 
 #ifndef CCCL_C_EXPERIMENTAL
 #  error "C exposure is experimental and subject to change. Define CCCL_C_EXPERIMENTAL to acknowledge this notice."
@@ -489,12 +490,12 @@ typedef enum stf_backend_kind
 
 typedef struct stf_ctx_options
 {
-  stf_backend_kind           backend;    //!< Backend selector (default: STF_BACKEND_STREAM)
-  int                        has_stream; //!< 0: no caller stream; non-zero: inherit `stream`
-  cudaStream_t               stream;     //!< Caller-owned stream (used iff `has_stream != 0`).
-                                         //!< `cudaStream_t` is a pointer; `nullptr` is the NULL stream,
-                                         //!< not a sentinel -- use `has_stream` to say "no stream".
-  stf_async_resources_handle handle;     //!< Shared resources handle, or NULL for "create fresh"
+  stf_backend_kind backend; //!< Backend selector (default: STF_BACKEND_STREAM)
+  int has_stream; //!< 0: no caller stream; non-zero: inherit `stream`
+  cudaStream_t stream; //!< Caller-owned stream (used iff `has_stream != 0`).
+                       //!< `cudaStream_t` is a pointer; `nullptr` is the NULL stream,
+                       //!< not a sentinel -- use `has_stream` to say "no stream".
+  stf_async_resources_handle handle; //!< Shared resources handle, or NULL for "create fresh"
 } stf_ctx_options;
 
 //!
@@ -1918,8 +1919,7 @@ void stf_stackable_logical_data_set_read_only(stf_logical_data_handle ld);
 //! \param ld     Stackable logical data handle.
 //! \param m      Desired access mode in the current scope.
 //! \param dplace Optional data place; pass \c NULL for the default placement.
-void stf_stackable_logical_data_push(
-  stf_logical_data_handle ld, stf_access_mode m, stf_data_place_handle dplace);
+void stf_stackable_logical_data_push(stf_logical_data_handle ld, stf_access_mode m, stf_data_place_handle dplace);
 
 //! \brief Destroy stackable logical data created by \c stf_stackable_logical_data*().
 void stf_stackable_logical_data_destroy(stf_logical_data_handle ld);
@@ -1980,3 +1980,4 @@ void stf_stackable_host_launch_destroy(stf_host_launch_handle h);
 //! \}
 
 CCCL_C_EXTERN_C_END
+// NOLINTEND(modernize-use-using)

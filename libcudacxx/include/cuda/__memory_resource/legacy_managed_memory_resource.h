@@ -25,6 +25,7 @@
 
 #  include <cuda/__memory_resource/any_resource.h>
 #  include <cuda/__memory_resource/get_property.h>
+#  include <cuda/__memory_resource/memory_resource_base.h>
 #  include <cuda/__memory_resource/properties.h>
 #  include <cuda/__memory_resource/resource.h>
 #  include <cuda/__runtime/api_wrapper.h>
@@ -40,7 +41,7 @@
 _CCCL_BEGIN_NAMESPACE_CUDA_MR
 
 //! @brief \c managed_memory_resource uses `cudaMallocManaged` / `cudaFree` for allocation / deallocation.
-class legacy_managed_memory_resource
+class legacy_managed_memory_resource : public memory_resource_base<legacy_managed_memory_resource>
 {
 private:
   unsigned int __flags_ = cudaMemAttachGlobal;
@@ -136,8 +137,8 @@ public:
 private:
   device_ref __device_{0};
 };
-static_assert(::cuda::mr::synchronous_resource_with<legacy_managed_memory_resource, ::cuda::mr::device_accessible>, "");
-static_assert(::cuda::mr::synchronous_resource_with<legacy_managed_memory_resource, ::cuda::mr::host_accessible>, "");
+static_assert(::cuda::mr::synchronous_resource_with<legacy_managed_memory_resource, ::cuda::mr::device_accessible>);
+static_assert(::cuda::mr::synchronous_resource_with<legacy_managed_memory_resource, ::cuda::mr::host_accessible>);
 
 _CCCL_END_NAMESPACE_CUDA_MR
 
