@@ -72,7 +72,6 @@ from typing import Any
 
 import warp as wp
 
-
 __all__ = [
     "wrap_stream",
     "as_array",
@@ -107,7 +106,7 @@ __all__ = [
 
 _CUDART = ctypes.CDLL("libcudart.so")
 _CUDART.cudaStreamIsCapturing.argtypes = (
-    ctypes.c_void_p,           # cudaStream_t
+    ctypes.c_void_p,  # cudaStream_t
     ctypes.POINTER(ctypes.c_int),  # cudaStreamCaptureStatus*
 )
 _CUDART.cudaStreamIsCapturing.restype = ctypes.c_int
@@ -134,6 +133,7 @@ def _stream_capture_id(raw_ptr: int) -> int:
     (``runtime.core.wp_cuda_stream_get_capture_id``).
     """
     import warp._src.context as _wp_ctx  # private but stable
+
     return int(_wp_ctx.runtime.core.wp_cuda_stream_get_capture_id(int(raw_ptr)))
 
 
@@ -142,6 +142,7 @@ def _warp_already_tracks_capture(capture_id: int) -> bool:
     an enclosing scope already called ``wp.capture_begin``).
     """
     import warp._src.context as _wp_ctx  # private but stable
+
     return capture_id in _wp_ctx.runtime.captures
 
 

@@ -36,19 +36,18 @@
  *   - a shared `async_resources_handle` that outlives both contexts.
  */
 
-#include <cuda_runtime.h>
-
 #include <cuda/experimental/stf.cuh>
 
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
 
+#include <cuda_runtime.h>
+
 using namespace cuda::experimental::stf;
 
 namespace
 {
-
 // Writes `value` into every slot of `slice`. The clock64()-based busy
 // wait widens the kernel window so the kernel stays resident on the SM
 // long enough for ctx.finalize() to return *before* the kernel completes.
@@ -188,16 +187,23 @@ int run_once(int iter, int N, int K, int chain_len, long long ns, bool sync_betw
     }
   }
 
-  std::printf("  iter=%d mismatches=%d first_bad_idx=%d first_bad_val=%d\n",
-              iter, mismatches, first_bad_i, first_bad_v);
+  std::printf("  iter=%d mismatches=%d first_bad_idx=%d first_bad_val=%d\n", iter, mismatches, first_bad_i, first_bad_v);
 
   cudaFree(d_arr);
   cudaStreamDestroy(s);
   return mismatches;
 }
 
-void run_case(const char* label, int iters_outer, int N, int K, int chain_len, long long ns,
-              bool sync_between, bool with_handle, int& total_mismatches)
+void run_case(
+  const char* label,
+  int iters_outer,
+  int N,
+  int K,
+  int chain_len,
+  long long ns,
+  bool sync_between,
+  bool with_handle,
+  int& total_mismatches)
 {
   std::printf("== %s ==\n", label);
   for (int it = 0; it < iters_outer; ++it)
@@ -205,7 +211,6 @@ void run_case(const char* label, int iters_outer, int N, int K, int chain_len, l
     total_mismatches += run_once(it, N, K, chain_len, ns, sync_between, with_handle);
   }
 }
-
 } // namespace
 
 int main()
@@ -214,9 +219,9 @@ int main()
   // 4 steps * 5 kernels = 20 sequential kernels per chain. Each kernel
   // uses a big busy-loop so the context destructor races with in-flight
   // pool work when there is no sync/handle.
-  constexpr int N                = 1 << 16;
-  constexpr int K                = 16;
-  constexpr int CHAIN_LEN        = 40;
+  constexpr int N         = 1 << 16;
+  constexpr int K         = 16;
+  constexpr int CHAIN_LEN = 40;
   // ~5ms per kernel at 1GHz clock rate -> ~200ms of in-flight work per chain
   // when we return from ctx.finalize().
   constexpr long long BUSY_CYCLES = 5'000'000;
@@ -226,12 +231,36 @@ int main()
   int fail_nohandle_sync   = 0;
   int fail_handle_nosync   = 0;
 
-  run_case("NOhandle, no sync  (expected buggy)", OUTER, N, K, CHAIN_LEN, BUSY_CYCLES,
-           /*sync_between=*/false, /*with_handle=*/false, fail_nohandle_nosync);
-  run_case("NOhandle, sync between", OUTER, N, K, CHAIN_LEN, BUSY_CYCLES,
-           /*sync_between=*/true, /*with_handle=*/false, fail_nohandle_sync);
-  run_case("handle,   no sync", OUTER, N, K, CHAIN_LEN, BUSY_CYCLES,
-           /*sync_between=*/false, /*with_handle=*/true, fail_handle_nosync);
+  run_case(
+    "NOhandle, no sync  (expected buggy)",
+    OUTER,
+    N,
+    K,
+    CHAIN_LEN,
+    BUSY_CYCLES,
+    /*sync_between=*/false,
+    /*with_handle=*/false,
+    fail_nohandle_nosync);
+  run_case(
+    "NOhandle, sync between",
+    OUTER,
+    N,
+    K,
+    CHAIN_LEN,
+    BUSY_CYCLES,
+    /*sync_between=*/true,
+    /*with_handle=*/false,
+    fail_nohandle_sync);
+  run_case(
+    "handle,   no sync",
+    OUTER,
+    N,
+    K,
+    CHAIN_LEN,
+    BUSY_CYCLES,
+    /*sync_between=*/false,
+    /*with_handle=*/true,
+    fail_handle_nosync);
 
   std::printf("\nSummary (total mismatched slots across %d iters each):\n", OUTER);
   std::printf("  NOhandle, no sync  : %d\n", fail_nohandle_nosync);

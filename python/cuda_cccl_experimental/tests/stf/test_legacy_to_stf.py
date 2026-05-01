@@ -181,8 +181,7 @@ def lib_call(d_a, d_b):
 # ---------------------------------------------------------------------------
 
 
-def lib_call_token(d_a, d_b, use_graph: bool = False,
-                   stream=None, handle=None):
+def lib_call_token(d_a, d_b, use_graph: bool = False, stream=None, handle=None):
     """STF using tokens only: buffers stay under caller ownership.
 
     Mirrors ``lib_call_token`` in legacy_to_stf.cu. Tokens ``l_a`` / ``l_b``
@@ -250,9 +249,7 @@ def device_buffers():
 
 def _check(d_a, d_b):
     cuda.synchronize()
-    np.testing.assert_allclose(
-        d_b.copy_to_host(), expected(N), rtol=1e-12, atol=1e-12
-    )
+    np.testing.assert_allclose(d_b.copy_to_host(), expected(N), rtol=1e-12, atol=1e-12)
     np.testing.assert_allclose(
         d_a.copy_to_host(),
         np.sin(np.arange(N, dtype=np.float64)),
@@ -336,8 +333,13 @@ def _benchmark(sizes=None):
     Expected asymptote is ~1.17x (two of four kernels overlap).
     """
     if sizes is None:
-        sizes = [128 * 1024, 1024 * 1024, 8 * 1024 * 1024,
-                 32 * 1024 * 1024, 128 * 1024 * 1024]
+        sizes = [
+            128 * 1024,
+            1024 * 1024,
+            8 * 1024 * 1024,
+            32 * 1024 * 1024,
+            128 * 1024 * 1024,
+        ]
     for n in sizes:
         niter = 128 if n <= 8 * 1024 * 1024 else 32
         d_a = cuda.device_array(n, dtype=np.float64)
@@ -348,27 +350,31 @@ def _benchmark(sizes=None):
         # mirroring `lib_call_with_handle` in legacy_to_stf.cu.
         handle = stf.async_resources()
         print(f"\n=== N = {n:>12,}  ({n * 8 / 1e6:.1f} MB/array)  niter={niter} ===")
-        ref  = _time("ref_lib_call",
-                     lambda: ref_lib_call(stream, d_a, d_b),  niter)
-        ld   = _time("lib_call (logical_data)",
-                     lambda: lib_call(d_a, d_b),              niter)
-        tok  = _time("lib_call_token",
-                     lambda: lib_call_token(d_a, d_b),        niter)
-        tokg = _time("lib_call_token (graph)",
-                     lambda: lib_call_token(d_a, d_b, use_graph=True), niter)
-        tokh = _time("lib_call_token (+stream,+handle)",
-                     lambda: lib_call_token(d_a, d_b,
-                                            stream=stream, handle=handle),
-                     niter)
-        tokgh = _time("lib_call_token (graph,+stream,+handle)",
-                      lambda: lib_call_token(d_a, d_b, use_graph=True,
-                                             stream=stream, handle=handle),
-                      niter)
-        print(f"  token/ref                         {tok   / ref:10.2f}x")
-        print(f"  token(graph)/ref                  {tokg  / ref:10.2f}x")
-        print(f"  token(+stream,+handle)/ref        {tokh  / ref:10.2f}x")
+        ref = _time("ref_lib_call", lambda: ref_lib_call(stream, d_a, d_b), niter)
+        ld = _time("lib_call (logical_data)", lambda: lib_call(d_a, d_b), niter)
+        tok = _time("lib_call_token", lambda: lib_call_token(d_a, d_b), niter)
+        tokg = _time(
+            "lib_call_token (graph)",
+            lambda: lib_call_token(d_a, d_b, use_graph=True),
+            niter,
+        )
+        tokh = _time(
+            "lib_call_token (+stream,+handle)",
+            lambda: lib_call_token(d_a, d_b, stream=stream, handle=handle),
+            niter,
+        )
+        tokgh = _time(
+            "lib_call_token (graph,+stream,+handle)",
+            lambda: lib_call_token(
+                d_a, d_b, use_graph=True, stream=stream, handle=handle
+            ),
+            niter,
+        )
+        print(f"  token/ref                         {tok / ref:10.2f}x")
+        print(f"  token(graph)/ref                  {tokg / ref:10.2f}x")
+        print(f"  token(+stream,+handle)/ref        {tokh / ref:10.2f}x")
         print(f"  token(graph,+stream,+handle)/ref  {tokgh / ref:10.2f}x")
-        print(f"  logical_data/ref                  {ld    / ref:10.2f}x")
+        print(f"  logical_data/ref                  {ld / ref:10.2f}x")
 
         ref_lib_call(stream, d_a, d_b)
         stream.synchronize()
@@ -383,8 +389,14 @@ def _benchmark(sizes=None):
 
 if __name__ == "__main__":
     import argparse
+
     p = argparse.ArgumentParser()
-    p.add_argument("--n", type=int, nargs="*", default=None,
-                   help="problem size(s) in elements (default sweeps 128K..128M)")
+    p.add_argument(
+        "--n",
+        type=int,
+        nargs="*",
+        default=None,
+        help="problem size(s) in elements (default sweeps 128K..128M)",
+    )
     args = p.parse_args()
     _benchmark(sizes=args.n)
