@@ -7,23 +7,26 @@ set -euo pipefail
 # Install GCC 13 toolset (needed for the build)
 /workspace/ci/util/retry.sh 5 30 dnf -y install gcc-toolset-13-gcc gcc-toolset-13-gcc-c++
 echo -e "#!/bin/bash\nsource /opt/rh/gcc-toolset-13/enable" >/etc/profile.d/enable_devtools.sh
+# shellcheck source=/dev/null
 source /etc/profile.d/enable_devtools.sh
 
 # Check what's available
-which gcc
+command -v gcc
 gcc --version
-which nvcc
+command -v nvcc
 nvcc --version
 
 # Set up Python environment
+# shellcheck source=/dev/null
 source /workspace/ci/pyenv_helper.sh
+: "${py_version:?py_version must be set}"
 setup_python_env "${py_version}"
-which python
+command -v python
 python --version
 echo "Done setting up python env"
 
 # Figure out the version to use for the package, we need repo history
-if $(git rev-parse --is-shallow-repository); then
+if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
   git fetch --unshallow
 fi
 export PACKAGE_VERSION_PREFIX="0.1."
@@ -39,9 +42,10 @@ cuda_version=$(nvcc --version | grep -oP 'release \K[0-9]+\.[0-9]+' | cut -d. -f
 echo "Detected CUDA version: ${cuda_version}"
 
 # Configure compilers:
-export CXX="$(which g++)"
-export CUDACXX="$(which nvcc)"
-export CUDAHOSTCXX="$(which g++)"
+CXX="$(command -v g++)"
+CUDACXX="$(command -v nvcc)"
+CUDAHOSTCXX="$(command -v g++)"
+export CXX CUDACXX CUDAHOSTCXX
 
 # Build the wheel
 python -m pip wheel --no-deps --verbose --wheel-dir dist .

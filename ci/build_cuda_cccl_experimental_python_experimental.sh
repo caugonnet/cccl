@@ -11,19 +11,19 @@ parse_python_args "$@"
 # Check if py_version was provided (this script requires it)
 require_py_version "$usage" || exit 1
 
-echo "Docker socket: " $(ls /var/run/docker.sock)
+echo "Docker socket: $(ls /var/run/docker.sock)"
 
 if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
   # Prepare mount points etc for getting artifacts in/out of the container.
   source "$ci_dir/util/artifacts/common.sh"
-  action_mounts=$(cat <<EOF
-    --mount type=bind,source=${ARTIFACT_ARCHIVES},target=${ARTIFACT_ARCHIVES} \
-    --mount type=bind,source=${ARTIFACT_UPLOAD_STAGE},target=${ARTIFACT_UPLOAD_STAGE}
-EOF
-)
+  : "${HOST_WORKSPACE:?HOST_WORKSPACE must be set in GitHub Actions}"
+  action_mounts=(
+    --mount "type=bind,source=${ARTIFACT_ARCHIVES},target=${ARTIFACT_ARCHIVES}"
+    --mount "type=bind,source=${ARTIFACT_UPLOAD_STAGE},target=${ARTIFACT_UPLOAD_STAGE}"
+  )
 
 else
-  action_mounts=""
+  action_mounts=()
 fi
 
 readonly cuda12_version=12.9.1
@@ -42,24 +42,28 @@ fi
 mkdir -p wheelhouse_experimental
 
 for ctk in 12 13; do
-  image=$(eval echo \$cuda${ctk}_image)
+  case "${ctk}" in
+    12) image="${cuda12_image}" ;;
+    13) image="${cuda13_image}" ;;
+    *) echo "Unsupported CUDA major version: ${ctk}" && exit 1 ;;
+  esac
   echo "::group::⚒️ Building CUDA ${ctk} experimental wheel on ${image}"
   (
     set -x
-    docker pull $image
+    docker pull "$image"
     docker run --rm -i \
         --workdir /workspace/python/cuda_cccl_experimental \
-        --mount type=bind,source=${HOST_WORKSPACE},target=/workspace/ \
-        ${action_mounts} \
-        --env py_version=${py_version} \
-        --env GITHUB_ACTIONS=${GITHUB_ACTIONS:-} \
-        --env GITHUB_RUN_ID=${GITHUB_RUN_ID:-} \
-        --env JOB_ID=${JOB_ID:-} \
-        $image \
+        --mount "type=bind,source=${HOST_WORKSPACE},target=/workspace/" \
+        "${action_mounts[@]}" \
+        --env "py_version=${py_version}" \
+        --env "GITHUB_ACTIONS=${GITHUB_ACTIONS:-}" \
+        --env "GITHUB_RUN_ID=${GITHUB_RUN_ID:-}" \
+        --env "JOB_ID=${JOB_ID:-}" \
+        "$image" \
         /workspace/ci/build_cuda_cccl_experimental_wheel.sh
     # Prevent GHA runners from exhausting available storage with leftover images:
     if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
-      docker rmi -f $image
+      docker rmi -f "$image"
     fi
   )
   echo "::endgroup::"
@@ -126,5 +130,5 @@ ls -la wheelhouse_experimental/
 
 if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
   wheel_artifact_name="$(ci/util/workflow/get_wheel_artifact_name.sh)_experimental"
-  ci/util/artifacts/upload.sh $wheel_artifact_name 'wheelhouse_experimental/.*'
+  ci/util/artifacts/upload.sh "$wheel_artifact_name" 'wheelhouse_experimental/.*'
 fi

@@ -16,7 +16,7 @@ setup_python_env "${py_version}"
 # Fetch or build the cuda_cccl wheel (base dependency):
 if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
   wheel_artifact_name=$("$ci_dir/util/workflow/get_wheel_artifact_name.sh")
-  "$ci_dir/util/artifacts/download.sh" ${wheel_artifact_name} /home/coder/cccl/
+  "$ci_dir/util/artifacts/download.sh" "${wheel_artifact_name}" /home/coder/cccl/
 else
   "$ci_dir/build_cuda_cccl_python.sh" -py-version "${py_version}"
 fi
@@ -28,7 +28,7 @@ python -m pip install "${CUDA_CCCL_WHEEL_PATH}[cu${cuda_major_version}]"
 # Fetch or build the experimental wheel:
 if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
   experimental_artifact_name="${wheel_artifact_name}_experimental"
-  "$ci_dir/util/artifacts/download.sh" ${experimental_artifact_name} /home/coder/cccl/
+  "$ci_dir/util/artifacts/download.sh" "${experimental_artifact_name}" /home/coder/cccl/
 else
   "$ci_dir/build_cuda_cccl_experimental_python_experimental.sh" -py-version "${py_version}"
 fi
