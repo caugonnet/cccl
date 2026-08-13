@@ -309,10 +309,38 @@ struct sweep_dim_fun
   static constexpr bool ascending_v = ascending;
   static constexpr size_t seq_pos_v = seq_pos;
   FB body;
+  // Coherence validation (refined path): the GLOBAL seq bounds. A base
+  // partitioner that splits the sequential dimension produces per-place
+  // bounds that differ from these, which is an error.
+  size_t expect_lo = static_cast<size_t>(-1);
+  size_t expect_hi = static_cast<size_t>(-1);
 };
 
 template <typename T>
 struct is_sweep_dim_fun : ::std::false_type
+{};
+
+/**
+ * @brief Launch-site execution refinement (residence-spec v2, phase 3): a
+ * partitioner wrapper declaring one dimension thread-sequential. The BASE
+ * partitioner alone drives data placement and shape decomposition (value
+ * semantics preserved); the refinement is consumed by codegen only.
+ */
+template <typename P, size_t seq_pos, bool ascending>
+struct refined_partition
+{
+  using base_t                      = P;
+  static constexpr size_t seq_pos_v = seq_pos;
+  static constexpr bool ascending_v = ascending;
+  P base;
+};
+
+template <typename T>
+struct is_refined_partition : ::std::false_type
+{};
+
+template <typename P, size_t seq_pos, bool ascending>
+struct is_refined_partition<refined_partition<P, seq_pos, ascending>> : ::std::true_type
 {};
 
 template <bool ascending, size_t seq_pos, typename FB>
@@ -1015,6 +1043,33 @@ public:
   template <typename Fun>
   void operator->*(Fun&& f)
   {
+    // Phase 3 (residence-spec v2): a refined partitioner declares the
+    // sequential dimension on the launch site. Delegate to a scope over the
+    // BASE partitioner (identical data placement and decomposition) with the
+    // body wrapped as a bounds-validating sweep.
+    if constexpr (reserved::is_refined_partition<partitioner_t>::value)
+    {
+      using base_t        = typename partitioner_t::base_t;
+      constexpr size_t sp = partitioner_t::seq_pos_v;
+      auto wrapped        = reserved::sweep_dim_fun<partitioner_t::ascending_v, sp, ::std::remove_reference_t<Fun>>{
+        ::std::forward<Fun>(f),
+        static_cast<size_t>(shape.get_begin(sp)),
+        static_cast<size_t>(shape.get_end(sp))};
+      ::std::apply(
+        [&](auto&... ds) {
+          parallel_for_scope<context, exec_place_t, shape_t, base_t, deps_ops_t...> inner(
+            ctx, p_.base, e_place, shape, ds...);
+          if (!symbol.empty())
+          {
+            inner.set_symbol(symbol);
+          }
+          inner->*mv(wrapped);
+        },
+        deps);
+      return;
+    }
+    else
+    {
     auto& dot        = *ctx.get_dot();
     auto& statistics = reserved::task_statistics::instance();
     auto t           = ctx.task(e_place);
@@ -1199,6 +1254,7 @@ public:
       // This point is never reachable, but we can't prove that statically.
       assert(!"Internal CUDASTF error.");
     }
+    } // end refined-partitioner else
   }
 
   /**
@@ -1423,6 +1479,11 @@ public:
       constexpr size_t sp = FunT::seq_pos_v;
       const size_t lo     = static_cast<size_t>(sub_shape.get_begin(sp));
       const size_t hi     = static_cast<size_t>(sub_shape.get_end(sp));
+      if (f.expect_lo != static_cast<size_t>(-1))
+      {
+        EXPECT((lo == f.expect_lo && hi == f.expect_hi),
+               "execution refinement: the sequential dimension must not be partitioned by the base partitioner");
+      }
       auto par_shape      = reserved::box_drop_dim<sp>(sub_shape);
       return do_parallel_for(
         reserved::sweep_coords_fun<FunT::ascending_v, sp, decltype(f.body)>{f.body, lo, hi},
@@ -1735,6 +1796,27 @@ template <size_t seq_pos, typename FB>
 auto sweep_dim_desc(FB body)
 {
   return reserved::sweep_dim_fun<false, seq_pos, FB>{mv(body)};
+}
+
+/**
+ * @brief Refine a partitioner with an ascending thread-sequential dimension
+ * (residence-spec v2 execution refinement):
+ *   parallel_for(refine_seq<1>(blocked_partition()), where, box3, deps...)
+ *     ->*plain_body;
+ * The base partitioner alone drives data placement; a base that partitions
+ * the declared dimension is rejected at launch.
+ */
+template <size_t seq_pos, typename P>
+auto refine_seq(P p)
+{
+  return reserved::refined_partition<P, seq_pos, true>{mv(p)};
+}
+
+//! Descending counterpart of refine_seq.
+template <size_t seq_pos, typename P>
+auto refine_seq_desc(P p)
+{
+  return reserved::refined_partition<P, seq_pos, false>{mv(p)};
 }
 
 #endif // !defined(CUDASTF_DISABLE_CODE_GENERATION) && _CCCL_CUDA_COMPILATION()
