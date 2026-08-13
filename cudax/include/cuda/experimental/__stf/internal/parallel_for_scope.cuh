@@ -296,6 +296,45 @@ template <typename T>
 struct is_sweep_range_fun : ::std::false_type
 {};
 
+/**
+ * @brief Spec-integrated sweep marker (phase 2b): no explicit bounds -- the
+ * sequential dimension seq_pos is declared once and its per-place bounds are
+ * DERIVED from the (partitioned) iteration box. The body receives the
+ * parallel coordinates, a coord_seq_range of full natural coordinates, and
+ * the data instances.
+ */
+template <bool ascending, size_t seq_pos, typename FB>
+struct sweep_dim_fun
+{
+  static constexpr bool ascending_v = ascending;
+  static constexpr size_t seq_pos_v = seq_pos;
+  FB body;
+};
+
+template <typename T>
+struct is_sweep_dim_fun : ::std::false_type
+{};
+
+template <bool ascending, size_t seq_pos, typename FB>
+struct is_sweep_dim_fun<sweep_dim_fun<ascending, seq_pos, FB>> : ::std::true_type
+{};
+
+//! Drop one dimension from a box (phase 2b: project out the seq dimension)
+template <size_t sp, size_t D>
+_CCCL_HOST_DEVICE inline box<D - 1> box_drop_dim(const box<D>& b)
+{
+  ::std::array<::std::pair<::std::ptrdiff_t, ::std::ptrdiff_t>, D - 1> bounds;
+  size_t w = 0;
+  for (size_t d = 0; d < D; d++)
+  {
+    if (d != sp)
+    {
+      bounds[w++] = {b.get_begin(d), b.get_end(d)};
+    }
+  }
+  return box<D - 1>(bounds);
+}
+
 template <typename T>
 struct is_sweep_coords_fun : ::std::false_type
 {};
@@ -306,6 +345,10 @@ struct is_sweep_coords_fun<sweep_coords_fun<ascending, seq_pos, FB>> : ::std::tr
 
 template <bool ascending, size_t seq_pos, typename FB>
 struct is_sweep_fun<sweep_coords_fun<ascending, seq_pos, FB>> : ::std::true_type
+{};
+
+template <bool ascending, size_t seq_pos, typename FB>
+struct is_sweep_fun<sweep_dim_fun<ascending, seq_pos, FB>> : ::std::true_type
 {};
 
 template <bool ascending, typename FB>
@@ -1370,6 +1413,27 @@ public:
       return do_parallel_for(::std::forward<Fun>(f), exec_place::current_device(), sub_shape, t, place_index);
     }
 
+    // Phase 2b: a sweep_dim functor declares WHICH dimension is sequential;
+    // its bounds come from this (per-place) iteration box. Project the box
+    // and continue as a coordinate-range sweep. The body is copied (not
+    // moved): on grids this function runs once per place.
+    if constexpr (reserved::is_sweep_dim_fun<::std::remove_reference_t<Fun>>::value)
+    {
+      using FunT          = ::std::remove_reference_t<Fun>;
+      constexpr size_t sp = FunT::seq_pos_v;
+      const size_t lo     = static_cast<size_t>(sub_shape.get_begin(sp));
+      const size_t hi     = static_cast<size_t>(sub_shape.get_end(sp));
+      auto par_shape      = reserved::box_drop_dim<sp>(sub_shape);
+      return do_parallel_for(
+        reserved::sweep_coords_fun<FunT::ascending_v, sp, decltype(f.body)>{f.body, lo, hi},
+        sub_exec_place,
+        par_shape,
+        t,
+        place_index);
+    }
+    else
+    {
+
     using Fun_no_ref = ::std::remove_reference_t<Fun>;
 
     static const auto conf = [] {
@@ -1469,6 +1533,7 @@ public:
       fprintf(stderr, "Internal error.\n");
       abort();
     }
+    } // end phase-2b else
   }
 
   // Executes loop on the host.
@@ -1651,6 +1716,25 @@ template <size_t seq_pos, typename FB>
 auto sweep_coords_desc(size_t lo, size_t hi, FB body)
 {
   return reserved::sweep_coords_fun<false, seq_pos, FB>{mv(body), lo, hi};
+}
+
+/**
+ * @brief Spec-integrated ascending sweep (phase 2b): declare the sequential
+ * dimension once; its per-place bounds derive from the iteration box. Pass
+ * the NATURAL full-rank box to parallel_for:
+ *   parallel_for(part, where, box3, deps...)->*sweep_dim<1>(body);
+ */
+template <size_t seq_pos, typename FB>
+auto sweep_dim(FB body)
+{
+  return reserved::sweep_dim_fun<true, seq_pos, FB>{mv(body)};
+}
+
+//! Descending counterpart of sweep_dim.
+template <size_t seq_pos, typename FB>
+auto sweep_dim_desc(FB body)
+{
+  return reserved::sweep_dim_fun<false, seq_pos, FB>{mv(body)};
 }
 
 #endif // !defined(CUDASTF_DISABLE_CODE_GENERATION) && _CCCL_CUDA_COMPILATION()
