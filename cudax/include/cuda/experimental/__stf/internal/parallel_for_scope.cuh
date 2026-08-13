@@ -206,6 +206,75 @@ struct seq_range
 };
 
 /**
+ * @brief Iterable over a thread's owned COORDINATES (phase-2 form): yields
+ * the full natural coordinate (rank = parallel rank + 1) with the
+ * sequential dimension's value inserted at compile-time position SeqPos.
+ * Bodies write `for (auto [i, j, k] : own)` -- the natural index space --
+ * and keep carries as plain locals. The hierarchical (cute-mode) coordinate
+ * is the planned spec-integrated generalization of this type.
+ */
+template <bool ascending, size_t rank, size_t seq_pos>
+struct coord_seq_range
+{
+  static_assert(seq_pos < rank, "the sequential dimension must be one of the coordinate's slots");
+
+  ::cuda::std::array<size_t, rank> base; // seq slot ignored
+  size_t lo, hi;                         // [lo, hi)
+
+  struct iterator
+  {
+    ::cuda::std::array<size_t, rank> cur;
+    _CCCL_HOST_DEVICE const ::cuda::std::array<size_t, rank>& operator*() const
+    {
+      return cur;
+    }
+    _CCCL_HOST_DEVICE iterator& operator++()
+    {
+      if constexpr (ascending)
+      {
+        ++::cuda::std::get<seq_pos>(cur);
+      }
+      else
+      {
+        --::cuda::std::get<seq_pos>(cur);
+      }
+      return *this;
+    }
+    _CCCL_HOST_DEVICE bool operator!=(const iterator& o) const
+    {
+      return ::cuda::std::get<seq_pos>(cur) != ::cuda::std::get<seq_pos>(o.cur);
+    }
+  };
+
+  _CCCL_HOST_DEVICE iterator begin() const
+  {
+    auto c                          = base;
+    ::cuda::std::get<seq_pos>(c) = ascending ? lo : hi - 1;
+    return {c};
+  }
+  _CCCL_HOST_DEVICE iterator end() const
+  {
+    auto c                          = base;
+    ::cuda::std::get<seq_pos>(c) = ascending ? hi : lo - 1;
+    return {c};
+  }
+};
+
+/**
+ * @brief Coordinate-range sweep marker: `body(par_coords..., own, data...)`
+ * where `own` is a coord_seq_range yielding full natural coordinates.
+ */
+template <bool ascending, size_t seq_pos, typename FB>
+struct sweep_coords_fun
+{
+  static constexpr bool ascending_v = ascending;
+  static constexpr size_t seq_pos_v = seq_pos;
+  FB body;
+  size_t lo;
+  size_t hi;
+};
+
+/**
  * @brief Range-form sweep marker: `body(coords..., seq_range, data...)` is
  * called once per thread; the body iterates its own sequential range and
  * keeps carried values as plain locals.
@@ -225,6 +294,18 @@ struct is_sweep_bind_fun : ::std::false_type
 
 template <typename T>
 struct is_sweep_range_fun : ::std::false_type
+{};
+
+template <typename T>
+struct is_sweep_coords_fun : ::std::false_type
+{};
+
+template <bool ascending, size_t seq_pos, typename FB>
+struct is_sweep_coords_fun<sweep_coords_fun<ascending, seq_pos, FB>> : ::std::true_type
+{};
+
+template <bool ascending, size_t seq_pos, typename FB>
+struct is_sweep_fun<sweep_coords_fun<ascending, seq_pos, FB>> : ::std::true_type
 {};
 
 template <bool ascending, typename FB>
@@ -261,7 +342,26 @@ __global__ void loop_seq(const _CCCL_GRID_CONSTANT size_t n, shape_t shape, SF s
   auto const explode_args = [&](auto&... data) {
     _CCCL_DIAG_SUPPRESS_NVHPC(no_device_stack)
     auto const explode_coords = [&](auto&&... coords) {
-      if constexpr (is_sweep_range_fun<SF>::value)
+      if constexpr (is_sweep_coords_fun<SF>::value)
+      {
+        // Coordinate-range form: the body iterates full natural coordinates.
+        constexpr size_t rank = sizeof...(coords) + 1;
+        constexpr size_t sp   = SF::seq_pos_v;
+        ::cuda::std::array<size_t, rank> base{};
+        {
+          const size_t par[] = {static_cast<size_t>(coords)...};
+          size_t w           = 0;
+          for (size_t d = 0; d < rank; d++)
+          {
+            if (d != sp)
+            {
+              base[d] = par[w++];
+            }
+          }
+        }
+        sf.body(coords..., coord_seq_range<SF::ascending_v, rank, sp>{base, sf.lo, sf.hi}, data...);
+      }
+      else if constexpr (is_sweep_range_fun<SF>::value)
       {
         // Range form: hand the thread its sequential range; carried values
         // are ordinary locals inside the user body.
@@ -1533,6 +1633,24 @@ template <typename FB>
 auto sweep_range_desc(size_t lo, size_t hi, FB body)
 {
   return reserved::sweep_range_fun<false, FB>{mv(body), lo, hi};
+}
+
+/**
+ * @brief Coordinate-range ascending sweep (phase 2): `body(par_coords...,
+ * own, data...)` where `own` yields full natural coordinates with the
+ * sequential value in slot seq_pos: `for (auto [i, j, k] : own)`.
+ */
+template <size_t seq_pos, typename FB>
+auto sweep_coords_asc(size_t lo, size_t hi, FB body)
+{
+  return reserved::sweep_coords_fun<true, seq_pos, FB>{mv(body), lo, hi};
+}
+
+//! Descending counterpart of sweep_coords_asc.
+template <size_t seq_pos, typename FB>
+auto sweep_coords_desc(size_t lo, size_t hi, FB body)
+{
+  return reserved::sweep_coords_fun<false, seq_pos, FB>{mv(body), lo, hi};
 }
 
 #endif // !defined(CUDASTF_DISABLE_CODE_GENERATION) && _CCCL_CUDA_COMPILATION()
