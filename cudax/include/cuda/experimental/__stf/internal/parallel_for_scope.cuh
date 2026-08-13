@@ -122,6 +122,211 @@ __global__ void loop(const _CCCL_GRID_CONSTANT size_t n, shape_t shape, F f, tup
 }
 
 /**
+ * @brief Marker functor bundling a sweep's init and step callables plus the
+ * sequential dimension's bounds and direction (residence-spec design, phase
+ * 1). Pass an instance to parallel_for's `operator->*`; do_parallel_for
+ * detects it and dispatches to the loop_seq kernel.
+ */
+template <bool ascending, typename FI, typename FS>
+struct sweep_fun
+{
+  static constexpr bool ascending_v = ascending;
+  FI init;
+  FS step;
+  size_t lo;
+  size_t hi;
+};
+
+/**
+ * @brief Bind-form sweep marker: `bind(coords..., data...)` is called ONCE
+ * per thread and returns the per-iteration marcher (a mutable closure whose
+ * captures hold the carried state and the bound slices). Avoids re-passing
+ * the data instances on every sequential iteration.
+ */
+template <bool ascending, typename FB>
+struct sweep_bind_fun
+{
+  static constexpr bool ascending_v = ascending;
+  FB bind;
+  size_t lo;
+  size_t hi;
+};
+
+template <typename T>
+struct is_sweep_fun : ::std::false_type
+{};
+
+template <bool ascending, typename FB>
+struct is_sweep_fun<sweep_bind_fun<ascending, FB>> : ::std::true_type
+{};
+
+/**
+ * @brief Iterable over a thread's owned sequential indices, in the sweep's
+ * declared order. Range-form sweep bodies write `for (size_t j : range)` and
+ * keep any carried values as ordinary local variables.
+ */
+template <bool ascending>
+struct seq_range
+{
+  size_t lo, hi; // [lo, hi)
+
+  struct iterator
+  {
+    size_t v;
+    _CCCL_HOST_DEVICE size_t operator*() const
+    {
+      return v;
+    }
+    _CCCL_HOST_DEVICE iterator& operator++()
+    {
+      if constexpr (ascending)
+      {
+        ++v;
+      }
+      else
+      {
+        --v;
+      }
+      return *this;
+    }
+    _CCCL_HOST_DEVICE bool operator!=(const iterator& o) const
+    {
+      return v != o.v;
+    }
+  };
+
+  _CCCL_HOST_DEVICE iterator begin() const
+  {
+    return {ascending ? lo : hi - 1};
+  }
+  _CCCL_HOST_DEVICE iterator end() const
+  {
+    return {ascending ? hi : lo - 1};
+  }
+};
+
+/**
+ * @brief Range-form sweep marker: `body(coords..., seq_range, data...)` is
+ * called once per thread; the body iterates its own sequential range and
+ * keeps carried values as plain locals.
+ */
+template <bool ascending, typename FB>
+struct sweep_range_fun
+{
+  static constexpr bool ascending_v = ascending;
+  FB body;
+  size_t lo;
+  size_t hi;
+};
+
+template <typename T>
+struct is_sweep_bind_fun : ::std::false_type
+{};
+
+template <typename T>
+struct is_sweep_range_fun : ::std::false_type
+{};
+
+template <bool ascending, typename FB>
+struct is_sweep_range_fun<sweep_range_fun<ascending, FB>> : ::std::true_type
+{};
+
+template <bool ascending, typename FB>
+struct is_sweep_fun<sweep_range_fun<ascending, FB>> : ::std::true_type
+{};
+
+template <bool ascending, typename FB>
+struct is_sweep_bind_fun<sweep_bind_fun<ascending, FB>> : ::std::true_type
+{};
+
+template <bool ascending, typename FI, typename FS>
+struct is_sweep_fun<sweep_fun<ascending, FI, FS>> : ::std::true_type
+{};
+
+/**
+ * @brief Device kernel for sweeps: grid-strides over the PARALLEL shape and
+ * runs the sequential dimension inline, calling the user step directly (no
+ * wrapper-lambda indirection). The per-thread carried state is returned by
+ * sf.init and passed by reference to every sf.step call:
+ *   state = init(par_coords..., data...);
+ *   step(par_coords..., j, state, data...) for j in [lo, hi) (or reversed).
+ */
+template <typename SF, typename shape_t, typename tuple_args>
+__global__ void loop_seq(const _CCCL_GRID_CONSTANT size_t n, shape_t shape, SF sf, tuple_args targs)
+{
+  size_t i          = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t step = blockDim.x * gridDim.x;
+
+  _CCCL_DIAG_SUPPRESS_NVHPC(no_device_stack)
+  auto const explode_args = [&](auto&... data) {
+    _CCCL_DIAG_SUPPRESS_NVHPC(no_device_stack)
+    auto const explode_coords = [&](auto&&... coords) {
+      if constexpr (is_sweep_range_fun<SF>::value)
+      {
+        // Range form: hand the thread its sequential range; carried values
+        // are ordinary locals inside the user body.
+        sf.body(coords..., seq_range<SF::ascending_v>{sf.lo, sf.hi}, data...);
+      }
+      else if constexpr (is_sweep_bind_fun<SF>::value)
+      {
+        // Bind form: slices and carry are captured ONCE per thread.
+        auto body = sf.bind(coords..., data...);
+        if constexpr (SF::ascending_v)
+        {
+          for (size_t j = sf.lo; j < sf.hi; j++)
+          {
+            body(j);
+          }
+        }
+        else
+        {
+          for (size_t j = sf.hi - 1;; j--)
+          {
+            body(j);
+            if (j == sf.lo)
+            {
+              break;
+            }
+          }
+        }
+      }
+      else
+      {
+        auto st = sf.init(coords..., data...);
+        if constexpr (SF::ascending_v)
+        {
+          for (size_t j = sf.lo; j < sf.hi; j++)
+          {
+            sf.step(coords..., j, st, data...);
+          }
+        }
+        else
+        {
+          for (size_t j = sf.hi - 1;; j--)
+          {
+            sf.step(coords..., j, st, data...);
+            if (j == sf.lo)
+            {
+              break;
+            }
+          }
+        }
+      }
+    };
+    for (; i < n; i += step)
+    {
+      auto coords = shape.index_to_coords(i);
+      if (!::cuda::experimental::stf::reserved::__shape_contains(shape, coords, 0))
+      {
+        continue;
+      }
+      ::cuda::experimental::stf::reserved::__apply_coords(explode_coords, mv(coords));
+    }
+  };
+  ::std::apply(explode_args, targs);
+}
+
+/**
  * @brief This wraps tuple of arguments and operators into a class that stores
  * a tuple of arguments which include local variables for reductions.
  *
@@ -767,6 +972,10 @@ public:
 
     static constexpr bool need_reduction = (deps_ops_t::does_work || ...);
 
+    // Sweep functors (reserved::sweep_fun) are plain structs holding device
+    // lambdas: route them to the device implementation.
+    static constexpr bool is_sweep = reserved::is_sweep_fun<::std::remove_reference_t<Fun>>::value;
+
 #  if _CCCL_CUDA_COMPILER(NVHPC)
     // With nvc++, all lambdas can run on host and device.
     static constexpr bool is_extended_host_device_lambda_closure_type = true,
@@ -795,7 +1004,7 @@ public:
       }
       // Fall through for the device implementation
     }
-    else if constexpr (is_extended_device_lambda_closure_type)
+    else if constexpr (is_extended_device_lambda_closure_type || is_sweep)
     {
       // Lambda can run only on device - make sure they're not trying it on the host
       EXPECT(!e_place.is_host(), "Attempt to run a device function on the host.");
@@ -809,7 +1018,7 @@ public:
     }
 
     // Device land. Must use the supplemental if constexpr below to avoid compilation errors.
-    if constexpr (is_extended_host_device_lambda_closure_type || is_extended_device_lambda_closure_type)
+    if constexpr (is_extended_host_device_lambda_closure_type || is_extended_device_lambda_closure_type || is_sweep)
     {
       if (e_place.size() == 1)
       {
@@ -1068,7 +1277,17 @@ public:
       // block size to optimize occupancy, as well as some block size
       // limit. We choose to dimension the kernel of the parallel loop to
       // optimize occupancy.
-      auto res = reserved::compute_kernel_limits(&reserved::loop<Fun_no_ref, sub_shape_t, deps_tup_t>, 0, false);
+      auto* kf = [] {
+        if constexpr (reserved::is_sweep_fun<Fun_no_ref>::value)
+        {
+          return &reserved::loop_seq<Fun_no_ref, sub_shape_t, deps_tup_t>;
+        }
+        else
+        {
+          return &reserved::loop<Fun_no_ref, sub_shape_t, deps_tup_t>;
+        }
+      }();
+      auto res = reserved::compute_kernel_limits(mv(kf), 0, false);
       return ::std::pair(size_t(res.max_block_size), size_t(res.min_grid_size));
     }();
 
@@ -1087,23 +1306,43 @@ public:
 
     // TODO: improve this
     size_t blocks = ::std::min(min_blocks * 3 / 2, max_blocks);
+    // Experiment knob: scale the grid beyond the 1.5x occupancy-minimal
+    // default (memory-bound loops gain MLP from more resident blocks).
+    if (const char* env = getenv("CUDASTF_PFOR_GRID_SCALE"))
+    {
+      blocks = ::std::min(min_blocks * static_cast<size_t>(::std::max(1, atoi(env))), max_blocks);
+    }
 
     // Create a tuple with all instances (eg. tuple<slice<double>, slice<int>>)
     auto arg_instances = get_arg_instances(deps, t);
     rebase_replicated_instances(arg_instances, place_index);
 
+    auto* kfun = [] {
+      if constexpr (reserved::is_sweep_fun<Fun_no_ref>::value)
+      {
+        return &reserved::loop_seq<Fun_no_ref, sub_shape_t, deps_tup_t>;
+      }
+      else
+      {
+        return &reserved::loop<Fun_no_ref, sub_shape_t, deps_tup_t>;
+      }
+    }();
+
     if constexpr (::std::is_same_v<context, stream_ctx>)
     {
-      reserved::loop<Fun_no_ref, sub_shape_t, deps_tup_t>
-        <<<static_cast<int>(blocks), static_cast<int>(block_size), 0, t.get_stream(place_index)>>>(
-          static_cast<int>(n), sub_shape, mv(f), arg_instances);
+      // NOTE: n is passed as size_t (the kernel's parameter type). The
+      // historical static_cast<int>(n) silently truncated shapes beyond
+      // 2^31 elements (wrong results at 1728^3, effective hang at 1536^3
+      // on GB300 -- measured 2026-08-13).
+      kfun<<<static_cast<int>(blocks), static_cast<int>(block_size), 0, t.get_stream(place_index)>>>(
+        n, sub_shape, mv(f), arg_instances);
     }
     else if constexpr (::std::is_same_v<context, graph_ctx>)
     {
       // Put this kernel node in the child graph that implements the graph_task<>
       cudaKernelNodeParams kernel_params;
 
-      kernel_params.func = (void*) reserved::loop<Fun_no_ref, sub_shape_t, deps_tup_t>;
+      kernel_params.func = (void*) kfun;
 
       kernel_params.gridDim  = dim3(static_cast<int>(blocks));
       kernel_params.blockDim = dim3(static_cast<int>(block_size));
@@ -1241,6 +1480,60 @@ private:
   [[no_unique_address]] stored_partitioner_t p_{};
 };
 } // end namespace reserved
+
+/**
+ * @brief Build an ascending sweep functor for parallel_for's operator->*:
+ * threads span the parallel shape; each runs `state = init(coords...,
+ * data...)` then `step(coords..., j, state, data...)` for j in [lo, hi).
+ * (Residence-spec design, phase 1.)
+ */
+template <typename FI, typename FS>
+auto sweep_asc(size_t lo, size_t hi, FI init, FS step)
+{
+  return reserved::sweep_fun<true, FI, FS>{mv(init), mv(step), lo, hi};
+}
+
+//! Descending counterpart of sweep_asc: j runs from hi-1 down to lo.
+template <typename FI, typename FS>
+auto sweep_desc(size_t lo, size_t hi, FI init, FS step)
+{
+  return reserved::sweep_fun<false, FI, FS>{mv(init), mv(step), lo, hi};
+}
+
+/**
+ * @brief Bind-form ascending sweep: `bind(coords..., data...)` runs once per
+ * thread and returns a mutable closure called with each j in [lo, hi); the
+ * carried state lives in the closure's captures.
+ */
+template <typename FB>
+auto sweep_bind_asc(size_t lo, size_t hi, FB bind)
+{
+  return reserved::sweep_bind_fun<true, FB>{mv(bind), lo, hi};
+}
+
+//! Descending counterpart of sweep_bind_asc: j runs from hi-1 down to lo.
+template <typename FB>
+auto sweep_bind_desc(size_t lo, size_t hi, FB bind)
+{
+  return reserved::sweep_bind_fun<false, FB>{mv(bind), lo, hi};
+}
+
+/**
+ * @brief Range-form ascending sweep: `body(coords..., range, data...)` runs
+ * once per thread; iterate the range yourself and keep carries as locals.
+ */
+template <typename FB>
+auto sweep_range_asc(size_t lo, size_t hi, FB body)
+{
+  return reserved::sweep_range_fun<true, FB>{mv(body), lo, hi};
+}
+
+//! Descending counterpart of sweep_range_asc.
+template <typename FB>
+auto sweep_range_desc(size_t lo, size_t hi, FB body)
+{
+  return reserved::sweep_range_fun<false, FB>{mv(body), lo, hi};
+}
 
 #endif // !defined(CUDASTF_DISABLE_CODE_GENERATION) && _CCCL_CUDA_COMPILATION()
 } // end namespace cuda::experimental::stf
