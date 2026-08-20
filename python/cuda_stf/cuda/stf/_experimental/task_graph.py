@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 from ._stf_bindings import stackable_context
@@ -57,61 +58,77 @@ class TaskGraph:
         self._finalized = False
         self._reset = False
         self._failed = False
+        # Serializes the recording/reset/finalize state machine. The guards
+        # below are check-then-act sequences; without a lock, two threads
+        # entering `with graph:` could both pass them and both push a
+        # recording scope. Recording itself (task submission between
+        # __enter__ and __exit__) is single-threaded by contract; launch()
+        # only reads state under the lock and launches outside it.
+        self._lock = threading.Lock()
 
     def __enter__(self) -> None:
-        if self._finalized:
-            raise RuntimeError("task graph has been finalized")
-        if self._reset:
-            raise RuntimeError("task graph has been reset; create a new task_graph()")
-        if self._recording:
-            raise RuntimeError("task graph is already recording")
-        if self._record_attempted:
-            raise RuntimeError(
-                "task graph has already been recorded; create a new task_graph()"
-            )
+        with self._lock:
+            if self._finalized:
+                raise RuntimeError("task graph has been finalized")
+            if self._reset:
+                raise RuntimeError(
+                    "task graph has been reset; create a new task_graph()"
+                )
+            if self._recording:
+                raise RuntimeError("task graph is already recording")
+            if self._record_attempted:
+                raise RuntimeError(
+                    "task graph has already been recorded; create a new task_graph()"
+                )
 
-        self._record_attempted = True
-        self.context.raw.push()
-        self._recording = True
+            self._record_attempted = True
+            self.context.raw.push()
+            self._recording = True
         return None
 
     def __exit__(
         self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: Any
     ) -> bool:
-        try:
-            if exc_type is None:
-                self._raw_graph = self.context.raw.pop_prologue_shared()
-            else:
-                self._failed = True
-                try:
-                    self.context.raw.pop()
-                except Exception:
-                    pass
-        finally:
-            self._recording = False
+        with self._lock:
+            try:
+                if exc_type is None:
+                    self._raw_graph = self.context.raw.pop_prologue_shared()
+                else:
+                    self._failed = True
+                    try:
+                        self.context.raw.pop()
+                    except Exception:
+                        pass
+            finally:
+                self._recording = False
         return False
 
     @property
     def raw(self) -> Any:
         """Return the underlying launchable graph after recording."""
-        return self._require_ready()
+        with self._lock:
+            return self._require_ready()
 
     @property
     def graph(self) -> int:
         """Raw ``cudaGraph_t`` as a plain Python ``int``."""
-        return self._require_ready().graph
+        with self._lock:
+            return self._require_ready().graph
 
     @property
     def exec_graph(self) -> int:
         """Raw ``cudaGraphExec_t`` as a plain Python ``int``."""
-        return self._require_ready().exec_graph
+        with self._lock:
+            return self._require_ready().exec_graph
 
     @property
     def stream(self) -> int:
         """Raw ``cudaStream_t`` as a plain Python ``int``."""
-        return self._require_ready().stream
+        with self._lock:
+            return self._require_ready().stream
 
     def _require_ready(self) -> Any:
+        # Callers must hold self._lock.
         if self._finalized:
             raise RuntimeError("task graph has been finalized")
         if self._reset:
@@ -127,35 +144,44 @@ class TaskGraph:
         return self._raw_graph
 
     def launch(self) -> None:
-        """Launch the recorded graph once."""
-        self._require_ready().launch()
+        """Launch the recorded graph once.
+
+        The state check runs under the lock; the launch itself does not, so
+        launches never serialize on the recording lock. Launch from one
+        thread at a time (the graph replays on its single support stream).
+        """
+        with self._lock:
+            graph = self._require_ready()
+        graph.launch()
 
     def reset(self) -> None:
         """Release the recorded graph and prevent future launches."""
-        if self._finalized:
-            return
-        if self._reset:
-            return
-        if self._recording:
-            raise RuntimeError("cannot reset a task graph while recording")
-        if self._raw_graph is None or self._failed:
-            return
-        self._raw_graph.reset()
-        self._reset = True
+        with self._lock:
+            if self._finalized:
+                return
+            if self._reset:
+                return
+            if self._recording:
+                raise RuntimeError("cannot reset a task graph while recording")
+            if self._raw_graph is None or self._failed:
+                return
+            self._raw_graph.reset()
+            self._reset = True
 
     def finalize(self) -> None:
         """Release any recorded graph and finalize the owned context."""
-        if self._finalized:
-            return
-        if self._recording:
-            raise RuntimeError("cannot finalize a task graph while recording")
-        try:
-            if self._raw_graph is not None and not self._reset:
-                self._raw_graph.reset()
-                self._reset = True
-        finally:
-            self.context.raw.finalize()
-            self._finalized = True
+        with self._lock:
+            if self._finalized:
+                return
+            if self._recording:
+                raise RuntimeError("cannot finalize a task graph while recording")
+            try:
+                if self._raw_graph is not None and not self._reset:
+                    self._raw_graph.reset()
+                    self._reset = True
+            finally:
+                self.context.raw.finalize()
+                self._finalized = True
 
 
 def task_graph() -> TaskGraph:
