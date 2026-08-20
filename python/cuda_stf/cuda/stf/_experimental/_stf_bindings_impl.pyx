@@ -5,6 +5,7 @@
 # distutils: language = c++
 # cython: language_level=3
 # cython: linetrace=False
+# cython: freethreading_compatible=True
 
 
 from cpython.buffer cimport (
@@ -18,6 +19,10 @@ from cpython.pycapsule cimport (
     PyCapsule_CheckExact, PyCapsule_IsValid, PyCapsule_GetPointer,
     PyCapsule_New
 )
+from cpython.pythread cimport (
+    PyThread_type_lock, PyThread_allocate_lock, PyThread_free_lock,
+    PyThread_acquire_lock, PyThread_release_lock, WAIT_LOCK, NOWAIT_LOCK,
+)
 from libc.stddef cimport ptrdiff_t
 from libc.stdint cimport (
     uint8_t, uint16_t, uint32_t, uint64_t, int32_t, int64_t, uintptr_t
@@ -29,6 +34,7 @@ import numpy as np
 
 import ctypes
 import numbers as _numbers
+import threading
 import warnings
 from enum import IntFlag
 
@@ -700,6 +706,21 @@ class stf_cai:
         return self.__cuda_array_interface__.get(key, default)
 
 
+cdef inline void _lifetime_lock_acquire(PyThread_type_lock lock) noexcept:
+    """Acquire ``lock``, releasing the GIL while blocked.
+
+    The uncontended fast path keeps the GIL (a single atomic try-lock). On
+    contention we block with the GIL released so a waiter can never hold the
+    GIL hostage while the current owner needs a GIL switch to make progress.
+    ``PyThread_type_lock`` (unlike a Python-level lock or a critical section)
+    stays held across ``with nogil`` blocks, which is exactly what the
+    lifetime protocol below relies on.
+    """
+    if PyThread_acquire_lock(lock, NOWAIT_LOCK) == 0:
+        with nogil:
+            PyThread_acquire_lock(lock, WAIT_LOCK)
+
+
 # Shared "alive" sentinel used to safely no-op a child wrapper's __dealloc__
 # when its parent (stackable_)context was already finalized.
 #
@@ -709,11 +730,39 @@ class stf_cai:
 # (causing ``IndexError`` from an emptied list).  A ``cdef class`` instance
 # with no Python-object members is *not* GC-tracked and cannot be mutated by
 # the cycle collector, giving us a stable shared flag.
+#
+# Thread safety: the sentinel doubles as the per-context lifetime lock. On
+# free-threaded builds (and with ``nogil`` finalize on GIL builds) a child's
+# ``__dealloc__`` may run on one thread while another thread finalizes the
+# context; an unlocked check of ``alive`` followed by the C destroy call
+# could then race the finalize that frees the underlying context. Every
+# reader must therefore hold the lock across its check-then-destroy sequence
+# (``acquire()``/``release()``), and finalize holds it across flip+finalize,
+# so a child either destroys its handle before finalize starts or observes
+# ``alive == False`` and no-ops.
 cdef class _AliveFlag:
     cdef bint alive
+    cdef PyThread_type_lock _lock
 
     def __cinit__(self):
         self.alive = True
+        self._lock = PyThread_allocate_lock()
+        if self._lock == NULL:
+            raise MemoryError("failed to allocate STF context lifetime lock")
+
+    def __dealloc__(self):
+        # The flag outlives every holder (the context and each child keep it
+        # alive by reference), so no thread can still be blocked on the lock
+        # when the last reference drops.
+        if self._lock != NULL:
+            PyThread_free_lock(self._lock)
+            self._lock = NULL
+
+    cdef void acquire(self) noexcept:
+        _lifetime_lock_acquire(self._lock)
+
+    cdef void release(self) noexcept:
+        PyThread_release_lock(self._lock)
 
 
 # Python-only lifetime guard for framework-owned primary CUDA contexts.
@@ -734,6 +783,11 @@ cdef class _AliveFlag:
 cdef class _PrimaryContextPin:
     cdef list _devices
     cdef bint _released
+    # Serializes release(): the released test-and-set must be atomic, or two
+    # concurrent releases (e.g. finalize() racing a teardown path) would both
+    # pass the check and over-decrement the driver's primary-context
+    # refcount, tearing down a primary context other libraries still use.
+    cdef PyThread_type_lock _lock
 
     def __cinit__(self):
         cdef int dev_count = 0
@@ -744,6 +798,9 @@ cdef class _PrimaryContextPin:
 
         self._devices = []
         self._released = False
+        self._lock = PyThread_allocate_lock()
+        if self._lock == NULL:
+            raise MemoryError("failed to allocate STF primary-context pin lock")
 
         status = cuInit(0)
         if status != 0:
@@ -780,12 +837,19 @@ cdef class _PrimaryContextPin:
         cdef list devices
         cdef object dev_obj
 
+        # Atomic test-and-set: exactly one caller takes the device list; every
+        # other (concurrent or later) caller sees _released/None and returns.
+        # The driver calls run after the lock is dropped -- only the winner
+        # reaches them, and keeping driver round-trips out of the locked
+        # region keeps it allocation-free (see _lifetime_lock_acquire).
+        _lifetime_lock_acquire(self._lock)
         if self._released or self._devices is None:
+            PyThread_release_lock(self._lock)
             return
-
         devices = self._devices
         self._devices = None
         self._released = True
+        PyThread_release_lock(self._lock)
 
         for dev_obj in devices:
             # Best-effort cleanup: reset/teardown paths may already have touched
@@ -796,7 +860,9 @@ cdef class _PrimaryContextPin:
         # Explicit-finalize policy: do not make CUDA driver calls from GC.
         # If a context leaks without finalize(), its primary-context retain is
         # intentionally abandoned until process exit.
-        pass
+        if self._lock != NULL:
+            PyThread_free_lock(self._lock)
+            self._lock = NULL
 
 
 cdef class logical_data:
@@ -849,6 +915,9 @@ cdef class logical_data:
             self._dplace = None
             self._alive = None
             return
+
+        if ctx._ctx == NULL:
+            raise RuntimeError("context has been finalized")
 
         self._ctx = ctx._ctx
         self._alive = ctx._alive
@@ -942,11 +1011,20 @@ cdef class logical_data:
         # See stackable_logical_data.__dealloc__ for why _alive may be None
         # here even though it was set in the constructor (Cython's tp_clear
         # resets it to Py_None before tp_dealloc runs when breaking cycles).
-        if self._ld != NULL and self._alive is not None and self._alive.alive:
+        # The check-then-destroy sequence holds the context lifetime lock so
+        # a concurrent finalize() on another thread cannot free the context
+        # between our ``alive`` check and the destroy call.
+        cdef _AliveFlag flag = self._alive
+        if self._ld != NULL and flag is not None:
+            flag.acquire()
             try:
-                stf_logical_data_destroy(self._ld)
-            except Exception as e:
-                print(f"stf.logical_data: cleanup failed: {e}")
+                if flag.alive:
+                    try:
+                        stf_logical_data_destroy(self._ld)
+                    except Exception as e:
+                        print(f"stf.logical_data: cleanup failed: {e}")
+            finally:
+                flag.release()
         self._ld = NULL
         # Release the buffer-protocol export (if any) only after the logical
         # data has been destroyed, so STF no longer references view.buf.
@@ -1020,6 +1098,8 @@ cdef class logical_data:
 
     @staticmethod
     def token(context ctx):
+        if ctx._ctx == NULL:
+            raise RuntimeError("context has been finalized")
         cdef logical_data out = logical_data.__new__(logical_data)
         out._ctx   = ctx._ctx
         out._dtype = None
@@ -1041,6 +1121,8 @@ cdef class logical_data:
         """
         Create a new logical_data from a shape and a dtype.
         """
+        if ctx._ctx == NULL:
+            raise RuntimeError("context has been finalized")
         shape_tuple = _normalize_alloc_shape(shape)
         cdef logical_data out = logical_data.__new__(logical_data)
         out._ctx   = ctx._ctx
@@ -1336,7 +1418,14 @@ def _native_to_public(native, int rank):
 
 cdef class exec_place:
     cdef stf_exec_place_handle _h
-    cdef stf_exec_place_scope_handle _scope
+    # Per-thread stack of open ``with place:`` scope handles. An affinity
+    # scope is a property of the entering thread, so it must never be stashed
+    # on the (shareable) place object itself: a second ``__enter__`` -- from
+    # another thread or from single-thread nesting -- would overwrite the
+    # first thread's scope and ``__exit__`` would then close the wrong one.
+    # ``threading.local`` keys the stack by thread; the list makes ``with``
+    # blocks nestable on one thread.
+    cdef object _scope_tls
     # Keeps externally-owned objects (e.g. a cuda.core Context backing a
     # from_context place) alive for the lifetime of this place.
     cdef object _keep_alive
@@ -1348,7 +1437,7 @@ cdef class exec_place:
 
     def __cinit__(self):
         self._h = NULL
-        self._scope = NULL
+        self._scope_tls = threading.local()
         self._keep_alive = None
         self._owners = []
 
@@ -1357,9 +1446,10 @@ cdef class exec_place:
             self._owners.append(owner)
 
     def __dealloc__(self):
-        if self._scope != NULL:
-            stf_exec_place_scope_exit(self._scope)
-            self._scope = NULL
+        # Scope handles live in per-thread stacks and are closed by the
+        # matching __exit__ on the thread that opened them (the context
+        # manager protocol guarantees __exit__ runs); they cannot be closed
+        # here, where only the deallocating thread's stack is reachable.
         if self._h != NULL:
             try:
                 stf_exec_place_destroy(self._h)
@@ -1525,23 +1615,39 @@ cdef class exec_place:
 
         Dependencies using ``data_place.affine()`` will resolve to ``dplace``
         when this exec place is used as the task's execution place.
+
+        This mutates shared place state: configure it before threads start
+        submitting tasks through this place, not concurrently with them.
         """
         stf_exec_place_set_affine_data_place(self._h, dplace._h)
         # The place now references the affine data place; keep it alive.
         self._add_owner(dplace)
 
     def __enter__(self):
+        cdef stf_exec_place_scope_handle scope
         if self._h == NULL:
             raise RuntimeError("exec_place handle is null")
-        self._scope = stf_exec_place_scope_enter(self._h, 0)
-        if self._scope == NULL:
+        scope = stf_exec_place_scope_enter(self._h, 0)
+        if scope == NULL:
             raise RuntimeError("failed to activate exec_place scope")
+        # Push onto this thread's stack: the scope is thread-confined, and a
+        # stack (rather than a single slot) makes re-entering the same place
+        # nestable. No lock is needed -- each thread only ever touches its
+        # own stack.
+        stack = getattr(self._scope_tls, "stack", None)
+        if stack is None:
+            stack = []
+            self._scope_tls.stack = stack
+        stack.append(<uintptr_t>scope)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._scope != NULL:
-            stf_exec_place_scope_exit(self._scope)
-            self._scope = NULL
+        # Pop this thread's innermost scope; scopes opened by other threads
+        # are invisible here by construction.
+        stack = getattr(self._scope_tls, "stack", None)
+        if stack:
+            stf_exec_place_scope_exit(
+                <stf_exec_place_scope_handle><uintptr_t>stack.pop())
         return False
 
     @property
@@ -2135,6 +2241,8 @@ cdef class task:
     cdef int _grid_rank
 
     def __cinit__(self, context ctx):
+        if ctx._ctx == NULL:
+            raise RuntimeError("context has been finalized")
         self._t = stf_task_create(ctx._ctx)
         if self._t == NULL:
             raise RuntimeError("failed to create STF task")
@@ -2147,12 +2255,20 @@ cdef class task:
 
     def __dealloc__(self):
         # See stackable_logical_data.__dealloc__ for why a None _alive must
-        # be treated as "context already gone" rather than "no parent".
-        if self._t != NULL and self._alive is not None and self._alive.alive:
+        # be treated as "context already gone" rather than "no parent", and
+        # logical_data.__dealloc__ for why the lifetime lock is held across
+        # the check-then-destroy sequence.
+        cdef _AliveFlag flag = self._alive
+        if self._t != NULL and flag is not None:
+            flag.acquire()
             try:
-                stf_task_destroy(self._t)
-            except Exception as e:
-                print(f"stf.task: cleanup failed: {e}")
+                if flag.alive:
+                    try:
+                        stf_task_destroy(self._t)
+                    except Exception as e:
+                        print(f"stf.task: cleanup failed: {e}")
+            finally:
+                flag.release()
         self._t = NULL
 
     def start(self):
@@ -2372,6 +2488,8 @@ cdef class cuda_kernel:
     cdef _AliveFlag _alive
 
     def __cinit__(self, context ctx):
+        if ctx._ctx == NULL:
+            raise RuntimeError("context has been finalized")
         self._k = stf_cuda_kernel_create(ctx._ctx)
         if self._k == NULL:
             raise RuntimeError("failed to create STF cuda_kernel")
@@ -2384,12 +2502,20 @@ cdef class cuda_kernel:
 
     def __dealloc__(self):
         # See stackable_logical_data.__dealloc__ for why a None _alive must
-        # be treated as "context already gone" rather than "no parent".
-        if self._k != NULL and self._alive is not None and self._alive.alive:
+        # be treated as "context already gone" rather than "no parent", and
+        # logical_data.__dealloc__ for why the lifetime lock is held across
+        # the check-then-destroy sequence.
+        cdef _AliveFlag flag = self._alive
+        if self._k != NULL and flag is not None:
+            flag.acquire()
             try:
-                stf_cuda_kernel_destroy(self._k)
-            except Exception as e:
-                print(f"stf.cuda_kernel: cleanup failed: {e}")
+                if flag.alive:
+                    try:
+                        stf_cuda_kernel_destroy(self._k)
+                    except Exception as e:
+                        print(f"stf.cuda_kernel: cleanup failed: {e}")
+            finally:
+                flag.release()
         self._k = NULL
 
     def start(self):
@@ -2712,13 +2838,19 @@ cdef class context:
         return f"context(handle={<uintptr_t>self._ctx}, borrowed={self._borrowed})"
 
     def __dealloc__(self):
+        cdef _AliveFlag flag = self._alive
+
         if self._borrowed:
             self._ctx = <stf_ctx_handle>NULL
             return
 
         if self._ctx != NULL:
-            if self._alive is not None:
-                self._alive.alive = False
+            # Flip under the lifetime lock: surviving children may be running
+            # their __dealloc__ on other threads at this very moment.
+            if flag is not None:
+                flag.acquire()
+                flag.alive = False
+                flag.release()
             try:
                 warnings.warn(
                     "cuda.stf._experimental.context was garbage-collected without an explicit finalize(); "
@@ -2741,31 +2873,68 @@ cdef class context:
         work completed (e.g. after synchronizing the caller stream). Each call
         surfaces and clears one pending error; returns ``None`` when there are
         none.
+
+        Safe to call from several threads: each pending error is surfaced by
+        exactly one caller.
         """
+        # EAFP rather than check-then-pop: with concurrent callers, another
+        # thread may drain the queue between our truthiness check and the
+        # pop. list.pop itself is atomic; losing the race just means there is
+        # nothing left for us to raise.
         if self._callback_errors:
-            raise self._callback_errors.pop(0)
+            try:
+                err = self._callback_errors.pop(0)
+            except IndexError:
+                return
+            raise err
 
     def finalize(self):
-        cdef _PrimaryContextPin pin = self._pin
+        """Finalize the context: wait for pending work and release resources.
+
+        Finalize is a phase operation: quiesce submitter threads first (no
+        task submission, fence() or wait() may be in flight on this context).
+        It is idempotent, and if several threads race to finalize the same
+        context exactly one performs the teardown. Wrapper objects that
+        outlive the context (logical_data, tasks) remain safe to drop from
+        any thread afterwards. See the "Thread safety" section of the
+        package README for the full contract.
+        """
+        cdef _PrimaryContextPin pin = None
+        cdef stf_ctx_handle h = NULL
+        cdef bint was_blocking = not self._has_stream
+        cdef _AliveFlag flag = self._alive
 
         if self._borrowed:
             raise RuntimeError("cannot finalize borrowed context")
 
-        # Flip the shared sentinel first so every surviving child wrapper
-        # turns its __dealloc__ into a no-op. Idempotent: safe to call twice
-        # (e.g. explicit finalize() then implicit one via __dealloc__).
-        if self._alive is not None:
-            self._alive.alive = False
-
-        cdef stf_ctx_handle h = self._ctx
-        cdef bint was_blocking = not self._has_stream
-        self._pin = None
-        if h != NULL:
+        # The whole flip-sentinel + take-handle + stf_ctx_finalize sequence
+        # runs under the context lifetime lock:
+        # - a surviving child's __dealloc__ (which holds the same lock around
+        #   its check-then-destroy) either completes before we start or
+        #   observes ``alive == False`` and no-ops -- never a destroy call
+        #   against a context that finalize is concurrently freeing;
+        # - a second concurrent finalize() observes ``_ctx == NULL`` (and a
+        #   None pin) under the lock and degrades to a no-op, so
+        #   stf_ctx_finalize and the primary-context release run exactly
+        #   once. finalize() stays idempotent (e.g. explicit finalize()
+        #   followed by the implicit one via __dealloc__).
+        # The lock is held across the ``nogil`` C call on purpose; blocked
+        # waiters release the GIL while waiting (see _lifetime_lock_acquire).
+        if flag is not None:
+            flag.acquire()
+        try:
+            if flag is not None:
+                flag.alive = False
+            h = self._ctx
             self._ctx = NULL
-            with nogil:
-                stf_ctx_finalize(h)
-        else:
-            self._ctx = NULL
+            pin = self._pin
+            self._pin = None
+            if h != NULL:
+                with nogil:
+                    stf_ctx_finalize(h)
+        finally:
+            if flag is not None:
+                flag.release()
 
         # Drop the keep-alive on the shared async_resources once no pending
         # work can still reference it. For a default context stf_ctx_finalize()
@@ -2820,6 +2989,10 @@ cdef class context:
         will be signaled once every task submitted so far has completed.
         Unlike ``finalize()``, this does **not** destroy the context, so
         more tasks can be submitted afterwards.
+
+        Like ``finalize()``, this is a phase operation: do not call it while
+        other threads are still submitting tasks to this context (see the
+        "Thread safety" section of the package README).
 
         Returns
         -------
@@ -3279,14 +3452,23 @@ cdef class stackable_logical_data:
         # case the safe action is to skip the destroy call (the parent will
         # tear down the underlying handle, or the GC will reclaim everything
         # at interpreter shutdown).
-        if self._ld != NULL and self._alive is not None and self._alive.alive:
+        # The check-then-destroy sequence holds the context lifetime lock so
+        # a concurrent finalize() on another thread cannot free the context
+        # between our ``alive`` check and the destroy call.
+        cdef _AliveFlag flag = self._alive
+        if self._ld != NULL and flag is not None:
+            flag.acquire()
             try:
-                if self._is_token:
-                    stf_stackable_token_destroy(self._ld)
-                else:
-                    stf_stackable_logical_data_destroy(self._ld)
-            except Exception as e:
-                print(f"stf.stackable_logical_data: cleanup failed: {e}")
+                if flag.alive:
+                    try:
+                        if self._is_token:
+                            stf_stackable_token_destroy(self._ld)
+                        else:
+                            stf_stackable_logical_data_destroy(self._ld)
+                    except Exception as e:
+                        print(f"stf.stackable_logical_data: cleanup failed: {e}")
+            finally:
+                flag.release()
         self._ld = NULL
         # Release the buffer-protocol export (if any) only after the logical
         # data has been destroyed, so STF no longer references view.buf.
@@ -3442,6 +3624,8 @@ cdef class stackable_task:
     cdef _AliveFlag _alive
 
     def __cinit__(self, stackable_context ctx):
+        if ctx._ctx == NULL:
+            raise RuntimeError("stackable_context has been finalized")
         self._t = stf_stackable_task_create(ctx._ctx)
         if self._t == NULL:
             raise RuntimeError("failed to create STF stackable task")
@@ -3453,12 +3637,20 @@ cdef class stackable_task:
 
     def __dealloc__(self):
         # See stackable_logical_data.__dealloc__ for why a None _alive must
-        # be treated as "context already gone" rather than "no parent".
-        if self._t != NULL and self._alive is not None and self._alive.alive:
+        # be treated as "context already gone" rather than "no parent", and
+        # logical_data.__dealloc__ for why the lifetime lock is held across
+        # the check-then-destroy sequence.
+        cdef _AliveFlag flag = self._alive
+        if self._t != NULL and flag is not None:
+            flag.acquire()
             try:
-                stf_task_destroy(self._t)
-            except Exception as e:
-                print(f"stf.stackable_task: cleanup failed: {e}")
+                if flag.alive:
+                    try:
+                        stf_task_destroy(self._t)
+                    except Exception as e:
+                        print(f"stf.stackable_task: cleanup failed: {e}")
+            finally:
+                flag.release()
         self._t = NULL
 
     def start(self):
@@ -3733,23 +3925,45 @@ cdef class LaunchableGraph:
     # an open (split) scope whose epilogue runs when this handle is freed.
     # Retained so we can close that scope exactly once on reset/destruction.
     cdef stackable_context _owner_ctx
+    # Serializes reset() (and the reset/__dealloc__ pair): the swap-and-free
+    # of _h must be atomic, or two concurrent reset() calls would both read a
+    # non-zero handle and both free the C-level shared reference.
+    cdef PyThread_type_lock _lock
 
     def __cinit__(self):
         self._h = 0
         self._owner_ctx = None
+        self._lock = PyThread_allocate_lock()
+        if self._lock == NULL:
+            raise MemoryError("failed to allocate LaunchableGraph lock")
 
-    cdef void _release_scope(self):
-        if self._owner_ctx is not None:
-            self._owner_ctx._scope_closed()
-            self._owner_ctx = None
+    cdef void _reset_once(self):
+        """Claim the handle and owner scope atomically, then free them.
 
-    def __dealloc__(self):
-        cdef uintptr_t h = self._h
+        Exactly one caller observes the non-zero handle / non-None owner;
+        every other concurrent or later call is a no-op, so the C shared
+        reference is freed and the owning context's scope counter is
+        decremented exactly once.
+        """
+        cdef uintptr_t h
+        cdef stackable_context owner
+        _lifetime_lock_acquire(self._lock)
+        h = self._h
         self._h = 0
+        owner = self._owner_ctx
+        self._owner_ctx = None
+        PyThread_release_lock(self._lock)
         if h != 0:
             with nogil:
                 stf_launchable_graph_shared_free(<stf_launchable_graph_shared>h)
-        self._release_scope()
+        if owner is not None:
+            owner._scope_closed()
+
+    def __dealloc__(self):
+        self._reset_once()
+        if self._lock != NULL:
+            PyThread_free_lock(self._lock)
+            self._lock = NULL
 
     def reset(self):
         """Drop this shared reference eagerly.
@@ -3757,14 +3971,15 @@ cdef class LaunchableGraph:
         When this was the last live reference to the underlying graph,
         ``stf_stackable_pop_epilogue`` runs now instead of at destruction
         time. Subsequent accessors / :py:meth:`launch` raise.
-        Idempotent.
+        Idempotent. Duplicate concurrent calls are guarded so at most one
+        performs the release, but the release itself must run on a thread
+        that has entered the owning stackable context (normally the
+        recording thread): the stackable scope structure is thread-confined
+        by the underlying runtime. Do not call it concurrently with an
+        in-flight :py:meth:`launch` on the same object: quiesce launchers
+        first, as with any teardown.
         """
-        cdef uintptr_t h = self._h
-        self._h = 0
-        if h != 0:
-            with nogil:
-                stf_launchable_graph_shared_free(<stf_launchable_graph_shared>h)
-        self._release_scope()
+        self._reset_once()
 
     def _check_valid(self):
         if self._h == 0:
@@ -4194,11 +4409,29 @@ cdef class stackable_context:
         self._open_scopes = 0
 
     cdef void _scope_opened(self):
-        self._open_scopes += 1
+        # The counter is read by finalize() to reject finalization with open
+        # scopes, and scopes may be opened/closed from any thread; guard the
+        # increment/decrement with the context lifetime lock so no update is
+        # lost (scope open/close is a cold path).
+        cdef _AliveFlag flag = self._alive
+        if flag is not None:
+            flag.acquire()
+        try:
+            self._open_scopes += 1
+        finally:
+            if flag is not None:
+                flag.release()
 
     cdef void _scope_closed(self):
-        if self._open_scopes > 0:
-            self._open_scopes -= 1
+        cdef _AliveFlag flag = self._alive
+        if flag is not None:
+            flag.acquire()
+        try:
+            if self._open_scopes > 0:
+                self._open_scopes -= 1
+        finally:
+            if flag is not None:
+                flag.release()
 
     def check_errors(self):
         """Re-raise the first pending host_launch callback exception, if any.
@@ -4207,14 +4440,27 @@ cdef class stackable_context:
         establishing that the relevant work has completed (e.g. after
         synchronizing the caller stream). Each call surfaces and clears one
         pending error; returns ``None`` when there are none.
+
+        Safe to call from several threads: each pending error is surfaced by
+        exactly one caller.
         """
+        # EAFP rather than check-then-pop; see context.check_errors.
         if self._callback_errors:
-            raise self._callback_errors.pop(0)
+            try:
+                err = self._callback_errors.pop(0)
+            except IndexError:
+                return
+            raise err
 
     def __dealloc__(self):
+        cdef _AliveFlag flag = self._alive
         if self._ctx != NULL:
-            if self._alive is not None:
-                self._alive.alive = False
+            # Flip under the lifetime lock: surviving children may be running
+            # their __dealloc__ on other threads at this very moment.
+            if flag is not None:
+                flag.acquire()
+                flag.alive = False
+                flag.release()
             try:
                 warnings.warn(
                     "cuda.stf._experimental.stackable_context was garbage-collected without an explicit finalize(); "
@@ -4230,29 +4476,54 @@ cdef class stackable_context:
         return f"stackable_context(handle={<uintptr_t>self._ctx})"
 
     def finalize(self):
-        cdef _PrimaryContextPin pin = self._pin
+        cdef _PrimaryContextPin pin = None
+        cdef stf_ctx_handle h = NULL
+        cdef _AliveFlag flag = self._alive
 
-        # finalize() is only valid at root: every graph_scope / while_loop /
-        # repeat / LaunchableGraph scope must have been closed first. Reject
-        # early (before flipping the alive sentinel) so the context stays
-        # usable and the caller can close the open scopes.
-        if self._ctx != NULL and self._open_scopes != 0:
+        # The open-scopes check, sentinel flip, handle take and
+        # stf_stackable_ctx_finalize all run under the context lifetime lock
+        # (same protocol as context.finalize): a surviving child __dealloc__
+        # either completes first or no-ops, a concurrent scope open/close is
+        # ordered against the check, and a second finalize() degrades to a
+        # no-op so the C finalize and the primary-context release run exactly
+        # once.
+        # NOTE: the locked region below must stay free of Python object
+        # allocation. The lifetime lock is not reentrant, and an allocation
+        # can trigger the cycle collector, which may run a child wrapper's
+        # __dealloc__ on this same thread -- and that __dealloc__ acquires
+        # this very lock. That is also why the open-scopes error is raised
+        # only after the lock is released.
+        cdef int open_scopes = 0
+        if flag is not None:
+            flag.acquire()
+        try:
+            # finalize() is only valid at root: every graph_scope /
+            # while_loop / repeat / LaunchableGraph scope must have been
+            # closed first. Reject early (before flipping the alive sentinel)
+            # so the context stays usable and the caller can close the open
+            # scopes.
+            if self._ctx != NULL and self._open_scopes != 0:
+                open_scopes = self._open_scopes
+            else:
+                if flag is not None:
+                    flag.alive = False
+
+                h = self._ctx
+                self._ctx = NULL
+                pin = self._pin
+                self._pin = None
+                if h != NULL:
+                    with nogil:
+                        stf_stackable_ctx_finalize(h)
+        finally:
+            if flag is not None:
+                flag.release()
+
+        if open_scopes != 0:
             raise RuntimeError(
-                f"cannot finalize stackable_context with {self._open_scopes} open "
+                f"cannot finalize stackable_context with {open_scopes} open "
                 "scope(s); close every graph_scope/while_loop/repeat/LaunchableGraph first"
             )
-
-        # Flip the shared sentinel first so every surviving child wrapper
-        # turns its __dealloc__ into a no-op. Idempotent.
-        if self._alive is not None:
-            self._alive.alive = False
-
-        cdef stf_ctx_handle h = self._ctx
-        self._pin = None
-        self._ctx = NULL
-        if h != NULL:
-            with nogil:
-                stf_stackable_ctx_finalize(h)
 
         if pin is not None:
             pin.release()
@@ -4279,6 +4550,8 @@ cdef class stackable_context:
 
     def logical_data(self, object buf, data_place dplace=None, str name=None):
         """Create stackable logical data from an existing buffer."""
+        if self._ctx == NULL:
+            raise RuntimeError("stackable_context has been finalized")
         cdef stackable_logical_data out = stackable_logical_data.__new__(stackable_logical_data)
         out._ctx = self._ctx
         out._alive = self._alive
@@ -4412,6 +4685,8 @@ cdef class stackable_context:
 
     def token(self):
         """Create a synchronization token."""
+        if self._ctx == NULL:
+            raise RuntimeError("stackable_context has been finalized")
         cdef stackable_logical_data out = stackable_logical_data.__new__(stackable_logical_data)
         out._ctx = self._ctx
         out._alive = self._alive

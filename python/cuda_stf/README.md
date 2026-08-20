@@ -60,6 +60,55 @@ addition to the CUDA toolkit. The `test-*` extras add `cuda-cccl`, `pytest`,
 **Requirements:** Python 3.10+, CUDA Toolkit 12.x or 13.x, NVIDIA GPU with
 Compute Capability 7.5+, Linux.
 
+## Thread safety
+
+The bindings support free-threaded CPython (3.13t/3.14t): the extension
+module declares `freethreading_compatible`, so importing `cuda.stf` does not
+re-enable the GIL, and the wrapper objects synchronize their own lifetime
+management. Free-threaded submitters are useful when task submission is
+host-side bound. The contract below applies to GIL and free-threaded builds
+alike.
+
+**Safe from multiple threads:**
+
+- **Task submission on a shared context.** Several threads may concurrently
+  create `logical_data`, build and run tasks (`ctx.task(...)`,
+  `ctx.cuda_kernel(...)`), and let wrapper objects be garbage-collected, all
+  against one shared `context`. The underlying runtime synchronizes its
+  submission path (per-logical-data locking, mutex-guarded stream pools);
+  conflicting accesses to the *same* logical data are ordered through the
+  task dependency graph, exactly as in the C++ API.
+- **Dropping wrapper references.** A `logical_data`, `task`, or kernel
+  wrapper may be released by any thread at any time, including concurrently
+  with `finalize()` on another thread: each context carries a lifetime lock
+  that orders child destruction against context finalization.
+- **`finalize()` itself is idempotent and single-shot.** If several threads
+  race to finalize the same context, exactly one performs the teardown and
+  the rest are no-ops.
+- **`check_errors()`**: each pending host-callback error is surfaced to
+  exactly one caller.
+- **`with exec_place:` affinity scopes** are per-thread (and nestable):
+  each thread that enters a place gets its own scope, exited by the matching
+  `__exit__` on that thread.
+
+**Requires external quiescence (single-caller phase operations):**
+
+- `finalize()`, `fence()`, and `wait()` must not run concurrently with
+  in-flight task submission on the same context. Stop the submitter threads
+  (join them or use a barrier), then call the phase operation. This mirrors
+  the C++ contract. After `finalize()`, submission attempts raise
+  `RuntimeError`.
+- `stackable_context` scope structure (`push()`/`pop()`, `graph_scope`,
+  `while_loop`, `repeat`) is thread-confined by design: record, and release
+  recorded graphs (`LaunchableGraph.reset()` or the last reference drop), on
+  the thread that entered the context. Duplicate concurrent `reset()` calls
+  are guarded (at most one release happens), and resetting an already-reset
+  graph is a safe no-op from any thread.
+- `TaskGraph` recording (`with graph:`) is single-threaded; `launch()` from
+  one thread at a time.
+- Context configuration (e.g. `exec_place.set_affine_data_place`) must
+  happen before threads start submitting through that place.
+
 ## Documentation
 
 For complete documentation, examples, and API reference, visit:
