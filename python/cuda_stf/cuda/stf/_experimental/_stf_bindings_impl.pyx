@@ -781,6 +781,11 @@ cdef class _AliveFlag:
 cdef class _PrimaryContextPin:
     cdef list _devices
     cdef bint _released
+    # Serializes release(): the released test-and-set must be atomic, or two
+    # concurrent releases (e.g. finalize() racing a teardown path) would both
+    # pass the check and over-decrement the driver's primary-context
+    # refcount, tearing down a primary context other libraries still use.
+    cdef PyThread_type_lock _lock
 
     def __cinit__(self):
         cdef int dev_count = 0
@@ -791,6 +796,9 @@ cdef class _PrimaryContextPin:
 
         self._devices = []
         self._released = False
+        self._lock = PyThread_allocate_lock()
+        if self._lock == NULL:
+            raise MemoryError("failed to allocate STF primary-context pin lock")
 
         status = cuInit(0)
         if status != 0:
@@ -827,12 +835,19 @@ cdef class _PrimaryContextPin:
         cdef list devices
         cdef object dev_obj
 
+        # Atomic test-and-set: exactly one caller takes the device list; every
+        # other (concurrent or later) caller sees _released/None and returns.
+        # The driver calls run after the lock is dropped -- only the winner
+        # reaches them, and keeping driver round-trips out of the locked
+        # region keeps it allocation-free (see _lifetime_lock_acquire).
+        _lifetime_lock_acquire(self._lock)
         if self._released or self._devices is None:
+            PyThread_release_lock(self._lock)
             return
-
         devices = self._devices
         self._devices = None
         self._released = True
+        PyThread_release_lock(self._lock)
 
         for dev_obj in devices:
             # Best-effort cleanup: reset/teardown paths may already have touched
@@ -843,7 +858,9 @@ cdef class _PrimaryContextPin:
         # Explicit-finalize policy: do not make CUDA driver calls from GC.
         # If a context leaks without finalize(), its primary-context retain is
         # intentionally abandoned until process exit.
-        pass
+        if self._lock != NULL:
+            PyThread_free_lock(self._lock)
+            self._lock = NULL
 
 
 cdef class logical_data:
