@@ -61,11 +61,12 @@ using ::cuda::experimental::places::exec_place_scope;
 using ::cuda::experimental::places::mv;
 using ::cuda::experimental::places::place_group;
 
-/// @brief Whether a container owns its memory.
+/// @brief How a container's memory is owned and released.
 enum class ownership
 {
-  owning, //!< the container frees its shards' memory on destruction
-  non_owning //!< the container is a view over memory owned elsewhere
+  owning_shards, //!< one allocation per shard; each is freed on destruction
+  owning_backing, //!< one VMM backing owns all shards' memory (`allocate_contiguous`)
+  view //!< a view over memory owned elsewhere (adoption, `slice`)
 };
 
 /// @brief Allocation spec for one shard: (size, data place, exec place, stream).
@@ -109,7 +110,7 @@ public:
    */
   explicit sharded_array(::std::vector<shard_type> shards)
       : shards_(mv(shards))
-      , ownership_(ownership::non_owning)
+      , ownership_(ownership::view)
   {
     each_shard.parent_ = this;
     compute_total_size();
@@ -135,7 +136,7 @@ public:
   static sharded_array allocate(const ::std::vector<shard_spec>& specs)
   {
     sharded_array arr;
-    arr.ownership_ = ownership::owning;
+    arr.ownership_ = ownership::owning_shards;
 
     size_t offset = 0;
     for (const auto& [size, dplace, eplace, stream] : specs)
@@ -259,7 +260,7 @@ public:
   static sharded_array allocate_contiguous(const ::std::vector<shard_spec>& specs)
   {
     sharded_array arr;
-    arr.ownership_ = ownership::non_owning; // the backing owns the memory
+    arr.ownership_ = ownership::owning_backing; // released via contiguous_backing_
 
     size_t total = 0;
     ::std::vector<size_t> ends; // cumulative element ends per spec (incl. empty)
@@ -535,7 +536,7 @@ public:
   {
     each_shard.parent_ = this;
     other.total_size_  = 0;
-    other.ownership_   = ownership::non_owning;
+    other.ownership_   = ownership::view;
   }
 
   sharded_array& operator=(sharded_array&& other) noexcept
@@ -548,7 +549,7 @@ public:
       ownership_          = other.ownership_;
       contiguous_backing_ = mv(other.contiguous_backing_);
       other.total_size_   = 0;
-      other.ownership_    = ownership::non_owning;
+      other.ownership_    = ownership::view;
       // each_shard.parent_ already points to this
     }
     return *this;
@@ -695,17 +696,17 @@ public:
   }
   bool is_owning() const
   {
-    return ownership_ == ownership::owning;
+    return ownership_ != ownership::view;
   }
   bool is_view() const
   {
-    return ownership_ == ownership::non_owning;
+    return ownership_ == ownership::view;
   }
 
   /// @brief Release ownership: the caller becomes responsible for the memory.
   void release()
   {
-    ownership_ = ownership::non_owning;
+    ownership_ = ownership::view;
   }
 
   // ========== Capacity bookkeeping ==========
@@ -827,7 +828,7 @@ public:
   /// the contiguous backing, if any.
   void clear()
   {
-    if (ownership_ == ownership::owning)
+    if (ownership_ == ownership::owning_shards)
     {
       for (auto& s : shards_)
       {
@@ -886,7 +887,7 @@ private:
 
   ::std::vector<shard_type> shards_;
   size_t total_size_   = 0;
-  ownership ownership_ = ownership::non_owning;
+  ownership ownership_ = ownership::view;
   // Set only by allocate_contiguous: the VMM backing (one VA range, physical
   // blocks owned per shard's place). Shards are then non-owning views.
   ::std::shared_ptr<places::localized_array> contiguous_backing_;

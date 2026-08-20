@@ -83,7 +83,8 @@ void test_layout_contract()
   EXPECT(arr.is_contiguous());
   EXPECT(arr.contiguous_data() != nullptr);
   EXPECT(arr.size() == n);
-  EXPECT(arr.is_view()); // the VMM backing owns the memory
+  EXPECT(arr.is_owning()); // the array owns the memory, via its VMM backing
+  EXPECT(arr.get_ownership() == ownership::owning_backing);
   EXPECT(arr.validate());
 
   // Logical shard boundaries are EXACT: shard(i).data == base + global_offset
