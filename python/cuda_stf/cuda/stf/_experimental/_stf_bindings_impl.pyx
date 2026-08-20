@@ -1608,6 +1608,9 @@ cdef class exec_place:
 
         Dependencies using ``data_place.affine()`` will resolve to ``dplace``
         when this exec place is used as the task's execution place.
+
+        This mutates shared place state: configure it before threads start
+        submitting tasks through this place, not concurrently with them.
         """
         stf_exec_place_set_affine_data_place(self._h, dplace._h)
         # The place now references the affine data place; keep it alive.
@@ -2875,6 +2878,16 @@ cdef class context:
             raise err
 
     def finalize(self):
+        """Finalize the context: wait for pending work and release resources.
+
+        Finalize is a phase operation: quiesce submitter threads first (no
+        task submission, fence() or wait() may be in flight on this context).
+        It is idempotent, and if several threads race to finalize the same
+        context exactly one performs the teardown. Wrapper objects that
+        outlive the context (logical_data, tasks) remain safe to drop from
+        any thread afterwards. See the "Thread safety" section of the
+        package README for the full contract.
+        """
         cdef _PrimaryContextPin pin = None
         cdef stf_ctx_handle h = NULL
         cdef bint was_blocking = not self._has_stream
@@ -2965,6 +2978,10 @@ cdef class context:
         will be signaled once every task submitted so far has completed.
         Unlike ``finalize()``, this does **not** destroy the context, so
         more tasks can be submitted afterwards.
+
+        Like ``finalize()``, this is a phase operation: do not call it while
+        other threads are still submitting tasks to this context (see the
+        "Thread safety" section of the package README).
 
         Returns
         -------
