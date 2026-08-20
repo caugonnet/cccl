@@ -33,6 +33,7 @@ import numpy as np
 
 import ctypes
 import numbers as _numbers
+import threading
 import warnings
 from enum import IntFlag
 
@@ -1409,7 +1410,14 @@ def _native_to_public(native, int rank):
 
 cdef class exec_place:
     cdef stf_exec_place_handle _h
-    cdef stf_exec_place_scope_handle _scope
+    # Per-thread stack of open ``with place:`` scope handles. An affinity
+    # scope is a property of the entering thread, so it must never be stashed
+    # on the (shareable) place object itself: a second ``__enter__`` -- from
+    # another thread or from single-thread nesting -- would overwrite the
+    # first thread's scope and ``__exit__`` would then close the wrong one.
+    # ``threading.local`` keys the stack by thread; the list makes ``with``
+    # blocks nestable on one thread.
+    cdef object _scope_tls
     # Keeps externally-owned objects (e.g. a cuda.core Context backing a
     # from_context place) alive for the lifetime of this place.
     cdef object _keep_alive
@@ -1421,7 +1429,7 @@ cdef class exec_place:
 
     def __cinit__(self):
         self._h = NULL
-        self._scope = NULL
+        self._scope_tls = threading.local()
         self._keep_alive = None
         self._owners = []
 
@@ -1430,9 +1438,10 @@ cdef class exec_place:
             self._owners.append(owner)
 
     def __dealloc__(self):
-        if self._scope != NULL:
-            stf_exec_place_scope_exit(self._scope)
-            self._scope = NULL
+        # Scope handles live in per-thread stacks and are closed by the
+        # matching __exit__ on the thread that opened them (the context
+        # manager protocol guarantees __exit__ runs); they cannot be closed
+        # here, where only the deallocating thread's stack is reachable.
         if self._h != NULL:
             try:
                 stf_exec_place_destroy(self._h)
@@ -1604,17 +1613,30 @@ cdef class exec_place:
         self._add_owner(dplace)
 
     def __enter__(self):
+        cdef stf_exec_place_scope_handle scope
         if self._h == NULL:
             raise RuntimeError("exec_place handle is null")
-        self._scope = stf_exec_place_scope_enter(self._h, 0)
-        if self._scope == NULL:
+        scope = stf_exec_place_scope_enter(self._h, 0)
+        if scope == NULL:
             raise RuntimeError("failed to activate exec_place scope")
+        # Push onto this thread's stack: the scope is thread-confined, and a
+        # stack (rather than a single slot) makes re-entering the same place
+        # nestable. No lock is needed -- each thread only ever touches its
+        # own stack.
+        stack = getattr(self._scope_tls, "stack", None)
+        if stack is None:
+            stack = []
+            self._scope_tls.stack = stack
+        stack.append(<uintptr_t>scope)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._scope != NULL:
-            stf_exec_place_scope_exit(self._scope)
-            self._scope = NULL
+        # Pop this thread's innermost scope; scopes opened by other threads
+        # are invisible here by construction.
+        stack = getattr(self._scope_tls, "stack", None)
+        if stack:
+            stf_exec_place_scope_exit(
+                <stf_exec_place_scope_handle><uintptr_t>stack.pop())
         return False
 
     @property
