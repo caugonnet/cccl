@@ -1,0 +1,84 @@
+# Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
+#
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+[build-system]
+# The extension compiles a CUDA shim TU against the in-repo cudax headers, so
+# the build needs nvcc via CMake's CUDA language support.
+requires = ["scikit-build-core>=0.10", "setuptools_scm", "cython>=3.1.0", "cmake>=3.30"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "cuda-sharded"
+description = "Sharded (place-scoped) containers and algorithms for CUDA Python"
+authors = [{ name = "NVIDIA Corporation" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Environment :: GPU :: NVIDIA CUDA",
+  "License :: OSI Approved :: Apache Software License",
+  # Like cuda-stf: Linux-only.
+  "Operating System :: POSIX :: Linux",
+]
+requires-python = ">=3.10"
+
+dependencies = ["numpy"]
+dynamic = ["version"]
+readme = { file = "README.md", content-type = "text/markdown" }
+
+[project.optional-dependencies]
+test = ["pytest", "cupy-cuda13x"]
+
+[project.urls]
+Homepage = "https://github.com/NVIDIA/cccl"
+Repository = "https://github.com/NVIDIA/cccl"
+Documentation = "https://nvidia.github.io/cccl"
+Issues = "https://github.com/NVIDIA/cccl/issues"
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+build-dir = "build/{wheel_tag}"
+
+[tool.scikit-build.cmake]
+version = ">=3.30"
+args = []
+build-type = "Release"
+source-dir = "."
+
+[tool.scikit-build.ninja]
+version = ">=1.11"
+make-fallback = true
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.setuptools_scm"
+
+[tool.setuptools_scm]
+root = "../.."
+git_describe_command = ["git", "describe", "--tags", "--match", "v[0-9]*"]
+fallback_version = "0.0.0"
+
+# Ship only the sharded subtree. `cuda` and `cuda.sharded` are namespace
+# packages (potentially shared with other cuda-* distributions), so this
+# package must not own their parent __init__.py files. The cu12/cu13 extension
+# directory is installed by CMake, not listed here.
+[tool.scikit-build.wheel.packages]
+"cuda/sharded/_experimental" = "cuda/sharded/_experimental"
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  "cuda.sharded",
+  "cuda.sharded._experimental",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["tests"]

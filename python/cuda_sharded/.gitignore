@@ -1,0 +1,8 @@
+build/
+dist/
+*.egg-info/
+__pycache__/
+.cache/
+# CMake-installed extension directories
+cuda/sharded/_experimental/cu12/
+cuda/sharded/_experimental/cu13/
