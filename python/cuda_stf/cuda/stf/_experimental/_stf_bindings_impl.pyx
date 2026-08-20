@@ -916,6 +916,9 @@ cdef class logical_data:
             self._alive = None
             return
 
+        if ctx._ctx == NULL:
+            raise RuntimeError("context has been finalized")
+
         self._ctx = ctx._ctx
         self._alive = ctx._alive
         self._symbol = None  # Initialize symbol
@@ -1095,6 +1098,8 @@ cdef class logical_data:
 
     @staticmethod
     def token(context ctx):
+        if ctx._ctx == NULL:
+            raise RuntimeError("context has been finalized")
         cdef logical_data out = logical_data.__new__(logical_data)
         out._ctx   = ctx._ctx
         out._dtype = None
@@ -1116,6 +1121,8 @@ cdef class logical_data:
         """
         Create a new logical_data from a shape and a dtype.
         """
+        if ctx._ctx == NULL:
+            raise RuntimeError("context has been finalized")
         shape_tuple = _normalize_alloc_shape(shape)
         cdef logical_data out = logical_data.__new__(logical_data)
         out._ctx   = ctx._ctx
@@ -2234,6 +2241,8 @@ cdef class task:
     cdef int _grid_rank
 
     def __cinit__(self, context ctx):
+        if ctx._ctx == NULL:
+            raise RuntimeError("context has been finalized")
         self._t = stf_task_create(ctx._ctx)
         if self._t == NULL:
             raise RuntimeError("failed to create STF task")
@@ -2479,6 +2488,8 @@ cdef class cuda_kernel:
     cdef _AliveFlag _alive
 
     def __cinit__(self, context ctx):
+        if ctx._ctx == NULL:
+            raise RuntimeError("context has been finalized")
         self._k = stf_cuda_kernel_create(ctx._ctx)
         if self._k == NULL:
             raise RuntimeError("failed to create STF cuda_kernel")
@@ -3613,6 +3624,8 @@ cdef class stackable_task:
     cdef _AliveFlag _alive
 
     def __cinit__(self, stackable_context ctx):
+        if ctx._ctx == NULL:
+            raise RuntimeError("stackable_context has been finalized")
         self._t = stf_stackable_task_create(ctx._ctx)
         if self._t == NULL:
             raise RuntimeError("failed to create STF stackable task")
@@ -4537,6 +4550,8 @@ cdef class stackable_context:
 
     def logical_data(self, object buf, data_place dplace=None, str name=None):
         """Create stackable logical data from an existing buffer."""
+        if self._ctx == NULL:
+            raise RuntimeError("stackable_context has been finalized")
         cdef stackable_logical_data out = stackable_logical_data.__new__(stackable_logical_data)
         out._ctx = self._ctx
         out._alive = self._alive
@@ -4670,6 +4685,8 @@ cdef class stackable_context:
 
     def token(self):
         """Create a synchronization token."""
+        if self._ctx == NULL:
+            raise RuntimeError("stackable_context has been finalized")
         cdef stackable_logical_data out = stackable_logical_data.__new__(stackable_logical_data)
         out._ctx = self._ctx
         out._alive = self._alive
