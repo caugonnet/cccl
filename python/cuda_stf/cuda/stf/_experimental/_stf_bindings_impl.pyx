@@ -2858,9 +2858,20 @@ cdef class context:
         work completed (e.g. after synchronizing the caller stream). Each call
         surfaces and clears one pending error; returns ``None`` when there are
         none.
+
+        Safe to call from several threads: each pending error is surfaced by
+        exactly one caller.
         """
+        # EAFP rather than check-then-pop: with concurrent callers, another
+        # thread may drain the queue between our truthiness check and the
+        # pop. list.pop itself is atomic; losing the race just means there is
+        # nothing left for us to raise.
         if self._callback_errors:
-            raise self._callback_errors.pop(0)
+            try:
+                err = self._callback_errors.pop(0)
+            except IndexError:
+                return
+            raise err
 
     def finalize(self):
         cdef _PrimaryContextPin pin = None
@@ -4398,9 +4409,17 @@ cdef class stackable_context:
         establishing that the relevant work has completed (e.g. after
         synchronizing the caller stream). Each call surfaces and clears one
         pending error; returns ``None`` when there are none.
+
+        Safe to call from several threads: each pending error is surfaced by
+        exactly one caller.
         """
+        # EAFP rather than check-then-pop; see context.check_errors.
         if self._callback_errors:
-            raise self._callback_errors.pop(0)
+            try:
+                err = self._callback_errors.pop(0)
+            except IndexError:
+                return
+            raise err
 
     def __dealloc__(self):
         cdef _AliveFlag flag = self._alive
