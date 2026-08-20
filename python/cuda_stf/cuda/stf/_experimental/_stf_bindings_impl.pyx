@@ -3861,23 +3861,45 @@ cdef class LaunchableGraph:
     # an open (split) scope whose epilogue runs when this handle is freed.
     # Retained so we can close that scope exactly once on reset/destruction.
     cdef stackable_context _owner_ctx
+    # Serializes reset() (and the reset/__dealloc__ pair): the swap-and-free
+    # of _h must be atomic, or two concurrent reset() calls would both read a
+    # non-zero handle and both free the C-level shared reference.
+    cdef PyThread_type_lock _lock
 
     def __cinit__(self):
         self._h = 0
         self._owner_ctx = None
+        self._lock = PyThread_allocate_lock()
+        if self._lock == NULL:
+            raise MemoryError("failed to allocate LaunchableGraph lock")
 
-    cdef void _release_scope(self):
-        if self._owner_ctx is not None:
-            self._owner_ctx._scope_closed()
-            self._owner_ctx = None
+    cdef void _reset_once(self):
+        """Claim the handle and owner scope atomically, then free them.
 
-    def __dealloc__(self):
-        cdef uintptr_t h = self._h
+        Exactly one caller observes the non-zero handle / non-None owner;
+        every other concurrent or later call is a no-op, so the C shared
+        reference is freed and the owning context's scope counter is
+        decremented exactly once.
+        """
+        cdef uintptr_t h
+        cdef stackable_context owner
+        _lifetime_lock_acquire(self._lock)
+        h = self._h
         self._h = 0
+        owner = self._owner_ctx
+        self._owner_ctx = None
+        PyThread_release_lock(self._lock)
         if h != 0:
             with nogil:
                 stf_launchable_graph_shared_free(<stf_launchable_graph_shared>h)
-        self._release_scope()
+        if owner is not None:
+            owner._scope_closed()
+
+    def __dealloc__(self):
+        self._reset_once()
+        if self._lock != NULL:
+            PyThread_free_lock(self._lock)
+            self._lock = NULL
 
     def reset(self):
         """Drop this shared reference eagerly.
@@ -3885,14 +3907,15 @@ cdef class LaunchableGraph:
         When this was the last live reference to the underlying graph,
         ``stf_stackable_pop_epilogue`` runs now instead of at destruction
         time. Subsequent accessors / :py:meth:`launch` raise.
-        Idempotent.
+        Idempotent. Duplicate concurrent calls are guarded so at most one
+        performs the release, but the release itself must run on a thread
+        that has entered the owning stackable context (normally the
+        recording thread): the stackable scope structure is thread-confined
+        by the underlying runtime. Do not call it concurrently with an
+        in-flight :py:meth:`launch` on the same object: quiesce launchers
+        first, as with any teardown.
         """
-        cdef uintptr_t h = self._h
-        self._h = 0
-        if h != 0:
-            with nogil:
-                stf_launchable_graph_shared_free(<stf_launchable_graph_shared>h)
-        self._release_scope()
+        self._reset_once()
 
     def _check_valid(self):
         if self._h == 0:
