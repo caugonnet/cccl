@@ -7,6 +7,9 @@ set(
   algorithms/reduce_scan.cu
   algorithms/count_histogram.cu
   algorithms/compaction.cu
+  communicator/concepts.cu
+  communicator/verbs.cu
+  communicator/bridge.cu
 )
 
 cccl_get_cudatoolkit()
