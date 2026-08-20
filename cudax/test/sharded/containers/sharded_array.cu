@@ -44,13 +44,7 @@ void expect_equal(const ::std::vector<T>& actual, const ::std::vector<T>& expect
   EXPECT(actual.size() == expected.size());
   for (size_t i = 0; i < actual.size(); i++)
   {
-    if (actual[i] != expected[i])
-    {
-             i,
-             static_cast<long long>(actual[i]),
-             static_cast<long long>(expected[i]));
-      EXPECT(actual[i] == expected[i]);
-    }
+    EXPECT(actual[i] == expected[i]);
   }
 }
 
