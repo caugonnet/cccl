@@ -18,7 +18,6 @@
 
 #include <cuda/experimental/sharded.cuh>
 
-#include <cstdio>
 #include <vector>
 
 using namespace cuda::experimental::sharded;
@@ -36,7 +35,6 @@ struct max_op
 
 void test_reduce(place_group& group)
 {
-  printf("== reduce / sum / min / max ==\n");
 
   const size_t n = 1000001;
   auto data      = sharded_array<long long>::allocate(group, n);
@@ -57,7 +55,6 @@ void test_reduce(place_group& group)
 
 void test_inclusive_scan(place_group& group)
 {
-  printf("== inclusive scan ==\n");
 
   const size_t n = 262147;
   auto data      = sharded_array<long long>::allocate(group, n);
@@ -83,7 +80,6 @@ void test_inclusive_scan(place_group& group)
 
 void test_exclusive_scan(place_group& group)
 {
-  printf("== exclusive scan ==\n");
 
   const size_t n = 131075;
   auto data      = sharded_array<long long>::allocate(group, n);
@@ -112,7 +108,6 @@ void test_exclusive_scan(place_group& group)
 
 void test_adjacent_difference(place_group& group)
 {
-  printf("== adjacent difference ==\n");
 
   const size_t n = 100000;
   auto input     = sharded_array<long long>::allocate(group, n);
@@ -134,7 +129,6 @@ void test_adjacent_difference(place_group& group)
   {
     if (host[i] != 2 * static_cast<long long>(i) - 1)
     {
-      printf("adjacent_difference mismatch at %zu: got %lld\n", i, host[i]);
     }
     EXPECT(host[i] == 2 * static_cast<long long>(i) - 1);
   }
@@ -146,18 +140,15 @@ void test_adjacent_difference(place_group& group)
 
 int main()
 {
-  printf("=== sharded reduce/scan tests ===\n\n");
 
   cuda_safe_call(cudaSetDevice(0));
 
   auto group = place_group::by_locality_domains();
-  printf("place_group with %zu place(s)\n\n", group.size());
 
   test_reduce(group);
   test_inclusive_scan(group);
   test_exclusive_scan(group);
   test_adjacent_difference(group);
 
-  printf("\n=== All reduce/scan tests PASSED ===\n");
   return 0;
 }

@@ -74,7 +74,6 @@ bool vmm_supported(int dev_id = 0)
 
 void test_layout_contract()
 {
-  printf("== layout contract ==\n");
 
   auto group = place_group::by_locality_domains({0});
   // Odd size so shards are uneven and boundaries are not granule-aligned
@@ -119,7 +118,6 @@ void test_layout_contract()
 
 void test_whole_kernel_visibility()
 {
-  printf("== per-shard writes, whole-array kernel reads (and back) ==\n");
 
   auto group     = place_group::by_locality_domains({0});
   const size_t n = (1 << 21) + 999;
@@ -167,9 +165,30 @@ void test_whole_kernel_visibility()
   cuda_safe_call(cudaFree(d_error));
 }
 
+void test_non_affine_spec_refused()
+{
+
+  // The contiguous backing places physical blocks at each spec's exec
+  // place's affine data place; a spec naming any other data_place must
+  // throw rather than be silently ignored.
+  auto group = place_group::by_locality_domains({0});
+  auto place = group.place(0);
+  bool threw = false;
+  try
+  {
+    ::std::vector<shard_spec> specs;
+    specs.emplace_back(1024, cuda::experimental::places::data_place::host(), place, group.get_stream(0));
+    auto bad = sharded_array<long long>::allocate_contiguous(specs);
+  }
+  catch (const ::std::invalid_argument&)
+  {
+    threw = true;
+  }
+  EXPECT(threw);
+}
+
 void test_empty_and_cleanup()
 {
-  printf("== empty allocation and cleanup ==\n");
 
   auto empty = sharded_array<long long>::allocate_contiguous(::std::vector<shard_spec>{});
   EXPECT(!empty.is_contiguous());
@@ -187,7 +206,6 @@ void test_empty_and_cleanup()
 
 int main()
 {
-  printf("=== sharded_array contiguous (VMM-backed) tests ===\n\n");
 
   cuda_try(cuInit(0));
   cuda_safe_call(cudaSetDevice(0));
@@ -200,8 +218,8 @@ int main()
 
   test_layout_contract();
   test_whole_kernel_visibility();
+  test_non_affine_spec_refused();
   test_empty_and_cleanup();
 
-  printf("\n=== All contiguous tests PASSED ===\n");
   return 0;
 }

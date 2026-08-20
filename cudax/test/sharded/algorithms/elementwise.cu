@@ -18,7 +18,6 @@
 
 #include <cuda/experimental/sharded.cuh>
 
-#include <cstdio>
 #include <vector>
 
 using namespace cuda::experimental::sharded;
@@ -68,7 +67,6 @@ struct const_gen
 
 void test_fill_and_sequence(place_group& group)
 {
-  printf("== fill / sequence / iota ==\n");
 
   const size_t n = 100003;
   auto data      = sharded_array<long long>::allocate(group, n);
@@ -98,7 +96,6 @@ void test_fill_and_sequence(place_group& group)
 
 void test_tabulate_generate_for_each(place_group& group)
 {
-  printf("== tabulate / generate / for_each ==\n");
 
   const size_t n = 65537;
   auto data      = sharded_array<long long>::allocate(group, n);
@@ -129,7 +126,6 @@ void test_tabulate_generate_for_each(place_group& group)
 
 void test_transform(place_group& group)
 {
-  printf("== transform (in-place / unary / binary) ==\n");
 
   const size_t n = 50000;
   auto a         = sharded_array<long long>::allocate(group, n);
@@ -180,17 +176,14 @@ void test_transform(place_group& group)
 
 int main()
 {
-  printf("=== sharded elementwise algorithm tests ===\n\n");
 
   cuda_safe_call(cudaSetDevice(0));
 
   auto group = place_group::by_locality_domains();
-  printf("place_group with %zu place(s)\n\n", group.size());
 
   test_fill_and_sequence(group);
   test_tabulate_generate_for_each(group);
   test_transform(group);
 
-  printf("\n=== All elementwise tests PASSED ===\n");
   return 0;
 }

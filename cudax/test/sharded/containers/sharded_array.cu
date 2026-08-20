@@ -21,7 +21,6 @@
 
 #include <cuda/experimental/sharded.cuh>
 
-#include <cstdio>
 #include <numeric>
 #include <stdexcept>
 #include <vector>
@@ -47,7 +46,6 @@ void expect_equal(const ::std::vector<T>& actual, const ::std::vector<T>& expect
   {
     if (actual[i] != expected[i])
     {
-      printf("mismatch at %zu: got %lld expected %lld\n",
              i,
              static_cast<long long>(actual[i]),
              static_cast<long long>(expected[i]));
@@ -58,7 +56,6 @@ void expect_equal(const ::std::vector<T>& actual, const ::std::vector<T>& expect
 
 void test_single_device_roundtrip()
 {
-  printf("== single-device roundtrip ==\n");
 
   const size_t n = 1000;
   auto input     = sequential<unsigned long long>(n);
@@ -79,7 +76,6 @@ void test_single_device_roundtrip()
 
 void test_multi_shard_roundtrip()
 {
-  printf("== multi-shard roundtrip ==\n");
 
   const size_t n = 1000;
   auto input     = sequential<unsigned long long>(n);
@@ -110,7 +106,6 @@ void test_multi_shard_roundtrip()
 
 void test_place_group_allocation()
 {
-  printf("== place_group allocation ==\n");
 
   auto group     = place_group::by_locality_domains({0});
   const size_t n = 10000;
@@ -148,7 +143,6 @@ void test_place_group_allocation()
 
 void test_allocate_like()
 {
-  printf("== allocate_like ==\n");
 
   auto group = place_group::by_locality_domains({0});
   auto src   = sharded_array<long long>::allocate(group, 999);
@@ -172,7 +166,6 @@ void test_allocate_like()
 
 void test_copy_between_resharding()
 {
-  printf("== copy_between / resharding ==\n");
 
   const size_t n = 1000;
   auto input     = sequential<unsigned long long>(n);
@@ -214,7 +207,6 @@ void test_copy_between_resharding()
 
 void test_adoption_and_slice()
 {
-  printf("== adoption and slicing ==\n");
 
   const size_t n = 700;
   auto input     = sequential<long long>(n);
@@ -251,7 +243,6 @@ void test_adoption_and_slice()
 
 void test_check_compatible_throws()
 {
-  printf("== check_compatible contract ==\n");
 
   auto a = sharded_array<long long>::allocate(
     {{100, data_place::device(0), exec_place::device(0), nullptr}});
@@ -288,7 +279,6 @@ void test_check_compatible_throws()
 
 void test_uniform_and_host()
 {
-  printf("== allocate_uniform / allocate_host / from_host ==\n");
 
   const size_t n = 1001;
   auto input     = sequential<long long>(n);
@@ -314,7 +304,6 @@ void test_uniform_and_host()
 
 int main()
 {
-  printf("=== sharded_array container tests ===\n\n");
 
   cuda_safe_call(cudaSetDevice(0));
 
@@ -327,6 +316,5 @@ int main()
   test_check_compatible_throws();
   test_uniform_and_host();
 
-  printf("\n=== All sharded_array container tests PASSED ===\n");
   return 0;
 }

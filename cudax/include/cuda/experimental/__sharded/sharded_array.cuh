@@ -266,6 +266,16 @@ public:
     ::std::vector<exec_place> eplaces;
     for (const auto& [size, dplace, eplace, stream] : specs)
     {
+      // The contiguous backing places each spec's physical blocks at its
+      // exec place's affine data place; a non-affine data_place in the spec
+      // would be silently ignored, so refuse it up front.
+      if (dplace.to_string() != eplace.affine_data_place().to_string())
+      {
+        _CCCL_THROW(::std::invalid_argument,
+                    "sharded_array::allocate_contiguous: spec data_place (" + dplace.to_string()
+                      + ") must be the exec place's affine data place (" + eplace.affine_data_place().to_string()
+                      + "); non-affine placement is not supported by the contiguous backing");
+      }
       total += size;
       ends.push_back(total);
       eplaces.push_back(eplace);
