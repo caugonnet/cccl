@@ -5,6 +5,8 @@ set(
   containers/contiguous.cu
   algorithms/elementwise.cu
   algorithms/reduce_scan.cu
+  algorithms/count_histogram.cu
+  algorithms/compaction.cu
 )
 
 cccl_get_cudatoolkit()

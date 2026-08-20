@@ -48,7 +48,7 @@ size-mutating operations must refuse such arrays.
 Algorithms
 ----------
 
-The initial algorithm family:
+The algorithm family:
 
 - elementwise: ``fill``, ``sequence``, ``iota``, ``tabulate``, ``generate``,
   ``for_each``, ``transform`` (in-place, unary, binary) — no cross-place
@@ -58,7 +58,30 @@ The initial algorithm family:
 - ``inclusive_scan`` / ``exclusive_scan``: per-place CUB ``DeviceScan``, then
   per-place prefixes folded back in place;
 - ``adjacent_difference``: local differences plus one boundary element per
-  shard.
+  shard;
+- ``count`` / ``count_if``: per-place CUB transform-reduce plus a sum of the
+  per-place counts;
+- ``histogram_even``: per-place CUB ``DeviceHistogram`` plus a per-bin sum of
+  the per-place histograms;
+- ``copy_if`` / ``filter`` / ``remove_if``: per-place CUB ``DeviceSelect``
+  compaction in place, then shard sizes and offsets are updated;
+- ``unique``: per-place CUB ``DeviceSelect::Unique`` in place, then
+  duplicates straddling shard boundaries are trimmed with an O(1) size
+  decrement per boundary.
 
 Algorithm temporaries are drawn from each shard's place through the group's
 per-place memory resources.
+
+Size-mutating algorithms and the contiguous backing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``copy_if`` / ``filter`` / ``remove_if`` and ``unique`` shrink shard sizes in
+place (capacities are unchanged; ``reset_sizes_to_capacity()`` reuses the
+buffers). On a contiguous array this is unrepresentable: shrinking a shard
+would leave a gap between its valid elements and the next shard's, falsifying
+the read-as-one-array contract of ``contiguous_data()``, while compacting
+across the gap would migrate elements onto other places than the caller asked
+for. These algorithms therefore throw ``std::invalid_argument`` on contiguous
+(``allocate_contiguous``) arrays, leaving them untouched. Read-only
+algorithms (``count`` / ``count_if``, ``histogram_even``, ``reduce`` et al.)
+remain available on every sharded array, contiguous ones included.
