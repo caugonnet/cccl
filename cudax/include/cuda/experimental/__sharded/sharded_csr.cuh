@@ -1,0 +1,444 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of CUDA Experimental in CUDA C++ Core Libraries,
+// under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
+//
+//===----------------------------------------------------------------------===//
+
+/**
+ * @file
+ * @brief `sharded_csr<T>`: a row-partitioned CSR sparse matrix, one shard per
+ *        place of a `place_group`.
+ *
+ * Each shard is a self-contained CSR matrix for a contiguous row range:
+ *
+ *  - `values` / `colinds`: the shard's nnz slice of the parent arrays
+ *  - `offsets`: the shard's rows+1 offsets, REBASED to start at 0
+ *  - storage lives in the shard's place (for locality-domain places, the
+ *    domain's localized memory; confined consumers then read domain-local
+ *    bytes)
+ *
+ * Because each shard is a complete CSR operator over its row range, a plain
+ * per-place library call (one vendor call per shard, on the shard's stream)
+ * consumes it without any library changes — that is the point: the container
+ * carries the placement so that CLOSED libraries, which only understand
+ * pointers and a stream, can be run placement-localized. The vendor calls
+ * themselves live in the opt-in `<cuda/experimental/sharded_sparse.cuh>`
+ * header; this container never includes vendor headers. Per-(shard, op)
+ * library state — handles, descriptors, plans, workspaces — is owned by the
+ * container through the type-erased `lib_state()` slots, so plans are built
+ * once against the shard's fixed addresses and live exactly as long as the
+ * arrays they describe.
+ *
+ * Split points are caller-suppliable row boundaries; the default is an
+ * nnz-balanced split. CAVEAT: nnz balance is not time balance — under SM
+ * confinement the split finishes at max(shard time), and a skewed row-length
+ * distribution can make an nnz-balanced split strongly time-imbalanced. When
+ * the matrix is reused across many calls, measure per-shard solo times once
+ * (e.g. `spmv_shard_times` / `spmm_shard_times` from the sparse header) and
+ * rebalance with `time_balanced_boundaries`.
+ *
+ * The dense operands of the sparse products are NOT containers: a row
+ * partition needs the whole dense operand at every place. Coherent per-place
+ * replication of such operands is the binding tier's job (STF
+ * `logical_data`); the container composes with it rather than absorbing it.
+ */
+
+#pragma once
+
+#include <cuda/__cccl_config>
+
+#if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
+#  pragma GCC system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_CLANG)
+#  pragma clang system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_MSVC)
+#  pragma system_header
+#endif // no system header
+
+#include <cuda/experimental/__places/place_group.cuh>
+#include <cuda/experimental/__places/places.cuh>
+#include <cuda/experimental/__sharded/sharded_array.cuh>
+
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include <cuda_runtime.h>
+
+namespace cuda::experimental::sharded
+{
+/**
+ * @brief One row-range shard of a `sharded_csr`: a complete CSR matrix for
+ *        rows [row_begin, row_begin + rows), with rebased offsets, plus its
+ *        placement.
+ */
+template <typename _Tp>
+struct csr_shard
+{
+  ::std::int64_t row_begin = 0; //!< first row of this shard in the parent matrix
+  ::std::int64_t rows      = 0; //!< number of rows
+  ::std::int64_t nnz_begin = 0; //!< first nonzero (parent indexing)
+  ::std::int64_t nnz       = 0; //!< number of nonzeros
+  int* offsets             = nullptr; //!< rows+1 entries, rebased (offsets[0] == 0)
+  int* colinds             = nullptr; //!< nnz entries (parent column indices)
+  _Tp* values              = nullptr; //!< nnz entries
+  data_place place; //!< where the shard's arrays live
+  exec_place exec; //!< execution place for consumers of this shard
+  cudaStream_t stream = nullptr; //!< reference stream (group stream for the place)
+};
+
+/**
+ * @brief A row-partitioned CSR matrix: one shard per place of a
+ *        `place_group`, each shard stored in its place's memory.
+ *
+ * See the file-level comment for the design. The container owns the three
+ * backing `sharded_array`s (offsets/colinds/values) and hands out per-shard
+ * views; it also owns type-erased per-operation library state (see
+ * `lib_state`).
+ */
+template <typename _Tp>
+class sharded_csr
+{
+public:
+  using value_type = _Tp;
+  using shard_type = csr_shard<_Tp>;
+
+  /**
+   * @brief Build a row-partitioned CSR from host CSR data, one shard per
+   *        place of the group, each shard stored in its place's memory.
+   *
+   * SYNCHRONOUS: returns with all shards populated.
+   *
+   * @param group Place group whose places define the partition (and provide
+   *              the reference streams)
+   * @param num_rows Number of rows of the matrix
+   * @param num_cols Number of columns of the matrix
+   * @param h_offsets Host CSR row offsets (num_rows+1 ints)
+   * @param h_colinds Host CSR column indices (nnz ints)
+   * @param h_values Host CSR values (nnz)
+   * @param row_boundaries Optional interior split rows (ascending, size
+   *              group.size()-1); shard d covers [boundary[d-1], boundary[d]).
+   *              Empty = nnz-balanced split (see the time-balance caveat in
+   *              the file-level comment).
+   */
+  sharded_csr(place_group& group,
+              ::std::int64_t num_rows,
+              ::std::int64_t num_cols,
+              const int* h_offsets,
+              const int* h_colinds,
+              const _Tp* h_values,
+              ::std::vector<::std::int64_t> row_boundaries = {})
+      : rows_(num_rows)
+      , cols_(num_cols)
+      , nnz_(h_offsets[num_rows])
+  {
+    const size_t num_shards = group.size();
+    if (num_shards == 0)
+    {
+      _CCCL_THROW(::std::invalid_argument, "sharded_csr: place group has no places");
+    }
+    if (row_boundaries.empty())
+    {
+      row_boundaries = nnz_balanced_boundaries(num_rows, h_offsets, num_shards);
+    }
+    if (row_boundaries.size() != num_shards - 1)
+    {
+      _CCCL_THROW(::std::invalid_argument,
+                  "sharded_csr: need group.size()-1 row boundaries (" + ::std::to_string(num_shards - 1) + "), got "
+                    + ::std::to_string(row_boundaries.size()));
+    }
+
+    // Full boundary list [0, b..., num_rows]
+    ::std::vector<::std::int64_t> b;
+    b.push_back(0);
+    b.insert(b.end(), row_boundaries.begin(), row_boundaries.end());
+    b.push_back(num_rows);
+    for (size_t d = 0; d + 1 < b.size(); d++)
+    {
+      if (b[d] > b[d + 1] || b[d] < 0 || b[d + 1] > num_rows)
+      {
+        _CCCL_THROW(::std::invalid_argument, "sharded_csr: row boundaries must be ascending in [0, num_rows]");
+      }
+    }
+
+    // Allocation specs for the three backing arrays (one shard per place;
+    // offsets get rows+1 entries per shard, colinds/values the nnz slice).
+    // One stream color for the whole matrix: the shards' reference streams.
+    const size_t color = group.next_stream_color();
+    ::std::vector<shard_spec> off_specs, nnz_specs;
+    for (size_t d = 0; d < num_shards; d++)
+    {
+      const ::std::int64_t r0 = b[d], r1 = b[d + 1];
+      const size_t shard_nnz = static_cast<size_t>(h_offsets[r1] - h_offsets[r0]);
+      const auto& eplace     = group.place(d);
+      const auto dplace      = eplace.affine_data_place();
+      cudaStream_t stream    = group.get_stream(d, color);
+      off_specs.emplace_back(static_cast<size_t>(r1 - r0) + 1, dplace, eplace, stream);
+      nnz_specs.emplace_back(shard_nnz, dplace, eplace, stream);
+    }
+    offsets_ = sharded_array<int>::allocate(off_specs);
+    colinds_ = sharded_array<int>::allocate(nnz_specs);
+    values_  = sharded_array<_Tp>::allocate(nnz_specs);
+
+    // colinds/values shards are contiguous slices of the parent arrays, so a
+    // single contiguous host copy distributes them. Offsets are rebased per
+    // shard first (offsets[0] == 0 in every shard).
+    colinds_.copy_from_host(h_colinds);
+    values_.copy_from_host(h_values);
+    ::std::vector<int> rebased;
+    rebased.reserve(static_cast<size_t>(num_rows) + num_shards);
+    for (size_t d = 0; d < num_shards; d++)
+    {
+      const ::std::int64_t r0 = b[d], r1 = b[d + 1];
+      for (::std::int64_t r = r0; r <= r1; r++)
+      {
+        rebased.push_back(h_offsets[r] - h_offsets[r0]);
+      }
+    }
+    offsets_.copy_from_host(rebased.data());
+
+    // Shard views. Zero-size shards are skipped by sharded_array::allocate,
+    // so track the backing shards by walking sizes.
+    size_t off_idx = 0, nnz_idx = 0;
+    for (size_t d = 0; d < num_shards; d++)
+    {
+      shard_type sh;
+      sh.row_begin = b[d];
+      sh.rows      = b[d + 1] - b[d];
+      sh.nnz_begin = h_offsets[b[d]];
+      sh.nnz       = h_offsets[b[d + 1]] - h_offsets[b[d]];
+      sh.place     = group.place(d).affine_data_place();
+      sh.exec      = group.place(d);
+      sh.stream    = group.get_stream(d, color);
+      sh.offsets   = offsets_.shard(off_idx++).data; // rows+1 >= 1, never empty
+      if (sh.nnz > 0)
+      {
+        sh.colinds = colinds_.shard(nnz_idx).data;
+        sh.values  = values_.shard(nnz_idx).data;
+        nnz_idx++;
+      }
+      shards_.push_back(sh);
+    }
+  }
+
+  // The container owns library state whose destruction order matters; keep it
+  // move-only like the other owning sharded containers.
+  sharded_csr(sharded_csr&&)                 = default;
+  sharded_csr& operator=(sharded_csr&&)      = default;
+  sharded_csr(const sharded_csr&)            = delete;
+  sharded_csr& operator=(const sharded_csr&) = delete;
+
+  /**
+   * @brief Default split: shard d starts at the first row whose cumulative
+   *        nnz reaches d*nnz/num_shards. Every shard keeps at least one row.
+   */
+  static ::std::vector<::std::int64_t>
+  nnz_balanced_boundaries(::std::int64_t num_rows, const int* h_offsets, size_t num_shards)
+  {
+    ::std::vector<::std::int64_t> bounds;
+    const ::std::int64_t nnz = h_offsets[num_rows];
+    ::std::int64_t prev      = 0;
+    for (size_t d = 1; d < num_shards; d++)
+    {
+      const ::std::int64_t target =
+        static_cast<::std::int64_t>(d) * nnz / static_cast<::std::int64_t>(num_shards);
+      const int* lo      = ::std::lower_bound(h_offsets, h_offsets + num_rows + 1, static_cast<int>(target));
+      ::std::int64_t row = lo - h_offsets;
+      // Keep every shard non-empty in rows
+      row  = ::std::min(::std::max(row, prev + 1), num_rows - static_cast<::std::int64_t>(num_shards - d));
+      prev = row;
+      bounds.push_back(row);
+    }
+    return bounds;
+  }
+
+  /**
+   * @brief Time-balanced split from measured per-shard times.
+   *
+   * Under SM confinement a split finishes at max(shard time), so the split
+   * must balance *time*, not nnz. Given the per-shard times measured with the
+   * CURRENT boundaries (e.g. `spmv_shard_times` / `spmm_shard_times` from
+   * `<cuda/experimental/sharded_sparse.cuh>`), this models each current shard
+   * as a constant nnz-throughput region (rate_d = nnz_d / ms_d), predicts the
+   * time of any row range as the rate-weighted nnz it overlaps, and places
+   * new boundaries so every new shard's predicted time is total/num_shards.
+   *
+   * One round removes most of the imbalance; rates shift as rows change
+   * shards, so iterate with fresh measurements (keeping the best measured
+   * split) when the matrix is reused enough to amortize it.
+   *
+   * @param num_rows Number of rows of the operator
+   * @param h_offsets Host CSR offsets (num_rows+1)
+   * @param current_boundaries Interior boundaries the times were measured
+   *        with (size num_shards-1; the container's shard(d+1).row_begin)
+   * @param shard_ms Measured per-shard times (size num_shards)
+   * @return New interior boundaries (size num_shards-1)
+   */
+  static ::std::vector<::std::int64_t> time_balanced_boundaries(
+    ::std::int64_t num_rows,
+    const int* h_offsets,
+    const ::std::vector<::std::int64_t>& current_boundaries,
+    const ::std::vector<double>& shard_ms)
+  {
+    const size_t num_shards = shard_ms.size();
+    if (current_boundaries.size() != num_shards - 1)
+    {
+      _CCCL_THROW(::std::invalid_argument, "time_balanced_boundaries: boundaries/times size mismatch");
+    }
+    // Full boundary list of the measured split + per-old-shard cost per nnz
+    ::std::vector<::std::int64_t> b;
+    b.push_back(0);
+    b.insert(b.end(), current_boundaries.begin(), current_boundaries.end());
+    b.push_back(num_rows);
+    ::std::vector<double> cost_per_nnz(num_shards);
+    double total_ms = 0;
+    for (size_t d = 0; d < num_shards; d++)
+    {
+      const ::std::int64_t nnz_d = h_offsets[b[d + 1]] - h_offsets[b[d]];
+      cost_per_nnz[d]            = (nnz_d > 0) ? shard_ms[d] / static_cast<double>(nnz_d) : 0.0;
+      total_ms += shard_ms[d];
+    }
+    const double target = total_ms / static_cast<double>(num_shards);
+
+    ::std::vector<::std::int64_t> bounds;
+    double acc            = 0.0; // predicted ms accumulated in the current new shard
+    size_t old_d          = 0;
+    ::std::int64_t prev   = 0;
+    for (::std::int64_t r = 0; r < num_rows && bounds.size() < num_shards - 1; r++)
+    {
+      while (old_d + 1 < num_shards && r >= b[old_d + 1])
+      {
+        old_d++;
+      }
+      acc += cost_per_nnz[old_d] * static_cast<double>(h_offsets[r + 1] - h_offsets[r]);
+      if (acc >= target)
+      {
+        ::std::int64_t row = r + 1;
+        row                = ::std::min(::std::max(row, prev + 1),
+                         num_rows - static_cast<::std::int64_t>(num_shards - 1 - bounds.size()));
+        bounds.push_back(row);
+        prev = row;
+        acc  = 0.0;
+      }
+    }
+    while (bounds.size() < num_shards - 1)
+    {
+      // Degenerate tail: keep remaining shards non-empty
+      ::std::int64_t row =
+        ::std::min(prev + 1, num_rows - static_cast<::std::int64_t>(num_shards - 1 - bounds.size()));
+      bounds.push_back(row);
+      prev = row;
+    }
+    return bounds;
+  }
+
+  /// @brief This matrix's interior row boundaries (shard(d).row_begin for
+  /// d in [1, num_shards)), i.e. the `current_boundaries` argument of
+  /// `time_balanced_boundaries`.
+  ::std::vector<::std::int64_t> interior_boundaries() const
+  {
+    ::std::vector<::std::int64_t> bounds;
+    for (size_t d = 1; d < shards_.size(); d++)
+    {
+      bounds.push_back(shards_[d].row_begin);
+    }
+    return bounds;
+  }
+
+  /**
+   * @brief Allocate a row-partitioned dense output matching this matrix
+   *        (n_cols columns, row-major): shard d holds rows [row_begin,
+   *        row_begin + rows) in that shard's place. Row partition => the
+   *        output shards are disjoint, so no combine step is ever needed.
+   *
+   * @param n_cols Dense columns (row-major, ld = n_cols)
+   * @param contiguous When true, the shards are views into ONE contiguous VA
+   *        range (`sharded_array::allocate_contiguous`): unmodified
+   *        downstream consumers read the whole result through
+   *        `contiguous_data()` while each row block keeps (granule-
+   *        approximate) per-place physical placement. Logical row boundaries
+   *        stay exact either way.
+   */
+  sharded_array<_Tp> make_row_partitioned(::std::int64_t n_cols = 1, bool contiguous = false) const
+  {
+    ::std::vector<shard_spec> specs;
+    for (const auto& sh : shards_)
+    {
+      specs.emplace_back(static_cast<size_t>(sh.rows * n_cols), sh.place, sh.exec, sh.stream);
+    }
+    return contiguous ? sharded_array<_Tp>::allocate_contiguous(specs) : sharded_array<_Tp>::allocate(specs);
+  }
+
+  ::std::int64_t num_rows() const
+  {
+    return rows_;
+  }
+  ::std::int64_t num_cols() const
+  {
+    return cols_;
+  }
+  ::std::int64_t nnz() const
+  {
+    return nnz_;
+  }
+  size_t num_shards() const
+  {
+    return shards_.size();
+  }
+  shard_type& shard(size_t idx)
+  {
+    _CCCL_ASSERT(idx < shards_.size(), "sharded_csr: shard index out of range");
+    return shards_[idx];
+  }
+  const shard_type& shard(size_t idx) const
+  {
+    _CCCL_ASSERT(idx < shards_.size(), "sharded_csr: shard index out of range");
+    return shards_[idx];
+  }
+
+  /**
+   * @brief Type-erased per-operation library state owned by the container.
+   *
+   * Vendor-call layers (e.g. the sparse products in
+   * `<cuda/experimental/sharded_sparse.cuh>`) stash their library state —
+   * handles, descriptors, plans, workspaces — here, keyed by operation, so it
+   * is created once, reused across calls, and destroyed with the matrix whose
+   * addresses it describes. `make()` is invoked on first use and must return
+   * a `_State*` the container takes ownership of.
+   */
+  template <typename _State, typename _Make>
+  _State& lib_state(const ::std::string& key, _Make&& make)
+  {
+    auto it = lib_state_.find(key);
+    if (it == lib_state_.end())
+    {
+      _State* s = make();
+      it        = lib_state_
+             .emplace(key,
+                      ::std::shared_ptr<void>(s,
+                                              [](void* p) {
+                                                delete static_cast<_State*>(p);
+                                              }))
+             .first;
+    }
+    return *static_cast<_State*>(it->second.get());
+  }
+
+private:
+  ::std::int64_t rows_ = 0, cols_ = 0, nnz_ = 0;
+  ::std::vector<shard_type> shards_;
+  // Backing storage (owning); shards_ hold raw views into these
+  sharded_array<int> offsets_;
+  sharded_array<int> colinds_;
+  sharded_array<_Tp> values_;
+  ::std::unordered_map<::std::string, ::std::shared_ptr<void>> lib_state_;
+};
+} // namespace cuda::experimental::sharded
