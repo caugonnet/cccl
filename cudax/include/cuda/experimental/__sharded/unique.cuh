@@ -59,6 +59,9 @@ size_t unique_impl(place_group& group, sharded_array<_Tp>& data)
     return 0;
   }
 
+  // Size write-back requires host synchronization: cannot be captured
+  check_not_capturing(data, "sharded::unique");
+
   const size_t num_shards = data.num_shards();
   using count_type        = ::cuda::std::int64_t;
 

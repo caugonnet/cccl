@@ -76,6 +76,9 @@ void scan_impl(place_group&, sharded_array<_Tp>& data, scan_type type, _ScanOp s
     return;
   }
 
+  // Host-side prefix combine + synchronization: cannot be recorded into a graph
+  check_not_capturing(data, type == scan_type::inclusive ? "sharded::inclusive_scan" : "sharded::exclusive_scan");
+
   const size_t num_shards = data.num_shards();
 
   // Pinned host staging for shard totals / prefixes (initialized so skipped

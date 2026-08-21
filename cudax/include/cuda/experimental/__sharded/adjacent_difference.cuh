@@ -87,6 +87,10 @@ void adjacent_difference(place_group&, sharded_array<_Tp>& input, sharded_array<
     return;
   }
 
+  // Boundary-element staging requires host synchronization: cannot be captured
+  detail::check_not_capturing(input, "sharded::adjacent_difference");
+  detail::check_not_capturing(output, "sharded::adjacent_difference");
+
   // Pinned host buffer for the per-shard boundary elements: written once per
   // shard, read (zero-copy) by the successor shard's kernel
   places::place_memory_resource host_mr(data_place::host());

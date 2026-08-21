@@ -92,6 +92,9 @@ size_t count_if(place_group& group, const sharded_array<_Tp>& data, _Pred pred)
     return 0;
   }
 
+  // Host-side combine + synchronization: cannot be recorded into a CUDA graph
+  detail::check_not_capturing(data, "sharded::count_if");
+
   const size_t num_shards = data.num_shards();
 
   // Pinned host memory for the per-place counts (zero-initialized so skipped

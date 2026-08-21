@@ -73,6 +73,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <vector>
 
 #include <cuda_runtime.h>
@@ -288,6 +289,29 @@ inline void make_stream_wait_for(cudaStream_t wait_stream, cudaStream_t signal_s
   cuda_safe_call(cudaEventDestroy(event));
 }
 
+/**
+ * @brief True when @p stream is part of an active CUDA stream capture, or
+ * when an active global-mode capture elsewhere in the process would make
+ * synchronizing operations on this thread illegal.
+ *
+ * `nullptr` queries the legacy default stream; because the legacy stream
+ * implicitly interacts with every capture in `cudaStreamCaptureModeGlobal`,
+ * the query then acts as a process-wide capture probe (the driver reports
+ * `cudaErrorStreamCaptureImplicit`, which this function maps to `true`).
+ */
+inline bool stream_in_capture(cudaStream_t stream = nullptr)
+{
+  cudaStreamCaptureStatus status = cudaStreamCaptureStatusNone;
+  const cudaError_t res          = cudaStreamIsCapturing(stream, &status);
+  if (res == cudaErrorStreamCaptureImplicit)
+  {
+    (void) cudaGetLastError(); // clear the sticky error
+    return true;
+  }
+  cuda_safe_call(res);
+  return status != cudaStreamCaptureStatusNone;
+}
+
 namespace detail
 {
 // Detects handle types exposing `get_place_resources() -> exec_place_resources&`
@@ -479,10 +503,19 @@ public:
   }
 
   /// @brief Synchronize the stream of a place at the given color.
+  /// @throws std::runtime_error under an active CUDA stream capture
+  /// (synchronization cannot be recorded into a graph).
   void sync_stream(const exec_place& place, size_t color = 0)
   {
     exec_place_scope scope(place);
-    cuda_safe_call(cudaStreamSynchronize(get_stream(place, color)));
+    cudaStream_t stream = get_stream(place, color);
+    // A global-mode capture anywhere in the process also forbids synchronizing
+    // non-capturing streams, hence the additional legacy-stream probe.
+    if (stream_in_capture(stream) || stream_in_capture(nullptr))
+    {
+      _CCCL_THROW(::std::runtime_error, "place_group::sync_stream: not supported during CUDA stream capture");
+    }
+    cuda_safe_call(cudaStreamSynchronize(stream));
   }
 
   void sync_stream(size_t place_idx, size_t color = 0)
@@ -491,13 +524,23 @@ public:
   }
 
   /// @brief Synchronize every stream created so far, on every place.
+  /// @throws std::runtime_error under an active CUDA stream capture
+  /// (synchronization cannot be recorded into a graph).
   void sync()
   {
+    if (stream_in_capture(nullptr))
+    {
+      _CCCL_THROW(::std::runtime_error, "place_group::sync: not supported during CUDA stream capture");
+    }
     for (const auto& p : places_)
     {
       exec_place_scope scope(p);
       for (cudaStream_t s : get_or_create_streams(p))
       {
+        if (stream_in_capture(s))
+        {
+          _CCCL_THROW(::std::runtime_error, "place_group::sync: not supported during CUDA stream capture");
+        }
         cuda_safe_call(cudaStreamSynchronize(s));
       }
     }
