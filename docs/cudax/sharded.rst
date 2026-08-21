@@ -68,8 +68,10 @@ The algorithm family:
 - ``unique``: per-place CUB ``DeviceSelect::Unique`` in place, then
   duplicates straddling shard boundaries are trimmed with an O(1) size
   decrement per boundary;
-- ``sort``: global in-place sort with the MGMN distributed sort as the
-  engine, driven through the places communicator (see below).
+- ``sort``: global in-place sort with a swappable tier-2 engine: a
+  shared-address-space engine where every shard lives on one device
+  (locality domains), and the MGMN distributed sort driven through the
+  places communicator otherwise (see below).
 
 Algorithm temporaries are drawn from each shard's place through the group's
 per-place memory resources.
@@ -117,25 +119,47 @@ placed where the rank's work runs. Code written against the communicator
 surface is portable across rungs: the same call runs over in-process places
 here and over multi-process ranks with an NCCL-backed communicator.
 
-sort: an MGMN construct as the engine
--------------------------------------
+sort: one name, two engines
+---------------------------
 
-``sort(group, data, comp)`` sorts the logical array globally, in place. It is
-the two-tier structure end to end: the container tier manufactures the
-communicator/environment/iterator ranges with ``bind_engine``; the engine
-tier is the ``__multi_gpu`` distributed sort running over them, unmodified.
+``sort(group, data, comp, engine)`` sorts the logical array globally, in
+place. It is the two-tier structure end to end: the container tier owns
+placement and bookkeeping; the tier-2 engine owns the cross-place
+choreography, and there is one engine per rung of the cooperation-scope
+ladder, selected by ``sort_engine``:
 
-The engine delivers to each rank its slice of the globally sorted sequence,
-redistributed back to the rank's original element count — so shard sizes,
+- ``sort_engine::shared_va`` — the places-rung engine, chosen automatically
+  when every shard lives in one device's address space (locality domains, or
+  the device itself). It combines through what that rung shares — direct
+  loads across shard boundaries: per-place local sorts
+  (``cub::DeviceRadixSort`` for arithmetic keys under the default
+  ascending/descending orders, ``cub::DeviceMergeSort`` for arbitrary
+  comparators), exact splitters computed by multi-sequence selection at the
+  container's fixed shard boundaries, and a fused gather-merge in which each
+  destination place merges the selected sub-ranges of the sorted runs
+  straight into its own shard storage. Because the splitters are exact and
+  the selection's ties are broken totally, the output lands on the original
+  boundaries by construction and the whole pipeline is deterministic.
+
+- ``sort_engine::distributed`` — the ranks-rung engine: the container tier
+  manufactures the communicator/environment/iterator ranges with
+  ``bind_engine`` and the ``__multi_gpu`` distributed sort runs over them,
+  unmodified. This is the portability path (the same construct sorts across
+  multi-process ranks), and the fallback wherever the shards do not share an
+  address space.
+
+``sort_engine::automatic`` (the default) picks by detection; the explicit
+values pin an engine for A/B comparison or portability testing. Requesting
+``shared_va`` where shards do not share one device's address space throws.
+
+Both engines honor the same contract. Each shard ends holding the slice of
+the globally sorted sequence at its original boundaries — shard sizes,
 offsets and capacities are unchanged by construction, and contiguous
 (``allocate_contiguous``) arrays are fully supported: after the sort,
 ``contiguous_data()`` reads as one globally sorted array. Sorting is not
 stable. For keys-only sorting the result is unique as a multiset, so repeated
-runs on the same input are byte-identical.
-
-The engine slot is swappable behind the same name and contract: an
-in-process, placement-aware specialization can replace it later as a
-performance change, not an API change.
+runs on the same input are byte-identical whichever engine runs. The engine
+is a performance choice, not an API change.
 
 sharded_csr and the sparse products: a closed library as the engine
 -------------------------------------------------------------------
