@@ -99,6 +99,13 @@ struct runs_desc
   int p;
 };
 
+/// @brief The target global ranks (the interior shard boundaries), passed to
+/// the selection kernel by value — small, so no staging buffer is needed.
+struct targets_desc
+{
+  size_t rank[max_places - 1];
+};
+
 /**
  * @brief Multi-sequence selection: for each target global rank, find the
  * per-run split positions whose prefixes are exactly the target's prefix of
@@ -123,7 +130,7 @@ struct runs_desc
  */
 template <typename _Tp, typename _Compare>
 __global__ void
-multiselect_kernel(runs_desc<_Tp> runs, const size_t* targets, int num_targets, size_t* splits, _Compare cmp)
+multiselect_kernel(runs_desc<_Tp> runs, targets_desc targets, int num_targets, size_t* splits, _Compare cmp)
 {
   const int t = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
   if (t >= num_targets)
@@ -131,7 +138,7 @@ multiselect_kernel(runs_desc<_Tp> runs, const size_t* targets, int num_targets, 
     return;
   }
 
-  const size_t R = targets[t];
+  const size_t R = targets.rank[t];
   size_t* out    = splits + static_cast<size_t>(t) * static_cast<size_t>(runs.p);
 
   size_t total = 0;
@@ -455,31 +462,37 @@ void sort_shared_va(place_group& group, sharded_array<_Tp>& data, _Compare comp)
 
     const int num_targets = static_cast<int>(p - 1);
 
-    // Pinned host memory: the kernel reads the targets and writes the splits
-    // straight into it, so the only synchronization is one stream sync.
-    places::place_memory_resource host_mr(data_place::host());
-    const size_t targets_bytes = static_cast<size_t>(num_targets) * sizeof(size_t);
-    const size_t splits_bytes  = static_cast<size_t>(num_targets) * p * sizeof(size_t);
-    auto* h_targets            = static_cast<size_t*>(host_mr.allocate_sync(targets_bytes + splits_bytes));
-    auto* h_splits             = h_targets + num_targets;
-
+    // The targets travel by kernel parameter; the splits come back through a
+    // small pooled device buffer and one async copy — no per-call pinned
+    // allocation on the critical path.
+    targets_desc targets{};
     for (size_t k = 1; k < p; k++)
     {
-      h_targets[k - 1] = data.shard(k).global_offset; // exact fixed boundary
+      targets.rank[k - 1] = data.shard(k).global_offset; // exact fixed boundary
     }
+
+    const size_t splits_count = static_cast<size_t>(num_targets) * p;
+    ::std::vector<size_t> h_splits(splits_count);
 
     // The selection runs on shard 0's place, after every local sort.
     const auto& s0 = data.shard(0);
     {
       exec_place_scope scope(s0.exec);
+      places::place_memory_resource mr(s0.place);
+      auto* d_splits = static_cast<size_t*>(
+        mr.allocate(::cuda::stream_ref{s0.stream}, splits_count * sizeof(size_t), alignof(size_t)));
+
       for (size_t g = 1; g < p; g++)
       {
         places::make_stream_wait_for(s0.stream, data.shard(g).stream);
       }
       multiselect_kernel<_Tp, _Compare>
-        <<<1, static_cast<unsigned>(num_targets), 0, s0.stream>>>(runs, h_targets, num_targets, h_splits, comp);
+        <<<1, static_cast<unsigned>(num_targets), 0, s0.stream>>>(runs, targets, num_targets, d_splits, comp);
       cuda_safe_call(cudaGetLastError());
+      cuda_safe_call(cudaMemcpyAsync(
+        h_splits.data(), d_splits, splits_count * sizeof(size_t), cudaMemcpyDeviceToHost, s0.stream));
       cuda_safe_call(cudaStreamSynchronize(s0.stream));
+      mr.deallocate(::cuda::stream_ref{s0.stream}, d_splits, splits_count * sizeof(size_t), alignof(size_t));
     }
     // Host now sees the splits, and every local sort has drained (the kernel
     // waited on all shard streams and we synced its stream).
@@ -492,8 +505,6 @@ void sort_shared_va(place_group& group, sharded_array<_Tp>& data, _Compare comp)
         h_end[k * p + i]   = (k == p - 1) ? data.shard(i).size : h_splits[k * p + i];
       }
     }
-
-    host_mr.deallocate_sync(h_targets, targets_bytes + splits_bytes);
   }
   else
   {
