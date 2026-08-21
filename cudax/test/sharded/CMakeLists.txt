@@ -9,6 +9,7 @@ set(
   algorithms/count_histogram.cu
   algorithms/compaction.cu
   algorithms/sort.cu
+  algorithms/sort_engines.cu
   communicator/concepts.cu
   communicator/verbs.cu
   communicator/bridge.cu
