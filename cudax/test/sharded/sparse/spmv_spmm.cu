@@ -433,7 +433,101 @@ void test_spmm(place_group& group, const host_csr& m, ::std::int64_t n_cols)
 
   cuda_safe_call(cudaFree(d_B));
 }
+
+// ---------------------------------------------------------------------------
+// In-place value mutation: a transform kernel rescales the operator's values
+// between calls (the pattern solvers use for problem scaling). The structure
+// is untouched, so the per-shard plans must remain valid with no rebuild or
+// re-preprocess, and subsequent calls must track the new values exactly.
+// ---------------------------------------------------------------------------
+__global__ void scale_values_kernel(double* v, ::std::int64_t n, double m)
+{
+  ::std::int64_t i            = blockIdx.x * static_cast<::std::int64_t>(blockDim.x) + threadIdx.x;
+  const ::std::int64_t stride = gridDim.x * static_cast<::std::int64_t>(blockDim.x);
+  for (; i < n; i += stride)
+  {
+    v[i] *= m;
+  }
+}
+
+void scale_shard_values(sharded_csr<double>& A, double m)
+{
+  for (size_t i = 0; i < A.num_shards(); i++)
+  {
+    auto& sh = A.shard(i);
+    if (sh.nnz > 0)
+    {
+      scale_values_kernel<<<256, 256, 0, sh.stream>>>(sh.values, sh.nnz, m);
+      cuda_safe_call(cudaGetLastError());
+      cuda_safe_call(cudaStreamSynchronize(sh.stream));
+    }
+  }
+}
+
+void test_value_mutation(place_group& group, const host_csr& m, ::std::int64_t n_cols)
+{
+  sharded_csr<double> A(group, m.rows, m.cols, m.offsets.data(), m.colinds.data(), m.values.data());
+
+  const auto x_h  = random_vector(static_cast<size_t>(m.cols), 601);
+  const auto B_h  = random_vector(static_cast<size_t>(m.cols * n_cols), 602);
+  const auto y0_h = ::std::vector<double>(static_cast<size_t>(m.rows), 0.0);
+  const auto C0_h = ::std::vector<double>(static_cast<size_t>(m.rows * n_cols), 0.0);
+  double* d_x     = device_upload(x_h);
+  double* d_B     = device_upload(B_h);
+
+  auto y = A.make_row_partitioned();
+  auto C = A.make_row_partitioned(n_cols);
+
+  // First calls build the plans.
+  ::std::vector<double> first_y(static_cast<size_t>(m.rows));
+  ::std::vector<double> first_C(static_cast<size_t>(m.rows * n_cols));
+  spmv(group, A, d_x, y);
+  y.sync();
+  y.copy_to_host(first_y.data());
+  spmm(group, A, d_B, C, n_cols);
+  C.sync();
+  C.copy_to_host(first_C.data());
+
+  // Mutate the values in place (exact x2.0), matrix and reference alike.
+  scale_shard_values(A, 2.0);
+  host_csr m2 = m;
+  for (auto& v : m2.values)
+  {
+    v *= 2.0;
+  }
+
+  // Same plans, new values: correct against the scaled host reference and
+  // against ONE whole-matrix call on the scaled operator.
+  ::std::vector<double> got_y(first_y.size());
+  ::std::vector<double> got_C(first_C.size());
+  spmv(group, A, d_x, y);
+  y.sync();
+  y.copy_to_host(got_y.data());
+  expect_close(got_y, host_spmv(m2, x_h, 1.0, 0.0, y0_h));
+  expect_close(got_y, whole_matrix_spmv(m2, x_h, 1.0, 0.0, y0_h));
+  spmm(group, A, d_B, C, n_cols);
+  C.sync();
+  C.copy_to_host(got_C.data());
+  expect_close(got_C, host_spmm(m2, B_h, n_cols, 1.0, 0.0, C0_h));
+  expect_close(got_C, whole_matrix_spmm(m2, B_h, n_cols, 1.0, 0.0, C0_h));
+
+  // Exact restore (x0.5): results must come back byte-identical to the
+  // pre-mutation calls -- no plan or engine state drifted across mutations.
+  scale_shard_values(A, 0.5);
+  spmv(group, A, d_x, y);
+  y.sync();
+  y.copy_to_host(got_y.data());
+  EXPECT(::std::memcmp(got_y.data(), first_y.data(), first_y.size() * sizeof(double)) == 0);
+  spmm(group, A, d_B, C, n_cols);
+  C.sync();
+  C.copy_to_host(got_C.data());
+  EXPECT(::std::memcmp(got_C.data(), first_C.data(), first_C.size() * sizeof(double)) == 0);
+
+  cuda_safe_call(cudaFree(d_x));
+  cuda_safe_call(cudaFree(d_B));
+}
 } // namespace
+
 
 int main()
 {
@@ -451,6 +545,10 @@ int main()
   const auto skewed = make_skewed_csr(30011, 2048, 2);
   test_spmv(group, skewed);
   test_spmm(group, skewed, 16);
+
+  // In-place value mutation between calls (transform-rescaled operator).
+  test_value_mutation(group, mixed, 32);
+  test_value_mutation(group, skewed, 16);
 
   return 0;
 }
