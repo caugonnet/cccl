@@ -149,6 +149,33 @@ multiselect_kernel(runs_desc<_Tp> runs, const size_t* targets, int num_targets, 
     return;
   }
 
+  if (runs.p == 2)
+  {
+    // Two runs: the classic merge-path diagonal search — one binary search of
+    // ~log2(n) steps with two loads each, instead of the general nested
+    // search. Finds the same unique rank-R prefix (ties to run 0).
+    const _Tp* a = runs.data[0];
+    const _Tp* b = runs.data[1];
+    size_t lo    = (R > runs.n[1]) ? (R - runs.n[1]) : 0;
+    size_t hi    = (R < runs.n[0]) ? R : runs.n[0];
+    while (lo < hi)
+    {
+      const size_t mid = lo + (hi - lo) / 2;
+      // a[mid] belongs to the prefix iff a[mid] <= b[R-1-mid] (tie to run 0).
+      if (!cmp(b[R - 1 - mid], a[mid]))
+      {
+        lo = mid + 1;
+      }
+      else
+      {
+        hi = mid;
+      }
+    }
+    out[0] = lo;
+    out[1] = R - lo;
+    return;
+  }
+
   // Number of elements of run i ordered before key x owned by run r.
   auto count_before = [&](int i, int r, const _Tp& x) -> size_t {
     const _Tp* b = runs.data[i];
