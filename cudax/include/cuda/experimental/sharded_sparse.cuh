@@ -162,6 +162,17 @@ struct spmv_shard_plan
     cuda_safe_call(cudaStreamSynchronize(stream));
     cusparse_safe_call(cusparseSpMV_preprocess(
       handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat, vx, &beta, vy, dt, CUSPARSE_SPMV_CSR_ALG2, workspace));
+    // Warm-up launch + drain: the very first product through a freshly
+    // created handle (lazy module/context init inside an exec-place scope) is
+    // not reliably stream-ordered -- observed as an intermittent wrong FIRST
+    // result in-solver (all later calls bitwise-correct). One throwaway
+    // launch here (beta = 0 overwrites y with the real product; run() then
+    // recomputes the identical values) makes the first visible result go
+    // through a fully warmed handle. Same idiom as the warm-up run in
+    // consumers' own SpMM benchmark contexts.
+    cusparse_safe_call(
+      cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat, vx, &beta, vy, dt, CUSPARSE_SPMV_CSR_ALG2, workspace));
+    cuda_safe_call(cudaStreamSynchronize(stream));
     bound_x = x;
     bound_y = y;
     built   = true;
@@ -287,6 +298,22 @@ struct spmm_shard_plan
       dt,
       CUSPARSE_SPMM_CSR_ALG3,
       workspace));
+    // Warm-up launch + drain: see spmv_shard_plan::build (first product
+    // through a freshly created handle is not reliably stream-ordered; the
+    // warm-up writes the real product, run() recomputes identical values).
+    cusparse_safe_call(cusparseSpMM(
+      handle,
+      CUSPARSE_OPERATION_NON_TRANSPOSE,
+      CUSPARSE_OPERATION_NON_TRANSPOSE,
+      &alpha,
+      mat,
+      mB,
+      &beta,
+      mC,
+      dt,
+      CUSPARSE_SPMM_CSR_ALG3,
+      workspace));
+    cuda_safe_call(cudaStreamSynchronize(stream));
     bound_B = B;
     bound_C = C;
     built   = true;
