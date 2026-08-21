@@ -21,6 +21,7 @@
 #include <cuda/experimental/sharded.cuh>
 
 #include <cstdint>
+#include <cstring>
 #include <numeric>
 #include <random>
 #include <stdexcept>
@@ -347,6 +348,70 @@ void test_time_balanced_boundaries_model()
 }
 } // namespace
 
+
+void test_from_device_and_contiguous(place_group& group)
+{
+  const auto m = make_mixed_csr(10007, 512, 43);
+
+  // Upload the CSR; from_device must reproduce the host-built container.
+  int* d_off    = nullptr;
+  int* d_col    = nullptr;
+  double* d_val = nullptr;
+  cuda_safe_call(cudaMalloc(&d_off, m.offsets.size() * sizeof(int)));
+  cuda_safe_call(cudaMalloc(&d_col, m.colinds.size() * sizeof(int)));
+  cuda_safe_call(cudaMalloc(&d_val, m.values.size() * sizeof(double)));
+  cuda_safe_call(cudaMemcpy(d_off, m.offsets.data(), m.offsets.size() * sizeof(int), cudaMemcpyDefault));
+  cuda_safe_call(cudaMemcpy(d_col, m.colinds.data(), m.colinds.size() * sizeof(int), cudaMemcpyDefault));
+  cuda_safe_call(cudaMemcpy(d_val, m.values.data(), m.values.size() * sizeof(double), cudaMemcpyDefault));
+
+  auto A = sharded_csr<double>::from_device(group, m.rows, m.cols, d_off, d_col, d_val);
+  EXPECT(A.num_rows() == m.rows);
+  EXPECT(A.nnz() == m.nnz());
+  EXPECT(!A.values_contiguous());
+  EXPECT(A.contiguous_values() == nullptr);
+  check_shards_match_reference(m, A);
+
+  // Same split as the host-built container (same offsets => same boundaries).
+  sharded_csr<double> H(group, m.rows, m.cols, m.offsets.data(), m.colinds.data(), m.values.data());
+  for (size_t d = 0; d < A.num_shards(); d++)
+  {
+    EXPECT(A.shard(d).row_begin == H.shard(d).row_begin);
+    EXPECT(A.shard(d).rows == H.shard(d).rows);
+  }
+
+  // Contiguous internals: values/colinds are exact nnz-slices, so the
+  // one-VA-range backing reads back as the parent arrays through the base
+  // pointers -- the seam that lets unmodified writers mutate the values.
+  auto C = sharded_csr<double>::from_device(
+    group, m.rows, m.cols, d_off, d_col, d_val, /*row_boundaries=*/{}, /*contiguous=*/true);
+  EXPECT(C.values_contiguous());
+  EXPECT(C.contiguous_values() != nullptr);
+  EXPECT(C.contiguous_colinds() != nullptr);
+  check_shards_match_reference(m, C);
+  {
+    ::std::vector<double> vals(static_cast<size_t>(m.nnz()));
+    ::std::vector<int> cols(static_cast<size_t>(m.nnz()));
+    cuda_safe_call(cudaMemcpy(vals.data(), C.contiguous_values(), vals.size() * sizeof(double), cudaMemcpyDefault));
+    cuda_safe_call(cudaMemcpy(cols.data(), C.contiguous_colinds(), cols.size() * sizeof(int), cudaMemcpyDefault));
+    EXPECT(::std::memcmp(vals.data(), m.values.data(), vals.size() * sizeof(double)) == 0);
+    EXPECT(::std::memcmp(cols.data(), m.colinds.data(), cols.size() * sizeof(int)) == 0);
+    // Shard views are exact offsets into the base pointers.
+    for (size_t d = 0; d < C.num_shards(); d++)
+    {
+      const auto& sh = C.shard(d);
+      if (sh.nnz > 0)
+      {
+        EXPECT(sh.values == C.contiguous_values() + sh.nnz_begin);
+        EXPECT(sh.colinds == C.contiguous_colinds() + sh.nnz_begin);
+      }
+    }
+  }
+
+  cuda_safe_call(cudaFree(d_off));
+  cuda_safe_call(cudaFree(d_col));
+  cuda_safe_call(cudaFree(d_val));
+}
+
 int main()
 {
   cuda_safe_call(cudaSetDevice(0));
@@ -358,6 +423,7 @@ int main()
   test_boundary_validation(group);
   test_row_partitioned_outputs(group);
   test_lib_state(group);
+  test_from_device_and_contiguous(group);
   test_time_balanced_boundaries_model();
 
   return 0;
