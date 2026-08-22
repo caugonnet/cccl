@@ -24,7 +24,6 @@
 #include <vector>
 
 using namespace cuda::experimental::sharded;
-using cuda::experimental::places::make_stream_wait_for;
 using cuda::experimental::places::place_group;
 
 namespace
@@ -54,10 +53,7 @@ void test_reduce_scan_refuse_under_capture(place_group& group)
   cuda_safe_call(cudaStreamCreate(&origin));
 
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
-  for (size_t i = 0; i < data.num_shards(); i++)
-  {
-    make_stream_wait_for(data.shard(i).stream, origin);
-  }
+  data.fork_from(origin);
 
   // Every refusal must throw std::runtime_error and leave the capture ACTIVE
   bool threw = false;
@@ -110,10 +106,7 @@ void test_reduce_scan_refuse_under_capture(place_group& group)
 
   // The capture is still usable for supported work: record an elementwise op
   transform(group, data, plus_one_op{}, /*blocking=*/false);
-  for (size_t i = 0; i < data.num_shards(); i++)
-  {
-    make_stream_wait_for(origin, data.shard(i).stream);
-  }
+  data.join_into(origin);
 
   cudaGraph_t graph = nullptr;
   cuda_safe_call(cudaStreamEndCapture(origin, &graph));

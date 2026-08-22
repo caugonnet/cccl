@@ -26,7 +26,6 @@
 #include <vector>
 
 using namespace cuda::experimental::sharded;
-using cuda::experimental::places::make_stream_wait_for;
 using cuda::experimental::places::place_group;
 
 namespace
@@ -75,10 +74,7 @@ void test_refusals(place_group& group)
   cuda_safe_call(cudaStreamCreate(&origin));
 
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
-  for (size_t i = 0; i < data.num_shards(); i++)
-  {
-    make_stream_wait_for(data.shard(i).stream, origin);
-  }
+  data.fork_from(origin);
 
   // Sort: both engines are refused at the shared entry point
   expect_refusal_keeps_capture(origin, [&] {
@@ -139,10 +135,7 @@ void test_refusals(place_group& group)
 
   // Abandon this capture (it holds the blocking fill's kernels)
   cudaGraph_t graph = nullptr;
-  for (size_t i = 0; i < data.num_shards(); i++)
-  {
-    make_stream_wait_for(origin, data.shard(i).stream);
-  }
+  data.join_into(origin);
   cuda_safe_call(cudaStreamEndCapture(origin, &graph));
   EXPECT(graph != nullptr);
   cuda_safe_call(cudaGraphDestroy(graph)); // never instantiated
@@ -171,20 +164,14 @@ void test_adoption_is_benign(place_group& group)
   cudaStream_t origin;
   cuda_safe_call(cudaStreamCreate(&origin));
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
-  for (size_t i = 0; i < owner.num_shards(); i++)
-  {
-    make_stream_wait_for(owner.shard(i).stream, origin);
-  }
+  owner.fork_from(origin);
 
   auto view = owner.slice(0, n); // adoption path (non-owning view)
   EXPECT(view.is_view());
   EXPECT(capture_active(origin));
   fill(group, view, 2.0f, /*blocking=*/false); // captured through the view
 
-  for (size_t i = 0; i < owner.num_shards(); i++)
-  {
-    make_stream_wait_for(origin, owner.shard(i).stream);
-  }
+  owner.join_into(origin);
   cudaGraph_t graph = nullptr;
   cuda_safe_call(cudaStreamEndCapture(origin, &graph));
   cudaGraphExec_t exec = nullptr;

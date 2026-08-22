@@ -205,24 +205,26 @@ What captures
 The elementwise algorithms (``fill``, ``sequence``, ``iota``, ``tabulate``,
 ``generate``, ``for_each``, ``transform``) called with ``blocking = false``
 are pure per-shard kernel launches on the shards' reference streams, so they
-capture with the standard fork/join idiom: begin capture on an origin stream,
-make every shard stream wait on it, record the pipeline, and join the shard
-streams back before ending the capture.
-``places::make_stream_wait_for(wait, signal)`` is the event primitive for
-both directions:
+capture with the containers' fork/join members — the documented way to
+compose sharded work with a caller stream or graph: begin capture on an
+origin stream, ``fork_from(origin)`` so every shard stream depends on it,
+record the pipeline, and ``join_into(origin)`` before ending the capture
+(the record/wait pairs become graph dependencies):
 
 .. code-block:: cpp
 
    cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal);
-   for (auto& s : data)                            // fork
-     places::make_stream_wait_for(s.stream, origin);
+   data.fork_from(origin);                          // fork
 
    transform(group, data, out, op, /*blocking=*/false);
    for_each(group, out, update, /*blocking=*/false);
 
-   for (auto& s : data)                            // join
-     places::make_stream_wait_for(origin, s.stream);
+   out.join_into(origin);                           // join
    cudaStreamEndCapture(origin, &graph);
+
+(For streams not owned by a container — e.g. raw ``place_group`` streams —
+``places::make_stream_wait_for(wait, signal)`` remains the underlying event
+primitive.)
 
 The captured graph is placement-faithful: each shard's kernels are recorded
 from that place's stream, and the per-place SM confinement of those streams

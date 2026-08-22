@@ -24,7 +24,6 @@
 
 using namespace cuda::experimental::sharded;
 using cuda::experimental::places::exec_place_scope;
-using cuda::experimental::places::make_stream_wait_for;
 using cuda::experimental::places::place_group;
 
 namespace
@@ -64,15 +63,9 @@ void test_contiguous_pipeline_capture(place_group& group)
   // Capture: per-shard transform (on the shard streams), join, then the
   // whole-array kernel on the origin stream through the base pointer
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
-  for (size_t i = 0; i < data.num_shards(); i++)
-  {
-    make_stream_wait_for(data.shard(i).stream, origin);
-  }
+  data.fork_from(origin);
   transform(group, data, triple_op{}, /*blocking=*/false);
-  for (size_t i = 0; i < data.num_shards(); i++)
-  {
-    make_stream_wait_for(origin, data.shard(i).stream);
-  }
+  data.join_into(origin);
   plus_one_all<<<static_cast<unsigned>((n + 255) / 256), 256, 0, origin>>>(base, n);
   cuda_safe_call(cudaGetLastError());
 

@@ -12,8 +12,8 @@
  * @file
  *
  * @brief CUDA graph capture of the elementwise sharded pipeline: fork an
- *        origin stream to every shard stream, record fill/transform/for_each
- *        with `blocking = false`, join back, instantiate, and replay —
+ *        origin stream to every shard stream (`fork_from`), record fill/transform/for_each
+ *        with `blocking = false`, join back (`join_into`), instantiate, and replay —
  *        including replays with inputs mutated between launches, a
  *        cross-stream (different-color) captured dependency, and a check that
  *        the per-place SM confinement of the shard streams survives inside
@@ -72,26 +72,6 @@ __global__ void smid_probe_kernel(unsigned* smids)
   }
 }
 
-// Fork/join helpers over one array's shard streams (pure event choreography,
-// legal inside capture)
-template <typename T>
-void fork_to_shards(const sharded_array<T>& arr, cudaStream_t origin)
-{
-  for (size_t i = 0; i < arr.num_shards(); i++)
-  {
-    make_stream_wait_for(arr.shard(i).stream, origin);
-  }
-}
-
-template <typename T>
-void join_from_shards(const sharded_array<T>& arr, cudaStream_t origin)
-{
-  for (size_t i = 0; i < arr.num_shards(); i++)
-  {
-    make_stream_wait_for(origin, arr.shard(i).stream);
-  }
-}
-
 void test_pipeline_capture_and_replay(place_group& group)
 {
   const size_t n = 1 << 20;
@@ -106,11 +86,11 @@ void test_pipeline_capture_and_replay(place_group& group)
   // Capture the pipeline: fork, then transform(in -> out, x2),
   // transform(out += 0.5 in place), for_each(out += 1), then join
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
-  fork_to_shards(in, origin);
+  in.fork_from(origin);
   transform(group, in, out, scale_op{}, /*blocking=*/false);
   transform(group, out, plus_half_op{}, /*blocking=*/false);
   for_each(group, out, bump_op{}, /*blocking=*/false);
-  join_from_shards(out, origin);
+  out.join_into(origin);
 
   cudaGraph_t graph = nullptr;
   cuda_safe_call(cudaStreamEndCapture(origin, &graph));
@@ -176,11 +156,11 @@ void test_cross_color_dependency(place_group& group)
   cuda_safe_call(cudaStreamCreate(&origin));
 
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
-  fork_to_shards(in, origin);
-  fork_to_shards(out, origin);
+  in.fork_from(origin);
+  out.fork_from(origin);
   transform(group, in, out, scale_op{}, /*blocking=*/false); // records in->out event edges
-  join_from_shards(out, origin);
-  join_from_shards(in, origin);
+  out.join_into(origin);
+  in.join_into(origin);
 
   cudaGraph_t graph = nullptr;
   cuda_safe_call(cudaStreamEndCapture(origin, &graph));
