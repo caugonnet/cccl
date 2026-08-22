@@ -38,6 +38,12 @@ placement: a ``data_place``, an ``exec_place`` and a reference stream.
    iota(group, data, 0.0);
    double total = sum(group, data);   // per-place CUB + combine
 
+Factory naming follows a two-word rule: ``adopt`` = zero-copy view over
+caller-owned memory (the container becomes a view and the caller owes the
+memory's lifetime); ``from_*`` = builds owned storage by copying or
+transforming its input. ``sharded_array<T>::adopt(shards)`` is the named
+form of the adopting constructor.
+
 ``allocate_contiguous`` places the shards inside ONE contiguous virtual
 address range (VMM-backed via ``localized_array``): logical shard boundaries
 are exact, physical ownership snaps to the allocation granularity, and

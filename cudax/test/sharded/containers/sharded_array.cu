@@ -233,6 +233,20 @@ void test_adoption_and_slice()
   auto tail = view.slice(n - 1);
   EXPECT(tail.size() == 1UL);
   EXPECT(tail.num_shards() == view.num_shards());
+
+  // adopt() is the named form of the adopting constructor: same zero-copy
+  // view semantics, same data identity (the owner's pointers, unchanged).
+  ::std::vector<shard<long long>> shards2(owner.begin(), owner.end());
+  auto adopted = sharded_array<long long>::adopt(::std::move(shards2));
+  EXPECT(adopted.is_view());
+  EXPECT(!adopted.is_owning());
+  EXPECT(adopted.size() == n);
+  EXPECT(adopted.num_shards() == view.num_shards());
+  for (size_t i = 0; i < adopted.num_shards(); ++i)
+  {
+    EXPECT(adopted[i].data == view[i].data);
+    EXPECT(adopted[i].size == view[i].size);
+  }
 }
 
 void test_check_compatible_throws()
