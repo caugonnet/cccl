@@ -38,6 +38,12 @@ placement: a ``data_place``, an ``exec_place`` and a reference stream.
    iota(group, data, 0.0);
    double total = sum(group, data);   // per-place CUB + combine
 
+Factory naming follows a two-word rule: ``adopt`` = zero-copy view over
+caller-owned memory (the container becomes a view and the caller owes the
+memory's lifetime); ``from_*`` = builds owned storage by copying or
+transforming its input. ``sharded_array<T>::adopt(shards)`` is the named
+form of the adopting constructor.
+
 ``allocate_contiguous`` places the shards inside ONE contiguous virtual
 address range (VMM-backed via ``localized_array``): logical shard boundaries
 are exact, physical ownership snaps to the allocation granularity, and
@@ -171,6 +177,11 @@ place's memory. Because every shard is a complete CSR matrix, a CLOSED
 library that only understands pointers and a stream can consume it with one
 ordinary call per shard — the container carries the placement, the library
 never changes. The container is vendor-free and ships in the umbrella header.
+``sharded_csr::from_device`` ingests a CSR whose arrays already live on the
+device; per the ``from_*`` naming rule it builds owned storage — offsets are
+rebased into container-owned shards and colinds/values are copied
+device-to-device into the shards' places, so nothing aliases the caller's
+arrays and they may be freed once it returns.
 
 The cuSPARSE-backed products live in the separate opt-in header
 ``<cuda/experimental/sharded_sparse.cuh>``, which requires the cuSPARSE
