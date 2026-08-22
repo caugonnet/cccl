@@ -412,6 +412,98 @@ void test_from_device_and_contiguous(place_group& group)
   cuda_safe_call(cudaFree(d_val));
 }
 
+// ---------------------------------------------------------------------------
+// fork_from / join_into: ordering declarations bridging a caller stream and
+// the matrix's per-shard streams. Producer on the caller stream scales the
+// values in place -> fork_from -> per-shard consumers on the shard streams
+// sum each shard's values -> join_into -> readback on the caller stream. The
+// ONLY host synchronization is the final caller-stream sync.
+// ---------------------------------------------------------------------------
+
+__global__ void spin_kernel(long long cycles)
+{
+  const long long start = clock64();
+  while (clock64() - start < cycles) {}
+}
+
+__global__ void scale_values_kernel(double* values, ::std::int64_t n, double factor)
+{
+  const ::std::int64_t i = blockIdx.x * static_cast<::std::int64_t>(blockDim.x) + threadIdx.x;
+  if (i < n)
+  {
+    values[i] *= factor;
+  }
+}
+
+// Single-thread sum: the test matrices keep per-shard nnz small.
+__global__ void shard_sum_kernel(const double* values, ::std::int64_t n, double* out)
+{
+  double acc = 0.0;
+  for (::std::int64_t i = 0; i < n; i++)
+  {
+    acc += values[i];
+  }
+  *out = acc;
+}
+
+void test_fork_join(place_group& group)
+{
+  const auto m = make_mixed_csr(4001, 256, 7);
+  sharded_csr<double> A(group, m.rows, m.cols, m.offsets.data(), m.colinds.data(), m.values.data());
+
+  const double factor = 3.0;
+
+  // Host reference: per-shard sums of the SCALED values.
+  ::std::vector<double> expected(A.num_shards(), 0.0);
+  for (size_t d = 0; d < A.num_shards(); d++)
+  {
+    const auto& sh = A.shard(d);
+    for (::std::int64_t k = 0; k < sh.nnz; k++)
+    {
+      expected[d] += factor * m.values[static_cast<size_t>(sh.nnz_begin + k)];
+    }
+  }
+
+  cudaStream_t caller = nullptr;
+  cuda_safe_call(cudaStreamCreate(&caller));
+  double* d_sums = nullptr;
+  cuda_safe_call(cudaMalloc(&d_sums, A.num_shards() * sizeof(double)));
+
+  // Producer on the caller stream: scale every shard's values in place.
+  spin_kernel<<<1, 1, 0, caller>>>(20000000);
+  for (size_t d = 0; d < A.num_shards(); d++)
+  {
+    auto& sh = A.shard(d);
+    if (sh.nnz > 0)
+    {
+      const unsigned int blocks = static_cast<unsigned int>((sh.nnz + 255) / 256);
+      scale_values_kernel<<<blocks, 256, 0, caller>>>(sh.values, sh.nnz, factor);
+    }
+  }
+
+  A.fork_from(caller); // shard streams now depend on the producer
+
+  for (size_t d = 0; d < A.num_shards(); d++)
+  {
+    const auto& sh = A.shard(d);
+    shard_sum_kernel<<<1, 1, 0, sh.stream>>>(sh.values, sh.nnz, d_sums + d);
+  }
+
+  A.join_into(caller); // the caller stream now depends on every consumer
+
+  ::std::vector<double> sums(A.num_shards(), 0.0);
+  cuda_safe_call(cudaMemcpyAsync(sums.data(), d_sums, sums.size() * sizeof(double), cudaMemcpyDefault, caller));
+  cuda_safe_call(cudaStreamSynchronize(caller)); // the only host sync
+
+  for (size_t d = 0; d < A.num_shards(); d++)
+  {
+    EXPECT(::std::abs(sums[d] - expected[d]) <= 1e-11 * (1.0 + ::std::abs(expected[d])));
+  }
+
+  cuda_safe_call(cudaFree(d_sums));
+  cuda_safe_call(cudaStreamDestroy(caller));
+}
+
 int main()
 {
   cuda_safe_call(cudaSetDevice(0));
@@ -425,6 +517,7 @@ int main()
   test_lib_state(group);
   test_from_device_and_contiguous(group);
   test_time_balanced_boundaries_model();
+  test_fork_join(group);
 
   return 0;
 }
