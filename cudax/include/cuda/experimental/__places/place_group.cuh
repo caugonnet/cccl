@@ -74,6 +74,8 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <typeindex>
+#include <unordered_map>
 #include <vector>
 
 #include <cuda_runtime.h>
@@ -333,8 +335,9 @@ inline constexpr bool has_place_resources<
 
 /**
  * @brief A group of execution places plus the execution resources attached to
- * them: lazily initialized per-place stream pools and per-place memory
- * resources.
+ * them: lazily initialized per-place stream pools, per-place memory
+ * resources, and a type-erased per-place library-state cache (see
+ * `lib_state`).
  *
  * See the file-level comment for the grid-versus-group rationale. In short: a
  * grid is a stateless value naming places; a `place_group` is the resource
@@ -604,6 +607,66 @@ public:
     return owned_resources_ != nullptr;
   }
 
+  // ==========================================================================
+  // Per-place library state
+  // ==========================================================================
+
+  /**
+   * @brief Type-erased per-place library state owned by the group.
+   *
+   * Vendor-call layers stash their PER-PLACE library state here — objects
+   * whose natural scope is "this place, for as long as this resource scope
+   * lives", such as a cuSPARSE/cuBLAS handle per place (the `raft::handle_t`
+   * precedent). This is the group-scope counterpart of the per-container
+   * `lib_state()` slots: handles are place-bound values and belong here;
+   * descriptors, plans and workspaces are matrix-bound and stay with the
+   * container whose addresses they describe.
+   *
+   * Entries are keyed by (place index, state type), created lazily on first
+   * use, shared by every caller of the same (place, type) slot, and destroyed
+   * when the group is destroyed (through a deleter captured at creation, so
+   * this header stays vendor-free). `make()` is invoked on first use and must
+   * return a `_State*` the group takes ownership of.
+   *
+   * Lifetime rule: a group must outlive anything that uses its places'
+   * resources — containers built over the group, and any per-container state
+   * referring to handles cached here (this is already the group contract for
+   * streams and memory).
+   *
+   * Thread-safe: concurrent calls for the same slot yield the same object.
+   */
+  template <typename _State, typename _Make>
+  _State& lib_state(size_t place_idx, _Make&& make)
+  {
+    _CCCL_ASSERT(place_idx < places_.size(), "place_group: place index out of range");
+    ::std::lock_guard<::std::mutex> lock(mutex_);
+    auto& slot = lib_state_cache_[place_idx];
+    auto it    = slot.find(::std::type_index(typeid(_State)));
+    if (it == slot.end())
+    {
+      _State* s = make();
+      it        = slot
+             .emplace(::std::type_index(typeid(_State)),
+                      ::std::shared_ptr<void>(s,
+                                              [](void* p) {
+                                                delete static_cast<_State*>(p);
+                                              }))
+             .first;
+    }
+    return *static_cast<_State*>(it->second.get());
+  }
+
+  /// @brief True when per-place library state of type `_State` has already
+  /// been created for the idx-th place (inspection hook; does not create).
+  template <typename _State>
+  bool has_lib_state(size_t place_idx) const
+  {
+    _CCCL_ASSERT(place_idx < places_.size(), "place_group: place index out of range");
+    ::std::lock_guard<::std::mutex> lock(mutex_);
+    const auto& slot = lib_state_cache_[place_idx];
+    return slot.find(::std::type_index(typeid(_State))) != slot.end();
+  }
+
   // Move-only: the group is a resource scope.
   place_group(place_group&& other) noexcept
       : places_(mv(other.places_))
@@ -611,6 +674,7 @@ public:
       , resources_(other.resources_)
       , keep_alive_(mv(other.keep_alive_))
       , stream_cache_(mv(other.stream_cache_))
+      , lib_state_cache_(mv(other.lib_state_cache_))
       , stream_color_counter_(other.stream_color_counter_.load(::std::memory_order_relaxed))
   {
     other.resources_ = nullptr;
@@ -631,6 +695,7 @@ private:
     ::std::ignore = m;
 
     stream_cache_.resize(places_.size());
+    lib_state_cache_.resize(places_.size());
   }
 
   // Materialize (lazily, once) the per-place streams from the registry's
@@ -665,6 +730,9 @@ private:
 
   mutable ::std::mutex mutex_;
   ::std::vector<::std::vector<cudaStream_t>> stream_cache_; // one slot per place
+  // Per-place type-erased library state: one (type -> object) map per place.
+  // Objects are destroyed with the group, via deleters captured at creation.
+  ::std::vector<::std::unordered_map<::std::type_index, ::std::shared_ptr<void>>> lib_state_cache_;
   ::std::atomic<size_t> stream_color_counter_{0};
 };
 } // namespace cuda::experimental::places
