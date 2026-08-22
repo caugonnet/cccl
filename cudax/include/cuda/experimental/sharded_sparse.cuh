@@ -226,15 +226,24 @@ struct spmv_shard_plan
     // (lazy module/context init inside an exec-place scope) is not reliably
     // stream-ordered -- observed as an intermittent wrong FIRST result
     // in-solver (all later calls bitwise-correct). One throwaway launch here
-    // (beta = 0 overwrites y with the real product; run() then recomputes the
-    // identical values) makes the first visible result go through a fully
-    // warmed handle. With the handle now shared per place, later matrices'
-    // builds go through an already-warm handle and this launch is merely a
-    // cheap plan shakedown. Same idiom as the warm-up run in consumers' own
-    // SpMM benchmark contexts.
-    cusparse_safe_call(
-      cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat, vx, &beta, vy, dt, CUSPARSE_SPMV_CSR_ALG2, workspace));
-    cuda_safe_call(cudaStreamSynchronize(stream));
+    // makes the first visible result go through a fully warmed handle. It
+    // writes into a SCRATCH output, not the user's y: the visible first call
+    // may carry beta != 0, and run()'s real launch must still read the
+    // caller's y contents. With the handle now shared per place, later
+    // matrices' builds go through an already-warm handle and this launch is
+    // merely a cheap plan shakedown. Same idiom as the warm-up run in
+    // consumers' own SpMM benchmark contexts.
+    {
+      _Tp* y_scratch = static_cast<_Tp*>(
+        wplace.allocate(static_cast<::std::ptrdiff_t>(static_cast<size_t>(sh.rows) * sizeof(_Tp)), stream));
+      cusparseDnVecDescr_t vy_scratch{};
+      cusparse_safe_call(cusparseCreateDnVec(&vy_scratch, sh.rows, y_scratch, dt));
+      cusparse_safe_call(cusparseSpMV(
+        handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat, vx, &beta, vy_scratch, dt, CUSPARSE_SPMV_CSR_ALG2, workspace));
+      cuda_safe_call(cudaStreamSynchronize(stream));
+      cusparse_safe_call(cusparseDestroyDnVec(vy_scratch));
+      wplace.deallocate(y_scratch, static_cast<size_t>(sh.rows) * sizeof(_Tp), stream);
+    }
     bound_x = x;
     bound_y = y;
     built   = true;
@@ -370,21 +379,33 @@ struct spmm_shard_plan
       CUSPARSE_SPMM_CSR_ALG3,
       workspace));
     // Warm-up launch + drain: see spmv_shard_plan::build (first product
-    // through a fresh handle is not reliably stream-ordered; the warm-up
-    // writes the real product, run() recomputes identical values).
-    cusparse_safe_call(cusparseSpMM(
-      handle,
-      CUSPARSE_OPERATION_NON_TRANSPOSE,
-      CUSPARSE_OPERATION_NON_TRANSPOSE,
-      &alpha,
-      mat,
-      mB,
-      &beta,
-      mC,
-      dt,
-      CUSPARSE_SPMM_CSR_ALG3,
-      workspace));
-    cuda_safe_call(cudaStreamSynchronize(stream));
+    // through a fresh handle is not reliably stream-ordered). The warm-up
+    // writes into a SCRATCH output, not the user's C: the visible first call
+    // may carry beta != 0, whose C contents must survive for run()'s real
+    // launch.
+    {
+      const size_t scratch_elems = static_cast<size_t>(sh.rows) * static_cast<size_t>(n_cols);
+      _Tp* C_scratch =
+        static_cast<_Tp*>(wplace.allocate(static_cast<::std::ptrdiff_t>(scratch_elems * sizeof(_Tp)), stream));
+      cusparseDnMatDescr_t mC_scratch{};
+      cusparse_safe_call(
+        cusparseCreateDnMat(&mC_scratch, sh.rows, n_cols, n_cols, C_scratch, dt, CUSPARSE_ORDER_ROW));
+      cusparse_safe_call(cusparseSpMM(
+        handle,
+        CUSPARSE_OPERATION_NON_TRANSPOSE,
+        CUSPARSE_OPERATION_NON_TRANSPOSE,
+        &alpha,
+        mat,
+        mB,
+        &beta,
+        mC_scratch,
+        dt,
+        CUSPARSE_SPMM_CSR_ALG3,
+        workspace));
+      cuda_safe_call(cudaStreamSynchronize(stream));
+      cusparse_safe_call(cusparseDestroyDnMat(mC_scratch));
+      wplace.deallocate(C_scratch, scratch_elems * sizeof(_Tp), stream);
+    }
     bound_B = B;
     bound_C = C;
     built   = true;
