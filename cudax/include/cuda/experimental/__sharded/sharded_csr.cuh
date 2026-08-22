@@ -487,11 +487,14 @@ public:
    * @brief Type-erased per-operation library state owned by the container.
    *
    * Vendor-call layers (e.g. the sparse products in
-   * `<cuda/experimental/sharded_sparse.cuh>`) stash their library state —
-   * handles, descriptors, plans, workspaces — here, keyed by operation, so it
-   * is created once, reused across calls, and destroyed with the matrix whose
-   * addresses it describes. `make()` is invoked on first use and must return
-   * a `_State*` the container takes ownership of.
+   * `<cuda/experimental/sharded_sparse.cuh>`) stash their MATRIX-BOUND
+   * library state — descriptors, plans, workspaces — here, keyed by
+   * operation, so it is created once, reused across calls, and destroyed with
+   * the matrix whose addresses it describes. PLACE-BOUND state (e.g. a
+   * cuSPARSE handle per place) belongs in the `place_group`'s per-place
+   * `lib_state` cache instead, so it is shared across matrices and retires
+   * with the group. `make()` is invoked on first use and must return a
+   * `_State*` the container takes ownership of.
    */
   template <typename _State, typename _Make>
   _State& lib_state(const ::std::string& key, _Make&& make)

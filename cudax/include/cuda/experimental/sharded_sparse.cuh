@@ -24,11 +24,16 @@
  * engine slot: the container tier (`sharded_csr`) owns the row partition and
  * placement; the engine tier is ONE confined cuSPARSE call per shard, on the
  * shard's place stream. A row partition makes the output row blocks disjoint,
- * so there is never a combine step. Per-(shard, op) cuSPARSE state — handle,
- * descriptors, workspace, preprocessed plan — is created lazily on first call
- * into the container's `lib_state()` slot, built against the shard's fixed
- * addresses, and reused for the matrix's lifetime (later calls only rebind
- * the dense pointers when they change).
+ * so there is never a combine step. Library state is split by natural scope:
+ * the `cusparseHandle_t` is PER PLACE and lives in the `place_group`'s
+ * library-state cache (created lazily on first use, shared by every matrix
+ * built over the group, destroyed with the group — the `raft::handle_t`
+ * precedent); per-(shard, op) state — descriptors, workspace, preprocessed
+ * plan — is matrix-bound, created lazily on first call into the container's
+ * `lib_state()` slot, built against the shard's fixed addresses, and reused
+ * for the matrix's lifetime (later calls only rebind the dense pointers when
+ * they change, and rebind the handle's stream per call). The group must
+ * outlive the matrices built over it (the existing group contract).
  *
  * Dense operands are plain device pointers readable from every place (for
  * example one whole-device allocation): which COPIES of a re-read operand
@@ -111,18 +116,74 @@ struct cusparse_data_type<float>
 };
 
 /**
- * @brief One shard's cuSPARSE SpMV pipeline: handle + descriptors + workspace
- * + preprocessed plan, built lazily on first use against the shard's fixed
+ * @brief Owner of one place's `cusparseHandle_t`, stored in the
+ * `place_group`'s per-place library-state cache.
+ *
+ * The handle is a place-bound resource (not a matrix-bound one), so its
+ * scope is the group's: created lazily on first sparse product at that
+ * place, shared by every `sharded_csr` built over the group, destroyed at
+ * group teardown. Destroying a container never destroys the handle.
+ */
+struct cusparse_place_handle
+{
+  cusparseHandle_t handle{};
+
+  cusparse_place_handle()                                        = default;
+  cusparse_place_handle(const cusparse_place_handle&)            = delete;
+  cusparse_place_handle& operator=(const cusparse_place_handle&) = delete;
+
+  ~cusparse_place_handle()
+  {
+    // Best-effort teardown (no throwing from destructors)
+    if (handle)
+    {
+      cusparseDestroy(handle);
+    }
+  }
+};
+
+/**
+ * @brief The per-place cuSPARSE handle of the idx-th place of @p group,
+ * created on first use into the group's library-state cache.
+ *
+ * Expected to be called with the place's exec context active
+ * (`exec_place_scope`), so a first-use creation happens in the confined
+ * context that runs the calls. The stream is NOT bound here: callers rebind
+ * it per call (`cusparseSetStream`), since the same handle serves every
+ * matrix built over the group.
+ */
+inline cusparseHandle_t get_place_cusparse_handle(place_group& group, size_t place_idx)
+{
+  auto& holder = group.lib_state<cusparse_place_handle>(place_idx, [] {
+    auto* s = new cusparse_place_handle();
+    _CCCL_TRY
+    {
+      cusparse_safe_call(cusparseCreate(&s->handle));
+    }
+    _CCCL_CATCH_ALL
+    {
+      delete s;
+      _CCCL_RETHROW;
+    }
+    return s;
+  });
+  return holder.handle;
+}
+
+/**
+ * @brief One shard's cuSPARSE SpMV pipeline: descriptors + workspace +
+ * preprocessed plan, built lazily on first use against the shard's fixed
  * arrays and the current dense pointers, then reused (pointer rebinds only).
+ * The `cusparseHandle_t` is NOT owned here: it is the place's handle from the
+ * group cache, passed in per call (with the stream rebound per call).
  *
  * Build and run are expected to happen with the shard's exec place active
- * (`exec_place_scope`), so the handle and its internal state are created in
- * the confined context that runs the call.
+ * (`exec_place_scope`), so the plan's internal state is created in the
+ * confined context that runs the call.
  */
 template <typename _Tp>
 struct spmv_shard_plan
 {
-  cusparseHandle_t handle{};
   cusparseSpMatDescr_t mat{};
   cusparseDnVecDescr_t vx{}, vy{};
   void* workspace        = nullptr;
@@ -132,11 +193,10 @@ struct spmv_shard_plan
   _Tp* bound_y       = nullptr;
   bool built         = false;
 
-  void build(const csr_shard<_Tp>& sh, ::std::int64_t cols, const _Tp* x, _Tp* y, cudaStream_t stream)
+  void build(cusparseHandle_t handle, const csr_shard<_Tp>& sh, ::std::int64_t cols, const _Tp* x, _Tp* y, cudaStream_t stream)
   {
     const cudaDataType dt = cusparse_data_type<_Tp>::value;
     _Tp alpha = 1, beta = 0; // plan sizing only; real values passed per call
-    cusparse_safe_call(cusparseCreate(&handle));
     cusparse_safe_call(cusparseSetStream(handle, stream));
     cusparse_safe_call(cusparseCreateCsr(
       &mat,
@@ -162,19 +222,50 @@ struct spmv_shard_plan
     cuda_safe_call(cudaStreamSynchronize(stream));
     cusparse_safe_call(cusparseSpMV_preprocess(
       handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat, vx, &beta, vy, dt, CUSPARSE_SPMV_CSR_ALG2, workspace));
+    // Warm-up launch + drain: the very first product through a fresh handle
+    // (lazy module/context init inside an exec-place scope) is not reliably
+    // stream-ordered -- observed as an intermittent wrong FIRST result
+    // in-solver (all later calls bitwise-correct). One throwaway launch here
+    // makes the first visible result go through a fully warmed handle. It
+    // writes into a SCRATCH output, not the user's y: the visible first call
+    // may carry beta != 0, and run()'s real launch must still read the
+    // caller's y contents. With the handle now shared per place, later
+    // matrices' builds go through an already-warm handle and this launch is
+    // merely a cheap plan shakedown. Same idiom as the warm-up run in
+    // consumers' own SpMM benchmark contexts.
+    {
+      _Tp* y_scratch = static_cast<_Tp*>(
+        wplace.allocate(static_cast<::std::ptrdiff_t>(static_cast<size_t>(sh.rows) * sizeof(_Tp)), stream));
+      cusparseDnVecDescr_t vy_scratch{};
+      cusparse_safe_call(cusparseCreateDnVec(&vy_scratch, sh.rows, y_scratch, dt));
+      cusparse_safe_call(cusparseSpMV(
+        handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat, vx, &beta, vy_scratch, dt, CUSPARSE_SPMV_CSR_ALG2, workspace));
+      cuda_safe_call(cudaStreamSynchronize(stream));
+      cusparse_safe_call(cusparseDestroyDnVec(vy_scratch));
+      wplace.deallocate(y_scratch, static_cast<size_t>(sh.rows) * sizeof(_Tp), stream);
+    }
     bound_x = x;
     bound_y = y;
     built   = true;
   }
 
-  void run(const csr_shard<_Tp>& sh, ::std::int64_t cols, const _Tp* x, _Tp* y, _Tp alpha, _Tp beta, cudaStream_t stream)
+  void run(cusparseHandle_t handle,
+           const csr_shard<_Tp>& sh,
+           ::std::int64_t cols,
+           const _Tp* x,
+           _Tp* y,
+           _Tp alpha,
+           _Tp beta,
+           cudaStream_t stream)
   {
     if (!built)
     {
-      build(sh, cols, x, y, stream);
+      build(handle, sh, cols, x, y, stream);
     }
     else
     {
+      // The handle is shared per place across matrices: rebind its stream on
+      // every call.
       cusparse_safe_call(cusparseSetStream(handle, stream));
       if (x != bound_x)
       {
@@ -207,10 +298,6 @@ struct spmv_shard_plan
     {
       cusparseDestroySpMat(mat);
     }
-    if (handle)
-    {
-      cusparseDestroy(handle);
-    }
     if (workspace)
     {
       const size_t wbytes = workspace_bytes == 0 ? 16 : workspace_bytes;
@@ -224,11 +311,11 @@ struct spmv_shard_plan
 };
 
 /// @brief One shard's cuSPARSE SpMM pipeline (row-major B and C, ld = n_cols);
-/// same lazy build-and-reuse model as `spmv_shard_plan`.
+/// same lazy build-and-reuse model as `spmv_shard_plan` (handle owned by the
+/// group cache, passed in per call).
 template <typename _Tp>
 struct spmm_shard_plan
 {
-  cusparseHandle_t handle{};
   cusparseSpMatDescr_t mat{};
   cusparseDnMatDescr_t mB{}, mC{};
   void* workspace        = nullptr;
@@ -238,12 +325,16 @@ struct spmm_shard_plan
   _Tp* bound_C       = nullptr;
   bool built         = false;
 
-  void build(
-    const csr_shard<_Tp>& sh, ::std::int64_t cols, ::std::int64_t n_cols, const _Tp* B, _Tp* C, cudaStream_t stream)
+  void build(cusparseHandle_t handle,
+             const csr_shard<_Tp>& sh,
+             ::std::int64_t cols,
+             ::std::int64_t n_cols,
+             const _Tp* B,
+             _Tp* C,
+             cudaStream_t stream)
   {
     const cudaDataType dt = cusparse_data_type<_Tp>::value;
     _Tp alpha = 1, beta = 0; // plan sizing only; real values passed per call
-    cusparse_safe_call(cusparseCreate(&handle));
     cusparse_safe_call(cusparseSetStream(handle, stream));
     cusparse_safe_call(cusparseCreateCsr(
       &mat,
@@ -287,12 +378,41 @@ struct spmm_shard_plan
       dt,
       CUSPARSE_SPMM_CSR_ALG3,
       workspace));
+    // Warm-up launch + drain: see spmv_shard_plan::build (first product
+    // through a fresh handle is not reliably stream-ordered). The warm-up
+    // writes into a SCRATCH output, not the user's C: the visible first call
+    // may carry beta != 0, whose C contents must survive for run()'s real
+    // launch.
+    {
+      const size_t scratch_elems = static_cast<size_t>(sh.rows) * static_cast<size_t>(n_cols);
+      _Tp* C_scratch =
+        static_cast<_Tp*>(wplace.allocate(static_cast<::std::ptrdiff_t>(scratch_elems * sizeof(_Tp)), stream));
+      cusparseDnMatDescr_t mC_scratch{};
+      cusparse_safe_call(
+        cusparseCreateDnMat(&mC_scratch, sh.rows, n_cols, n_cols, C_scratch, dt, CUSPARSE_ORDER_ROW));
+      cusparse_safe_call(cusparseSpMM(
+        handle,
+        CUSPARSE_OPERATION_NON_TRANSPOSE,
+        CUSPARSE_OPERATION_NON_TRANSPOSE,
+        &alpha,
+        mat,
+        mB,
+        &beta,
+        mC_scratch,
+        dt,
+        CUSPARSE_SPMM_CSR_ALG3,
+        workspace));
+      cuda_safe_call(cudaStreamSynchronize(stream));
+      cusparse_safe_call(cusparseDestroyDnMat(mC_scratch));
+      wplace.deallocate(C_scratch, scratch_elems * sizeof(_Tp), stream);
+    }
     bound_B = B;
     bound_C = C;
     built   = true;
   }
 
-  void run(const csr_shard<_Tp>& sh,
+  void run(cusparseHandle_t handle,
+           const csr_shard<_Tp>& sh,
            ::std::int64_t cols,
            ::std::int64_t n_cols,
            const _Tp* B,
@@ -303,10 +423,12 @@ struct spmm_shard_plan
   {
     if (!built)
     {
-      build(sh, cols, n_cols, B, C, stream);
+      build(handle, sh, cols, n_cols, B, C, stream);
     }
     else
     {
+      // The handle is shared per place across matrices: rebind its stream on
+      // every call.
       cusparse_safe_call(cusparseSetStream(handle, stream));
       if (B != bound_B)
       {
@@ -347,10 +469,6 @@ struct spmm_shard_plan
     if (mat)
     {
       cusparseDestroySpMat(mat);
-    }
-    if (handle)
-    {
-      cusparseDestroy(handle);
     }
     if (workspace)
     {
@@ -513,7 +631,8 @@ void spmv(place_group& group,
   {
     auto& sh = A.shard(i);
     places::exec_place_scope scope(sh.exec);
-    st.plans[i].run(sh, A.num_cols(), x, y_ptr, alpha, beta, sh.stream);
+    cusparseHandle_t handle = detail::get_place_cusparse_handle(group, i);
+    st.plans[i].run(handle, sh, A.num_cols(), x, y_ptr, alpha, beta, sh.stream);
   }
 }
 
@@ -553,7 +672,8 @@ void spmm(place_group& group,
   {
     auto& sh = A.shard(i);
     places::exec_place_scope scope(sh.exec);
-    st.plans[i].run(sh, A.num_cols(), n_cols, B, C_ptr, alpha, beta, sh.stream);
+    cusparseHandle_t handle = detail::get_place_cusparse_handle(group, i);
+    st.plans[i].run(handle, sh, A.num_cols(), n_cols, B, C_ptr, alpha, beta, sh.stream);
   }
 }
 
@@ -592,8 +712,9 @@ template <typename _Tp>
     _Tp* y_ptr     = pair.second;
     auto& sh       = A.shard(i);
     places::exec_place_scope scope(sh.exec);
-    ms[i] = detail::time_on_stream(sh.stream, warmup, iters, [&, i, y_ptr] {
-      st.plans[i].run(sh, A.num_cols(), x, y_ptr, alpha, beta, sh.stream);
+    cusparseHandle_t handle = detail::get_place_cusparse_handle(group, i);
+    ms[i]                   = detail::time_on_stream(sh.stream, warmup, iters, [&, i, y_ptr, handle] {
+      st.plans[i].run(handle, sh, A.num_cols(), x, y_ptr, alpha, beta, sh.stream);
     });
   }
   return ms;
@@ -629,8 +750,9 @@ template <typename _Tp>
     _Tp* C_ptr     = pair.second;
     auto& sh       = A.shard(i);
     places::exec_place_scope scope(sh.exec);
-    ms[i] = detail::time_on_stream(sh.stream, warmup, iters, [&, i, C_ptr] {
-      st.plans[i].run(sh, A.num_cols(), n_cols, B, C_ptr, alpha, beta, sh.stream);
+    cusparseHandle_t handle = detail::get_place_cusparse_handle(group, i);
+    ms[i]                   = detail::time_on_stream(sh.stream, warmup, iters, [&, i, C_ptr, handle] {
+      st.plans[i].run(handle, sh, A.num_cols(), n_cols, B, C_ptr, alpha, beta, sh.stream);
     });
   }
   return ms;
