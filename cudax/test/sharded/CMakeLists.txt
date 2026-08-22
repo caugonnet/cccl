@@ -4,6 +4,7 @@ set(
   containers/sharded_array.cu
   containers/contiguous.cu
   containers/stream_ordered_lifecycle.cu
+  containers/fork_join.cu
   algorithms/elementwise.cu
   algorithms/reduce_scan.cu
   algorithms/count_histogram.cu

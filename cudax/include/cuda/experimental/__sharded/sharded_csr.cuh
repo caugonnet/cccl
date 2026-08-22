@@ -74,6 +74,7 @@
 
 #include <cuda/experimental/__places/place_group.cuh>
 #include <cuda/experimental/__places/places.cuh>
+#include <cuda/experimental/__sharded/fork_join.cuh>
 #include <cuda/experimental/__sharded/sharded_array.cuh>
 
 #include <algorithm>
@@ -493,6 +494,78 @@ public:
     return shards_[idx];
   }
 
+  // ========== Stream ordering: composing with a caller stream ==========
+
+  /**
+   * @brief Declare that subsequent work on every shard stream depends on the
+   *        work currently enqueued on @p stream (fork a caller stream out to
+   *        the matrix's per-shard streams).
+   *
+   * ORDERING DECLARATION, NOT A SYNCHRONIZATION: one event is recorded on
+   * @p stream and every shard stream waits on it; the host returns
+   * immediately. Because the three backing arrays (offsets/colinds/values)
+   * share the matrix's per-place reference streams, ordering the shard
+   * streams orders every consumer of the matrix. Same pooled-event mechanics
+   * and capture behavior as `sharded_array<T>::fork_from` (see there and
+   * `detail::fork_join_event_pool`).
+   */
+  void fork_from(cudaStream_t stream) const
+  {
+    cudaEvent_t event = nullptr; // recorded once, on the first distinct shard stream
+    for (const auto& sh : shards_)
+    {
+      if (!sh.stream || sh.stream == stream)
+      {
+        continue;
+      }
+      if (!event)
+      {
+        int device = -1;
+        if (stream)
+        {
+          cuda_safe_call(cudaStreamGetDevice(stream, &device));
+        }
+        else
+        {
+          cuda_safe_call(cudaGetDevice(&device));
+        }
+        event = fork_join_events_.fork_event(device);
+        cuda_safe_call(cudaEventRecord(event, stream));
+      }
+      cuda_safe_call(cudaStreamWaitEvent(sh.stream, event, 0));
+    }
+  }
+
+  /**
+   * @brief Declare that subsequent work on @p stream depends on the work
+   *        currently enqueued on every shard stream (join the matrix's
+   *        per-shard streams back into a caller stream).
+   *
+   * ORDERING DECLARATION, NOT A SYNCHRONIZATION: an event is recorded on each
+   * shard stream and @p stream waits on all of them; the host returns
+   * immediately. The mirror image of `fork_from`, with the same pooled-event
+   * mechanics and capture behavior as `sharded_array<T>::join_into`.
+   */
+  void join_into(cudaStream_t stream) const
+  {
+    for (size_t i = 0; i < shards_.size(); i++)
+    {
+      const auto& sh = shards_[i];
+      if (!sh.stream || sh.stream == stream)
+      {
+        continue;
+      }
+      cudaEvent_t event = nullptr;
+      {
+        // Create/record in the shard's context so the event matches its stream.
+        exec_place_scope scope(sh.exec);
+        event = fork_join_events_.join_event(i);
+        cuda_safe_call(cudaEventRecord(event, sh.stream));
+      }
+      cuda_safe_call(cudaStreamWaitEvent(stream, event, 0));
+    }
+  }
+
   /**
    * @brief Type-erased per-operation library state owned by the container.
    *
@@ -532,5 +605,8 @@ private:
   sharded_array<int> colinds_;
   sharded_array<_Tp> values_;
   ::std::unordered_map<::std::string, ::std::shared_ptr<void>> lib_state_;
+  // Pooled events for fork_from/join_into (lazily created; mutable because
+  // the ordering declarations are const -- they do not modify the matrix).
+  mutable detail::fork_join_event_pool fork_join_events_;
 };
 } // namespace cuda::experimental::sharded
