@@ -21,6 +21,7 @@ set(
   sharded_sparse_test_sources
   sparse/spmv_spmm.cu
   sparse/rebalance.cu
+  sparse/handle_lifecycle.cu
 )
 
 cccl_get_cudatoolkit()

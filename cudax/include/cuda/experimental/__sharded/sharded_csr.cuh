@@ -45,6 +45,19 @@
  * partition needs the whole dense operand at every place. Coherent per-place
  * replication of such operands is the binding tier's job (STF
  * `logical_data`); the container composes with it rather than absorbing it.
+ *
+ * VALUES ARE ORDINARY MUTABLE DATA. The values (and colinds) shards are exact
+ * nnz-slices of the parent arrays, so with `contiguous = true` they are
+ * backed by ONE contiguous VA range (`sharded_array::allocate_contiguous`):
+ * `contiguous_values()` hands the whole values array to unmodified writers
+ * (e.g. a problem-scaling transform kernel) as one normal pointer while each
+ * slice keeps per-place physical placement. In-place value mutation never
+ * invalidates the per-shard library plans (fixed addresses; only structure
+ * is frozen by a plan), whichever backing is used.
+ *
+ * Matrices whose arrays already live on the device are adopted with
+ * `from_device` (offsets make one small round trip to the host for the split
+ * and the per-shard rebasing; colinds/values are sliced device-to-device).
  */
 
 #pragma once
@@ -135,12 +148,51 @@ public:
               const int* h_offsets,
               const int* h_colinds,
               const _Tp* h_values,
-              ::std::vector<::std::int64_t> row_boundaries = {})
+              ::std::vector<::std::int64_t> row_boundaries = {},
+              bool contiguous = false)
       : rows_(num_rows)
       , cols_(num_cols)
       , nnz_(h_offsets[num_rows])
   {
-    const size_t num_shards = group.size();
+    init(group, h_offsets, h_colinds, h_values, mv(row_boundaries), contiguous);
+  }
+
+  /**
+   * @brief Build a row-partitioned CSR from DEVICE CSR arrays.
+   *
+   * Same contract as the host constructor; the offsets make one small host
+   * round trip (num_rows+1 ints — the split and the per-shard rebasing are
+   * host-side either way) and the colinds/values slices are copied
+   * device-to-device into the shards' places. SYNCHRONOUS.
+   */
+  static sharded_csr from_device(
+    place_group& group,
+    ::std::int64_t num_rows,
+    ::std::int64_t num_cols,
+    const int* d_offsets,
+    const int* d_colinds,
+    const _Tp* d_values,
+    ::std::vector<::std::int64_t> row_boundaries = {},
+    bool contiguous = false)
+  {
+    ::std::vector<int> h_offsets(static_cast<size_t>(num_rows) + 1);
+    cuda_safe_call(
+      cudaMemcpy(h_offsets.data(), d_offsets, h_offsets.size() * sizeof(int), cudaMemcpyDefault));
+    return sharded_csr(group, num_rows, num_cols, h_offsets.data(), d_colinds, d_values, mv(row_boundaries), contiguous);
+  }
+
+private:
+  /// @brief Common construction: offsets are HOST data; colinds/values may be
+  /// host or device pointers (the shard copies use `cudaMemcpyDefault`).
+  void init(place_group& group,
+            const int* h_offsets,
+            const int* colinds_src,
+            const _Tp* values_src,
+            ::std::vector<::std::int64_t> row_boundaries,
+            bool contiguous)
+  {
+    const ::std::int64_t num_rows = rows_;
+    const size_t num_shards       = group.size();
     if (num_shards == 0)
     {
       _CCCL_THROW(::std::invalid_argument, "sharded_csr: place group has no places");
@@ -185,14 +237,19 @@ public:
       nnz_specs.emplace_back(shard_nnz, dplace, eplace, stream);
     }
     offsets_ = sharded_array<int>::allocate(off_specs);
-    colinds_ = sharded_array<int>::allocate(nnz_specs);
-    values_  = sharded_array<_Tp>::allocate(nnz_specs);
+    // colinds/values shards are exact nnz-slices of the parent arrays, so
+    // they admit the contiguous (one-VA-range) backing: unmodified writers
+    // then see the whole array through contiguous_values()/_colinds().
+    colinds_ = contiguous ? sharded_array<int>::allocate_contiguous(nnz_specs) //
+                          : sharded_array<int>::allocate(nnz_specs);
+    values_  = contiguous ? sharded_array<_Tp>::allocate_contiguous(nnz_specs) //
+                          : sharded_array<_Tp>::allocate(nnz_specs);
 
-    // colinds/values shards are contiguous slices of the parent arrays, so a
-    // single contiguous host copy distributes them. Offsets are rebased per
-    // shard first (offsets[0] == 0 in every shard).
-    colinds_.copy_from_host(h_colinds);
-    values_.copy_from_host(h_values);
+    // The slice copies distribute the parent arrays (host or device source:
+    // cudaMemcpyDefault). Offsets are rebased per shard first (offsets[0] ==
+    // 0 in every shard).
+    colinds_.copy_from_host(colinds_src);
+    values_.copy_from_host(values_src);
     ::std::vector<int> rebased;
     rebased.reserve(static_cast<size_t>(num_rows) + num_shards);
     for (size_t d = 0; d < num_shards; d++)
@@ -227,6 +284,28 @@ public:
       }
       shards_.push_back(sh);
     }
+  }
+
+public:
+  /// @brief True when values/colinds are backed by one contiguous VA range.
+  bool values_contiguous() const
+  {
+    return values_.is_contiguous();
+  }
+
+  /// @brief Base pointer of the whole values array (`nullptr` unless built
+  /// with `contiguous = true`). In-place mutation through it (or through the
+  /// shard views) never invalidates the per-shard library plans.
+  _Tp* contiguous_values() const
+  {
+    return values_.contiguous_data();
+  }
+
+  /// @brief Base pointer of the whole colinds array (`nullptr` unless built
+  /// with `contiguous = true`).
+  int* contiguous_colinds() const
+  {
+    return colinds_.contiguous_data();
   }
 
   // The container owns library state whose destruction order matters; keep it
@@ -408,11 +487,14 @@ public:
    * @brief Type-erased per-operation library state owned by the container.
    *
    * Vendor-call layers (e.g. the sparse products in
-   * `<cuda/experimental/sharded_sparse.cuh>`) stash their library state —
-   * handles, descriptors, plans, workspaces — here, keyed by operation, so it
-   * is created once, reused across calls, and destroyed with the matrix whose
-   * addresses it describes. `make()` is invoked on first use and must return
-   * a `_State*` the container takes ownership of.
+   * `<cuda/experimental/sharded_sparse.cuh>`) stash their MATRIX-BOUND
+   * library state — descriptors, plans, workspaces — here, keyed by
+   * operation, so it is created once, reused across calls, and destroyed with
+   * the matrix whose addresses it describes. PLACE-BOUND state (e.g. a
+   * cuSPARSE handle per place) belongs in the `place_group`'s per-place
+   * `lib_state` cache instead, so it is shared across matrices and retires
+   * with the group. `make()` is invoked on first use and must return a
+   * `_State*` the container takes ownership of.
    */
   template <typename _State, typename _Make>
   _State& lib_state(const ::std::string& key, _Make&& make)

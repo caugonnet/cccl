@@ -526,6 +526,62 @@ void test_value_mutation(place_group& group, const host_csr& m, ::std::int64_t n
   cuda_safe_call(cudaFree(d_x));
   cuda_safe_call(cudaFree(d_B));
 }
+
+// Same contract with contiguous internals and a matrix adopted from device
+// arrays: ONE kernel mutates the whole values array through
+// contiguous_values() -- the unmodified-writer pattern (e.g. an existing
+// problem-scaling kernel) -- and the per-shard plans stay valid.
+void test_value_mutation_contiguous(place_group& group, const host_csr& m, ::std::int64_t n_cols)
+{
+  int* d_off    = device_upload(m.offsets);
+  int* d_col    = device_upload(m.colinds);
+  double* d_val = device_upload(m.values);
+  auto A        = sharded_csr<double>::from_device(
+    group, m.rows, m.cols, d_off, d_col, d_val, /*row_boundaries=*/{}, /*contiguous=*/true);
+  EXPECT(A.values_contiguous());
+
+  const auto B_h  = random_vector(static_cast<size_t>(m.cols * n_cols), 701);
+  const auto C0_h = ::std::vector<double>(static_cast<size_t>(m.rows * n_cols), 0.0);
+  double* d_B     = device_upload(B_h);
+  auto C          = A.make_row_partitioned(n_cols);
+
+  ::std::vector<double> first_C(static_cast<size_t>(m.rows * n_cols));
+  spmm(group, A, d_B, C, n_cols);
+  C.sync();
+  C.copy_to_host(first_C.data());
+
+  // One whole-array kernel through the base pointer (writer knows nothing
+  // about shards or placement).
+  scale_values_kernel<<<256, 256, 0, nullptr>>>(A.contiguous_values(), m.nnz(), 2.0);
+  cuda_safe_call(cudaGetLastError());
+  cuda_safe_call(cudaStreamSynchronize(nullptr));
+  host_csr m2 = m;
+  for (auto& v : m2.values)
+  {
+    v *= 2.0;
+  }
+
+  ::std::vector<double> got_C(first_C.size());
+  spmm(group, A, d_B, C, n_cols);
+  C.sync();
+  C.copy_to_host(got_C.data());
+  expect_close(got_C, host_spmm(m2, B_h, n_cols, 1.0, 0.0, C0_h));
+  expect_close(got_C, whole_matrix_spmm(m2, B_h, n_cols, 1.0, 0.0, C0_h));
+
+  // Exact restore => byte-identical to the pre-mutation call.
+  scale_values_kernel<<<256, 256, 0, nullptr>>>(A.contiguous_values(), m.nnz(), 0.5);
+  cuda_safe_call(cudaGetLastError());
+  cuda_safe_call(cudaStreamSynchronize(nullptr));
+  spmm(group, A, d_B, C, n_cols);
+  C.sync();
+  C.copy_to_host(got_C.data());
+  EXPECT(::std::memcmp(got_C.data(), first_C.data(), first_C.size() * sizeof(double)) == 0);
+
+  cuda_safe_call(cudaFree(d_off));
+  cuda_safe_call(cudaFree(d_col));
+  cuda_safe_call(cudaFree(d_val));
+  cuda_safe_call(cudaFree(d_B));
+}
 } // namespace
 
 
@@ -549,6 +605,11 @@ int main()
   // In-place value mutation between calls (transform-rescaled operator).
   test_value_mutation(group, mixed, 32);
   test_value_mutation(group, skewed, 16);
+
+  // Same through contiguous internals + device-adopted arrays (one
+  // unmodified whole-array writer).
+  test_value_mutation_contiguous(group, mixed, 32);
+  test_value_mutation_contiguous(group, skewed, 16);
 
   return 0;
 }
