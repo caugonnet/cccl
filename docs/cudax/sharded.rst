@@ -147,6 +147,11 @@ place's memory. Because every shard is a complete CSR matrix, a CLOSED
 library that only understands pointers and a stream can consume it with one
 ordinary call per shard — the container carries the placement, the library
 never changes. The container is vendor-free and ships in the umbrella header.
+``sharded_csr::from_device`` ingests a CSR whose arrays already live on the
+device; per the ``from_*`` naming rule it builds owned storage — offsets are
+rebased into container-owned shards and colinds/values are copied
+device-to-device into the shards' places, so nothing aliases the caller's
+arrays and they may be freed once it returns.
 
 The cuSPARSE-backed products live in the separate opt-in header
 ``<cuda/experimental/sharded_sparse.cuh>``, which requires the cuSPARSE
