@@ -148,6 +148,22 @@ public:
     }
   }
 
+  /**
+   * @brief Named factory for the adopting constructor above; identical
+   * behavior.
+   *
+   * `adopt` states the naming contract explicitly: a zero-copy wrap of
+   * caller-owned memory. The shards' data pointers are used as-is (no
+   * allocation, no copy), the container becomes `ownership::view`, and the
+   * caller owes the memory's lifetime for as long as the view (or anything
+   * sliced from it) is used. By contrast, `from_*` factories build owned
+   * storage by copying or transforming their inputs.
+   */
+  static sharded_array adopt(::std::vector<shard_type> shards)
+  {
+    return sharded_array(mv(shards));
+  }
+
   // ========== Core allocation ==========
 
   /**

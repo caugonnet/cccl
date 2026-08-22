@@ -164,6 +164,16 @@ public:
    * round trip (num_rows+1 ints — the split and the per-shard rebasing are
    * host-side either way) and the colinds/values slices are copied
    * device-to-device into the shards' places. SYNCHRONOUS.
+   *
+   * Ownership/aliasing contract (explicit): NOTHING in the returned matrix
+   * aliases the caller's arrays. Per-shard offsets are rebuilt (rebased so
+   * `offsets[0] == 0` in every shard) into container-owned storage, and the
+   * colinds/values slices are container-owned per-place copies, so the
+   * caller's `d_offsets`/`d_colinds`/`d_values` may be freed as soon as this
+   * call returns. The copy is also a snapshot: later in-place writes to the
+   * caller's arrays do NOT propagate to the shards — mutate the shard views
+   * (or `contiguous_values()`) instead, which never invalidates the
+   * per-shard library plans.
    */
   static sharded_csr from_device(
     place_group& group,
