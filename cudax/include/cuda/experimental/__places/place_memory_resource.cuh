@@ -94,21 +94,34 @@ public:
     return is_stream_ordered_;
   }
 
+  /// @brief Alignments this resource can guarantee: at most (and dividing)
+  /// `cuda::mr::default_cuda_malloc_alignment`, which every allocation path
+  /// of a `data_place` satisfies.
+  [[nodiscard]] static constexpr bool is_valid_alignment(::std::size_t alignment) noexcept
+  {
+    return alignment <= ::cuda::mr::default_cuda_malloc_alignment
+        && ::cuda::mr::default_cuda_malloc_alignment % alignment == 0;
+  }
+
   /// @brief Stream-ordered allocation (models the `cuda::mr` resource concept).
   ///
   /// Host/device-annotated so the resource can travel through environments
   /// into `CUB_RUNTIME_FUNCTION` dispatch layers; calling it from device code
   /// terminates (placement decisions are host-side).
   [[nodiscard]] _CCCL_HOST_DEVICE void*
-  allocate(::cuda::stream_ref stream, ::std::size_t bytes, ::std::size_t /*alignment*/ = alignof(::std::max_align_t))
+  allocate(::cuda::stream_ref stream, ::std::size_t bytes, ::std::size_t alignment = alignof(::std::max_align_t))
   {
     void* result = nullptr;
-    NV_IF_ELSE_TARGET(NV_IS_HOST,
-                      (if (bytes != 0) {
-                        cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
-                        result                   = place_.allocate(static_cast<::std::ptrdiff_t>(bytes), cuda_stream);
-                      }),
-                      ((void) stream; (void) bytes; ::cuda::std::terminate();));
+    NV_IF_ELSE_TARGET(
+      NV_IS_HOST,
+      (
+        if (!is_valid_alignment(alignment)) {
+          _CCCL_THROW(::std::invalid_argument, "place_memory_resource: unsupported alignment");
+        } if (bytes != 0) {
+          cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
+          result                   = place_.allocate(static_cast<::std::ptrdiff_t>(bytes), cuda_stream);
+        }),
+      ((void) stream; (void) bytes; (void) alignment; ::cuda::std::terminate();));
     return result;
   }
 
@@ -134,14 +147,19 @@ public:
                         catch (const ::std::exception& e)
                         {
                           ::fprintf(stderr, "place_memory_resource::deallocate failed: %s\n", e.what());
+                          _CCCL_ASSERT(false, "place_memory_resource::deallocate failed");
                         }
                       }),
                       ((void) stream; (void) ptr; (void) bytes; ::cuda::std::terminate();));
   }
 
   /// @brief Synchronous allocation (models the `cuda::mr` synchronous resource concept).
-  [[nodiscard]] void* allocate_sync(::std::size_t bytes, ::std::size_t /*alignment*/ = alignof(::std::max_align_t))
+  [[nodiscard]] void* allocate_sync(::std::size_t bytes, ::std::size_t alignment = alignof(::std::max_align_t))
   {
+    if (!is_valid_alignment(alignment))
+    {
+      _CCCL_THROW(::std::invalid_argument, "place_memory_resource: unsupported alignment");
+    }
     if (bytes == 0)
     {
       return nullptr;
@@ -164,6 +182,7 @@ public:
     catch (const ::std::exception& e)
     {
       ::fprintf(stderr, "place_memory_resource::deallocate_sync failed: %s\n", e.what());
+      _CCCL_ASSERT(false, "place_memory_resource::deallocate_sync failed");
     }
   }
 
