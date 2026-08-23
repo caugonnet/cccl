@@ -63,15 +63,6 @@ __global__ void write_shard_kernel(long long* data, size_t n, size_t global_offs
   }
 }
 
-bool vmm_supported(int dev_id = 0)
-{
-  CUdevice dev;
-  cuda_try(cuDeviceGet(&dev, dev_id));
-  int supported = 0;
-  cuda_try(cuDeviceGetAttribute(&supported, CU_DEVICE_ATTRIBUTE_VIRTUAL_ADDRESS_MANAGEMENT_SUPPORTED, dev));
-  return supported == 1;
-}
-
 void test_layout_contract()
 {
   auto group = place_group::by_locality_domains({0});
@@ -206,7 +197,7 @@ int main()
   cuda_try(cuInit(0));
   cuda_safe_call(cudaSetDevice(0));
 
-  if (!vmm_supported())
+  if (!contiguous_backing_supported())
   {
     printf("VMM not supported on this device, skipping tests.\n");
     return 0;
