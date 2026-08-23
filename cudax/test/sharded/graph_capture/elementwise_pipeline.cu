@@ -20,6 +20,8 @@
  *        the instantiated graph.
  */
 
+#include <cuda/stream_ref>
+
 #include <cuda/experimental/sharded.cuh>
 
 #include <set>
@@ -27,7 +29,6 @@
 
 using namespace cuda::experimental::sharded;
 using cuda::experimental::places::exec_place_scope;
-using cuda::experimental::places::make_stream_wait_for;
 using cuda::experimental::places::place_group;
 
 namespace
@@ -217,11 +218,11 @@ void test_confinement_in_graph(place_group& group)
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
   for (size_t i = 0; i < num_places; i++)
   {
-    make_stream_wait_for(group.get_stream(i, 0), origin);
+    ::cuda::stream_ref{group.get_stream(i, 0)}.wait(::cuda::stream_ref{origin});
     exec_place_scope scope(group.place(i));
     smid_probe_kernel<<<blocks, 32, 0, group.get_stream(i, 0)>>>(smid_bufs[i]);
     cuda_safe_call(cudaGetLastError());
-    make_stream_wait_for(origin, group.get_stream(i, 0));
+    ::cuda::stream_ref{origin}.wait(::cuda::stream_ref{group.get_stream(i, 0)});
   }
   cudaGraph_t graph = nullptr;
   cuda_safe_call(cudaStreamEndCapture(origin, &graph));

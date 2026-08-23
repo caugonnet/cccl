@@ -223,7 +223,7 @@ record the pipeline, and ``join_into(origin)`` before ending the capture
    cudaStreamEndCapture(origin, &graph);
 
 (For streams not owned by a container — e.g. raw ``place_group`` streams —
-``places::make_stream_wait_for(wait, signal)`` remains the underlying event
+``cuda::stream_ref{wait}.wait(stream_ref{signal})`` remains the underlying event
 primitive.)
 
 The captured graph is placement-faithful: each shard's kernels are recorded

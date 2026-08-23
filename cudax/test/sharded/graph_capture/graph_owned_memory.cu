@@ -23,12 +23,13 @@
  *           relaunch fail predictably until the pointer is freed outside.
  */
 
+#include <cuda/stream_ref>
+
 #include <cuda/experimental/sharded.cuh>
 
 #include <vector>
 
 using namespace cuda::experimental::sharded;
-using cuda::experimental::places::make_stream_wait_for;
 using cuda::experimental::places::place_group;
 using cuda::experimental::places::place_memory_resource;
 
@@ -88,7 +89,7 @@ void test_balanced_alloc_free_replays(place_group& group)
   cuda_safe_call(cudaStreamCreate(&origin));
 
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
-  make_stream_wait_for(s, origin);
+  ::cuda::stream_ref{s}.wait(::cuda::stream_ref{origin});
 
   float* d_tmp = static_cast<float*>(mr.allocate(::cuda::stream_ref{s}, bytes)); // graph-owned
   {
@@ -100,7 +101,7 @@ void test_balanced_alloc_free_replays(place_group& group)
   }
   mr.deallocate(::cuda::stream_ref{s}, d_tmp, bytes); // freed inside the graph
 
-  make_stream_wait_for(origin, s);
+  ::cuda::stream_ref{origin}.wait(::cuda::stream_ref{s});
   cudaGraph_t graph = nullptr;
   cuda_safe_call(cudaStreamEndCapture(origin, &graph));
 
@@ -145,14 +146,14 @@ void test_unbalanced_alloc_fails_predictably(place_group& group)
   cuda_safe_call(cudaStreamCreate(&origin));
 
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
-  make_stream_wait_for(s, origin);
+  ::cuda::stream_ref{s}.wait(::cuda::stream_ref{origin});
   float* d_leak = static_cast<float*>(mr.allocate(::cuda::stream_ref{s}, bytes)); // NOT freed in-graph
   {
     cuda::experimental::places::exec_place_scope scope(shard_place);
     write_kernel<<<static_cast<unsigned>((n + 255) / 256), 256, 0, s>>>(d_leak, n, 3.0f);
     cuda_safe_call(cudaGetLastError());
   }
-  make_stream_wait_for(origin, s);
+  ::cuda::stream_ref{origin}.wait(::cuda::stream_ref{s});
   cudaGraph_t graph = nullptr;
   cuda_safe_call(cudaStreamEndCapture(origin, &graph));
   EXPECT(graph_has_node_type(graph, cudaGraphNodeTypeMemAlloc));
