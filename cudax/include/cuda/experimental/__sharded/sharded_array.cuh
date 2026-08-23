@@ -74,6 +74,21 @@ enum class ownership
 /// @brief Allocation spec for one shard: (size, data place, exec place, stream).
 using shard_spec = ::std::tuple<size_t, data_place, exec_place, cudaStream_t>;
 
+/// @brief Whether this machine can back a contiguous allocation
+/// (`sharded_array<T>::allocate_contiguous`): the VMM machinery the backing
+/// is built on (`places::localized_array`) requires virtual address
+/// management support on the device. `allocate_contiguous` throws where this
+/// reports false.
+[[nodiscard]] inline bool contiguous_backing_supported(int device_ordinal = 0)
+{
+  cuda_safe_call(cudaFree(nullptr)); // the driver query needs an initialized context
+  CUdevice dev;
+  cuda_safe_call(cuDeviceGet(&dev, device_ordinal));
+  int supported = 0;
+  cuda_safe_call(cuDeviceGetAttribute(&supported, CU_DEVICE_ATTRIBUTE_VIRTUAL_ADDRESS_MANAGEMENT_SUPPORTED, dev));
+  return supported == 1;
+}
+
 /**
  * @brief A 1D array sharded across multiple memory locations.
  *
