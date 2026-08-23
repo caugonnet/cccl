@@ -113,13 +113,7 @@ size_t count_if(place_group& group, const sharded_array<_Tp>& data, _Pred pred)
     // Temporaries come from the shard's place through the group's resources
     const auto env = group.env(s.place, s.stream);
     cuda_safe_call(cub::DeviceReduce::TransformReduce(
-      s.data,
-      d_out,
-      s.size,
-      ::cuda::std::plus<size_t>{},
-      detail::count_transform_fn<_Tp, _Pred>{pred},
-      size_t{0},
-      env));
+      s.data, d_out, s.size, ::cuda::std::plus<size_t>{}, detail::count_transform_fn<_Tp, _Pred>{pred}, size_t{0}, env));
 
     cuda_safe_call(cudaMemcpyAsync(&h_counts[g], d_out, sizeof(size_t), cudaMemcpyDeviceToHost, s.stream));
   };

@@ -62,7 +62,6 @@ bool vmm_supported(int dev_id = 0)
 
 void test_copy_if(place_group& group)
 {
-
   const size_t n = 500009;
   auto data      = sharded_array<long long>::allocate(group, n);
   iota(group, data, 0LL); // 0 .. n-1
@@ -93,7 +92,6 @@ void test_copy_if(place_group& group)
 
 void test_copy_if_empty_result_shards(place_group& group)
 {
-
   const size_t n = 300000;
   auto data      = sharded_array<long long>::allocate(group, n);
   iota(group, data, 0LL); // values == global indices
@@ -127,7 +125,6 @@ void test_copy_if_empty_result_shards(place_group& group)
 
 void test_remove_if_and_filter(place_group& group)
 {
-
   const size_t n = 100003;
   auto data      = sharded_array<long long>::allocate(group, n);
   iota(group, data, 0LL);
@@ -150,7 +147,6 @@ void test_remove_if_and_filter(place_group& group)
 
 void test_unique_cross_shard_boundary(place_group& group)
 {
-
   // Runs of 7 equal values; 7 does not divide the shard sizes, so runs
   // straddle shard boundaries and local per-shard unique alone would keep a
   // duplicate at each straddled boundary — the boundary trim must drop it
@@ -197,7 +193,6 @@ void test_unique_cross_shard_boundary(place_group& group)
 
 void test_size_mutators_refuse_contiguous(place_group& group)
 {
-
   // THE CONTRACT: a contiguous array is one VA range read as one array
   // through contiguous_data(); shrinking shard sizes would leave gaps between
   // shards' valid elements, and compacting across the gaps would migrate
@@ -250,7 +245,6 @@ void test_size_mutators_refuse_contiguous(place_group& group)
 
 int main()
 {
-
   cuda_try(cuInit(0));
   cuda_safe_call(cudaSetDevice(0));
 

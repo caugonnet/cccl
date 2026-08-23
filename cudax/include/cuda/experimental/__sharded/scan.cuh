@@ -172,11 +172,12 @@ void scan_impl(place_group&, sharded_array<_Tp>& data, scan_type type, _ScanOp s
     {
       return; // identity prefix: nothing to fold
     }
-    thrust::transform(thrust::cuda::par_nosync.on(s.stream),
-                      s.data,
-                      s.data + s.size,
-                      s.data,
-                      apply_prefix_fn<_Tp, _ScanOp>{prefix, scan_op});
+    thrust::transform(
+      thrust::cuda::par_nosync.on(s.stream),
+      s.data,
+      s.data + s.size,
+      s.data,
+      apply_prefix_fn<_Tp, _ScanOp>{prefix, scan_op});
     cuda_safe_call(cudaGetLastError());
   };
 
