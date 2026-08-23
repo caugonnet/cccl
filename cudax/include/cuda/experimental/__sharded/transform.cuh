@@ -128,12 +128,13 @@ void transform(place_group&,
   output.each_shard->*[&input1, &input2, op](const size_t g, auto& out_shard) {
     const auto& in1_shard = input1.shard(g);
     const auto& in2_shard = input2.shard(g);
-    thrust::transform(thrust::cuda::par_nosync.on(out_shard.stream),
-                      in1_shard.data,
-                      in1_shard.data + in1_shard.size,
-                      in2_shard.data,
-                      out_shard.data,
-                      op);
+    thrust::transform(
+      thrust::cuda::par_nosync.on(out_shard.stream),
+      in1_shard.data,
+      in1_shard.data + in1_shard.size,
+      in2_shard.data,
+      out_shard.data,
+      op);
     cuda_safe_call(cudaGetLastError());
   };
 

@@ -74,7 +74,6 @@ bool vmm_supported(int dev_id = 0)
 
 void test_layout_contract()
 {
-
   auto group = place_group::by_locality_domains({0});
   // Odd size so shards are uneven and boundaries are not granule-aligned
   const size_t n = (1 << 21) + 12345;
@@ -119,7 +118,6 @@ void test_layout_contract()
 
 void test_whole_kernel_visibility()
 {
-
   auto group     = place_group::by_locality_domains({0});
   const size_t n = (1 << 21) + 999;
 
@@ -168,7 +166,6 @@ void test_whole_kernel_visibility()
 
 void test_non_affine_spec_refused()
 {
-
   // The contiguous backing places physical blocks at each spec's exec
   // place's affine data place; a spec naming any other data_place must
   // throw rather than be silently ignored.
@@ -190,7 +187,6 @@ void test_non_affine_spec_refused()
 
 void test_empty_and_cleanup()
 {
-
   auto empty = sharded_array<long long>::allocate_contiguous(::std::vector<shard_spec>{});
   EXPECT(!empty.is_contiguous());
   EXPECT(empty.size() == 0UL);
@@ -207,7 +203,6 @@ void test_empty_and_cleanup()
 
 int main()
 {
-
   cuda_try(cuInit(0));
   cuda_safe_call(cudaSetDevice(0));
 

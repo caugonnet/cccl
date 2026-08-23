@@ -28,13 +28,14 @@ using cuda::experimental::places::place_group;
 
 namespace
 {
-
 // Burn ~`cycles` GPU cycles so that a missing stream dependency surfaces as a
 // stale read instead of accidental serialization.
 __global__ void spin_kernel(long long cycles)
 {
   const long long start = clock64();
-  while (clock64() - start < cycles) {}
+  while (clock64() - start < cycles)
+  {
+  }
 }
 
 // Producer: value derived from the global index.
@@ -116,8 +117,7 @@ void test_eager_ordering(place_group& group)
   for (size_t i = 0; i < out.num_shards(); i++)
   {
     const auto& s = out.shard(i);
-    cuda_safe_call(
-      cudaMemcpyAsync(host.data() + s.global_offset, s.data, s.size_bytes(), cudaMemcpyDefault, caller));
+    cuda_safe_call(cudaMemcpyAsync(host.data() + s.global_offset, s.data, s.size_bytes(), cudaMemcpyDefault, caller));
   }
   cuda_safe_call(cudaStreamSynchronize(caller)); // the only host sync
 
@@ -180,8 +180,7 @@ void test_adopted_foreign_streams()
   for (size_t i = 0; i < data.num_shards(); i++)
   {
     const auto& s = data.shard(i);
-    cuda_safe_call(
-      cudaMemcpyAsync(host.data() + s.global_offset, s.data, s.size_bytes(), cudaMemcpyDefault, caller));
+    cuda_safe_call(cudaMemcpyAsync(host.data() + s.global_offset, s.data, s.size_bytes(), cudaMemcpyDefault, caller));
   }
   cuda_safe_call(cudaStreamSynchronize(caller)); // the only host sync
 
@@ -256,8 +255,7 @@ void test_degenerate()
 
   {
     // Shards whose reference stream IS the caller stream: nothing to order.
-    auto same = sharded_array<int>::allocate(
-      {{128, data_place::device(0), exec_place::device(0), caller}});
+    auto same = sharded_array<int>::allocate({{128, data_place::device(0), exec_place::device(0), caller}});
     same.fork_from(caller);
     same.join_into(caller);
     cuda_safe_call(cudaStreamSynchronize(caller));
@@ -265,7 +263,6 @@ void test_degenerate()
 
   cuda_safe_call(cudaStreamDestroy(caller));
 }
-
 } // namespace
 
 int main()
