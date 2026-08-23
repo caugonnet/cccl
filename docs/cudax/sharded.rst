@@ -44,7 +44,7 @@ memory's lifetime); ``from_*`` = builds owned storage by copying or
 transforming its input. ``sharded_array<T>::adopt(shards)`` is the named
 form of the adopting constructor.
 
-``allocate_contiguous`` places the shards inside ONE contiguous virtual
+``allocate_contiguous`` places the shards inside *one* contiguous virtual
 address range (VMM-backed via ``localized_array``): logical shard boundaries
 are exact, physical ownership snaps to the allocation granularity, and
 ``contiguous_data()`` hands the whole array to unmodified single-pointer
@@ -54,7 +54,7 @@ size-mutating operations must refuse such arrays.
 Composing with a caller stream: ``fork_from`` / ``join_into``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sharded work runs on per-shard streams; callers usually have ONE stream
+Sharded work runs on per-shard streams; callers usually have *one* stream
 carrying the surrounding computation. ``fork_from(stream)`` declares that the
 shard streams depend on the work currently enqueued on the caller stream (one
 event recorded on it, every shard stream waits); ``join_into(stream)`` is the
@@ -229,7 +229,7 @@ primitive.)
 The captured graph is placement-faithful: each shard's kernels are recorded
 from that place's stream, and the per-place SM confinement of those streams
 survives instantiation and replay (pinned by an SM-id check in the test
-suite). Replays recompute from the CURRENT contents of the shards, so inputs
+suite). Replays recompute from the *current* contents of the shards, so inputs
 may be rewritten — outside the graph — between launches. Contiguous
 (``allocate_contiguous``) arrays capture transparently: the VMM mappings
 pre-exist the capture, and per-shard stages compose with whole-array kernels
@@ -239,7 +239,7 @@ What must stay outside — and how it fails
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Everything else on the surface performs host-side work a graph cannot
-represent. Those operations REFUSE under an active capture by throwing
+represent. Those operations *refuse* under an active capture by throwing
 ``std::runtime_error`` before touching the stream; the check is a safe
 query, so the ongoing capture remains VALID and keeps accepting supported
 work. The refusing set:
@@ -247,8 +247,8 @@ work. The refusing set:
 - container allocation: ``allocate`` (all overloads) and
   ``allocate_contiguous``;
 - host transfers: ``copy_from_host``, ``copy_to_host``, ``copy_between``;
-- synchronization: ``sharded_array::sync``, ``place_group::sync`` /
-  ``sync_stream`` — and therefore the elementwise algorithms when called
+- synchronization: ``sharded_array::sync`` and ``place_group::sync`` —
+  and therefore the elementwise algorithms when called
   with ``blocking = true``, which throw at their final sync (their kernels
   are already recorded; the capture is still valid and can be completed or
   abandoned);
@@ -273,7 +273,7 @@ Graph-owned memory
 ``allocate`` on a capturing stream records a graph memory node drawing from
 the place's (locality-domain) pool, so placed temporaries can live inside a
 graph when the allocate/deallocate pair is enclosed in the capture. An
-allocation NOT freed inside the graph stays live after a launch — the
+allocation *not* freed inside the graph stays live after a launch — the
 captured pointer is readable — and relaunching before freeing fails; the
 pointer can be released outside the graph with ``cudaFreeAsync``, which
 re-arms the launch. The shipped contract stays simple — allocate outside

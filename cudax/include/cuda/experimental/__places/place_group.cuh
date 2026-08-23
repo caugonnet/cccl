@@ -378,27 +378,6 @@ public:
     return get_stream(place, color == auto_stream_color ? next_stream_color() : color);
   }
 
-  /// @brief Synchronize the stream of a place at the given color.
-  /// @throws std::runtime_error under an active CUDA stream capture
-  /// (synchronization cannot be recorded into a graph).
-  void sync_stream(const exec_place& place, size_t color = 0)
-  {
-    exec_place_scope scope(place);
-    cudaStream_t stream = get_stream(place, color);
-    // A global-mode capture anywhere in the process also forbids synchronizing
-    // non-capturing streams, hence the additional legacy-stream probe.
-    if (stream_in_capture(stream) || stream_in_capture(nullptr))
-    {
-      _CCCL_THROW(::std::runtime_error, "place_group::sync_stream: not supported during CUDA stream capture");
-    }
-    cuda_safe_call(cudaStreamSynchronize(stream));
-  }
-
-  void sync_stream(size_t place_idx, size_t color = 0)
-  {
-    sync_stream(place(place_idx), color);
-  }
-
   /// @brief Synchronize every stream created so far, on every place.
   /// @throws std::runtime_error under an active CUDA stream capture
   /// (synchronization cannot be recorded into a graph).
