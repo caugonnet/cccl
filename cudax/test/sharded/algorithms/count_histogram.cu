@@ -37,15 +37,6 @@ struct is_multiple_of_3
   }
 };
 
-bool vmm_supported(int dev_id = 0)
-{
-  CUdevice dev;
-  cuda_try(cuDeviceGet(&dev, dev_id));
-  int supported = 0;
-  cuda_try(cuDeviceGetAttribute(&supported, CU_DEVICE_ATTRIBUTE_VIRTUAL_ADDRESS_MANAGEMENT_SUPPORTED, dev));
-  return supported == 1;
-}
-
 void test_count(place_group& group)
 {
   const size_t n = 1000003;
@@ -161,7 +152,7 @@ int main()
   test_count(group);
   test_histogram(group);
 
-  if (vmm_supported())
+  if (contiguous_backing_supported())
   {
     test_count_on_contiguous(group);
   }

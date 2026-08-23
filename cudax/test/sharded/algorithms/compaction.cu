@@ -51,15 +51,6 @@ struct less_than
   }
 };
 
-bool vmm_supported(int dev_id = 0)
-{
-  CUdevice dev;
-  cuda_try(cuDeviceGet(&dev, dev_id));
-  int supported = 0;
-  cuda_try(cuDeviceGetAttribute(&supported, CU_DEVICE_ATTRIBUTE_VIRTUAL_ADDRESS_MANAGEMENT_SUPPORTED, dev));
-  return supported == 1;
-}
-
 void test_copy_if(place_group& group)
 {
   const size_t n = 500009;
@@ -255,7 +246,7 @@ int main()
   test_remove_if_and_filter(group);
   test_unique_cross_shard_boundary(group);
 
-  if (vmm_supported())
+  if (contiguous_backing_supported())
   {
     test_size_mutators_refuse_contiguous(group);
   }
