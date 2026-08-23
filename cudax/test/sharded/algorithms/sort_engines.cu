@@ -120,7 +120,7 @@ template <typename T>
 
 void test_engine_matrix(place_group& group)
 {
-  const char* kinds[] = {"uniform", "lognormal", "all-equal", "pre-sorted", "reverse", "dup-heavy"};
+  const char* kinds[]  = {"uniform", "lognormal", "all-equal", "pre-sorted", "reverse", "dup-heavy"};
   const size_t sizes[] = {64, 4097, (1 << 20) + 37};
 
   for (const size_t n : sizes)
@@ -221,8 +221,8 @@ void test_contiguous_both(place_group& group)
 
 void test_bitwise_repeat_both(place_group& group)
 {
-  const size_t n = 250007;
-  auto data      = sharded_array<float>::allocate(group, n);
+  const size_t n  = 250007;
+  auto data       = sharded_array<float>::allocate(group, n);
   const auto host = make_dataset<float>("uniform", n, 5);
 
   for (const auto engine : {sort_engine::shared_va, sort_engine::distributed})
@@ -256,8 +256,8 @@ void test_eligibility(place_group& group)
     EXPECT(!detail_sort_va::one_shared_address_space(host_arr));
 
     // Give it a matching single-place "group" to pass the shape check.
-    place_group host_group(::std::vector<cuda::experimental::places::exec_place>{
-      cuda::experimental::places::exec_place::host()});
+    place_group host_group(
+      ::std::vector<cuda::experimental::places::exec_place>{cuda::experimental::places::exec_place::host()});
     bool threw = false;
     try
     {

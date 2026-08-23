@@ -36,6 +36,7 @@
 #endif // no system header
 
 #include <cuda/std/type_traits>
+#include <cuda/stream_ref>
 
 #include <cuda/experimental/__places/localized_array.cuh>
 #include <cuda/experimental/__places/place_group.cuh>
@@ -638,7 +639,10 @@ public:
         int device = -1;
         if (stream)
         {
-          cuda_safe_call(cudaStreamGetDevice(stream, &device));
+          // stream_ref::device() is version-portable (cudaStreamGetDevice
+          // itself requires CUDA 12.8+); green-context streams report their
+          // underlying device, which is exactly the event-pool key we want.
+          device = ::cuda::stream_ref{stream}.device().get();
         }
         else
         {
@@ -935,8 +939,8 @@ public:
       {
         if (error_stream)
         {
-          *error_stream << "shard " << i << ": expected offset " << expected_offset << " but got " << s.global_offset
-                        << "\n";
+          *error_stream
+            << "shard " << i << ": expected offset " << expected_offset << " but got " << s.global_offset << "\n";
         }
         valid = false;
       }

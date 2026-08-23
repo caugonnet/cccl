@@ -85,8 +85,8 @@ namespace cuda::experimental::sharded
  * `CUSPARSE_STATUS_SUCCESS` (the sharded-scope counterpart of
  * `cuda_safe_call`, following the same optional-vendor-status precedent).
  */
-inline void cusparse_safe_call(
-  cusparseStatus_t status, const ::cuda::std::source_location loc = ::cuda::std::source_location::current())
+inline void cusparse_safe_call(cusparseStatus_t status,
+                               const ::cuda::std::source_location loc = ::cuda::std::source_location::current())
 {
   if (status != CUSPARSE_STATUS_SUCCESS)
   {
@@ -193,7 +193,8 @@ struct spmv_shard_plan
   _Tp* bound_y       = nullptr;
   bool built         = false;
 
-  void build(cusparseHandle_t handle, const csr_shard<_Tp>& sh, ::std::int64_t cols, const _Tp* x, _Tp* y, cudaStream_t stream)
+  void build(
+    cusparseHandle_t handle, const csr_shard<_Tp>& sh, ::std::int64_t cols, const _Tp* x, _Tp* y, cudaStream_t stream)
   {
     const cudaDataType dt = cusparse_data_type<_Tp>::value;
     _Tp alpha = 1, beta = 0; // plan sizing only; real values passed per call
@@ -239,7 +240,16 @@ struct spmv_shard_plan
       cusparseDnVecDescr_t vy_scratch{};
       cusparse_safe_call(cusparseCreateDnVec(&vy_scratch, sh.rows, y_scratch, dt));
       cusparse_safe_call(cusparseSpMV(
-        handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat, vx, &beta, vy_scratch, dt, CUSPARSE_SPMV_CSR_ALG2, workspace));
+        handle,
+        CUSPARSE_OPERATION_NON_TRANSPOSE,
+        &alpha,
+        mat,
+        vx,
+        &beta,
+        vy_scratch,
+        dt,
+        CUSPARSE_SPMV_CSR_ALG2,
+        workspace));
       cuda_safe_call(cudaStreamSynchronize(stream));
       cusparse_safe_call(cusparseDestroyDnVec(vy_scratch));
       wplace.deallocate(y_scratch, static_cast<size_t>(sh.rows) * sizeof(_Tp), stream);
@@ -388,8 +398,7 @@ struct spmm_shard_plan
       _Tp* C_scratch =
         static_cast<_Tp*>(wplace.allocate(static_cast<::std::ptrdiff_t>(scratch_elems * sizeof(_Tp)), stream));
       cusparseDnMatDescr_t mC_scratch{};
-      cusparse_safe_call(
-        cusparseCreateDnMat(&mC_scratch, sh.rows, n_cols, n_cols, C_scratch, dt, CUSPARSE_ORDER_ROW));
+      cusparse_safe_call(cusparseCreateDnMat(&mC_scratch, sh.rows, n_cols, n_cols, C_scratch, dt, CUSPARSE_ORDER_ROW));
       cusparse_safe_call(cusparseSpMM(
         handle,
         CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -494,8 +503,8 @@ struct spmm_shard_plan
  * @return (matrix shard index, output pointer) for every participating shard
  */
 template <typename _Tp>
-::std::vector<::std::pair<size_t, _Tp*>> matched_output_shards(
-  const sharded_csr<_Tp>& A, sharded_array<_Tp>& out, ::std::int64_t n_cols, const char* what)
+::std::vector<::std::pair<size_t, _Tp*>>
+matched_output_shards(const sharded_csr<_Tp>& A, sharded_array<_Tp>& out, ::std::int64_t n_cols, const char* what)
 {
   ::std::vector<::std::pair<size_t, _Tp*>> pairs;
   size_t out_idx = 0;
@@ -614,12 +623,8 @@ double time_on_stream(cudaStream_t stream, int warmup, int iters, _Body&& body)
  *              (`A.make_row_partitioned()`, contiguous backing supported)
  */
 template <typename _Tp>
-void spmv(place_group& group,
-          sharded_csr<_Tp>& A,
-          const _Tp* x,
-          sharded_array<_Tp>& y,
-          _Tp alpha = _Tp{1},
-          _Tp beta  = _Tp{0})
+void spmv(
+  place_group& group, sharded_csr<_Tp>& A, const _Tp* x, sharded_array<_Tp>& y, _Tp alpha = _Tp{1}, _Tp beta = _Tp{0})
 {
   if (A.num_shards() != group.size())
   {

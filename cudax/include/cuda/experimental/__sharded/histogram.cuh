@@ -68,8 +68,8 @@ namespace cuda::experimental::sharded
  *         `lower_level >= upper_level`
  */
 template <typename _Tp, typename _LevelT>
-::std::vector<size_t>
-histogram_even(place_group& group, const sharded_array<_Tp>& data, int num_bins, _LevelT lower_level, _LevelT upper_level)
+::std::vector<size_t> histogram_even(
+  place_group& group, const sharded_array<_Tp>& data, int num_bins, _LevelT lower_level, _LevelT upper_level)
 {
   if (num_bins < 1)
   {

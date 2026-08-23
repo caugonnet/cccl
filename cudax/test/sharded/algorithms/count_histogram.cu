@@ -48,7 +48,6 @@ bool vmm_supported(int dev_id = 0)
 
 void test_count(place_group& group)
 {
-
   const size_t n = 1000003;
   auto data      = sharded_array<long long>::allocate(group, n);
   iota(group, data, 0LL); // 0 .. n-1
@@ -73,7 +72,6 @@ void test_count(place_group& group)
 
 void test_count_on_contiguous(place_group& group)
 {
-
   // Read-only algorithms stay available on contiguous arrays
   const size_t n = (1 << 20) + 37;
   auto data      = sharded_array<long long>::allocate_contiguous(group, n);
@@ -86,7 +84,6 @@ void test_count_on_contiguous(place_group& group)
 
 void test_histogram(place_group& group)
 {
-
   const size_t n = 262147;
   auto data      = sharded_array<long long>::allocate(group, n);
   iota(group, data, 0LL); // 0 .. n-1
@@ -156,7 +153,6 @@ void test_histogram(place_group& group)
 
 int main()
 {
-
   cuda_try(cuInit(0));
   cuda_safe_call(cudaSetDevice(0));
 

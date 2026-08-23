@@ -204,8 +204,17 @@ T* device_upload(const ::std::vector<T>& host)
   cusparseDnVecDescr_t vx{}, vy{};
   cusparse_safe_call(cusparseCreate(&handle));
   cusparse_safe_call(cusparseCreateCsr(
-    &mat, m.rows, m.cols, m.nnz(), d_off, d_col, d_val, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-    CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
+    &mat,
+    m.rows,
+    m.cols,
+    m.nnz(),
+    d_off,
+    d_col,
+    d_val,
+    CUSPARSE_INDEX_32I,
+    CUSPARSE_INDEX_32I,
+    CUSPARSE_INDEX_BASE_ZERO,
+    CUDA_R_64F));
   cusparse_safe_call(cusparseCreateDnVec(&vx, m.cols, d_x, CUDA_R_64F));
   cusparse_safe_call(cusparseCreateDnVec(&vy, m.rows, d_y, CUDA_R_64F));
   size_t wbytes = 0;
@@ -256,8 +265,17 @@ T* device_upload(const ::std::vector<T>& host)
   cusparseDnMatDescr_t mB{}, mC{};
   cusparse_safe_call(cusparseCreate(&handle));
   cusparse_safe_call(cusparseCreateCsr(
-    &mat, m.rows, m.cols, m.nnz(), d_off, d_col, d_val, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-    CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
+    &mat,
+    m.rows,
+    m.cols,
+    m.nnz(),
+    d_off,
+    d_col,
+    d_val,
+    CUSPARSE_INDEX_32I,
+    CUSPARSE_INDEX_32I,
+    CUSPARSE_INDEX_BASE_ZERO,
+    CUDA_R_64F));
   cusparse_safe_call(cusparseCreateDnMat(&mB, m.cols, n_cols, n_cols, d_B, CUDA_R_64F, CUSPARSE_ORDER_ROW));
   cusparse_safe_call(cusparseCreateDnMat(&mC, m.rows, n_cols, n_cols, d_C, CUDA_R_64F, CUSPARSE_ORDER_ROW));
   size_t wbytes = 0;
@@ -583,7 +601,6 @@ void test_value_mutation_contiguous(place_group& group, const host_csr& m, ::std
   cuda_safe_call(cudaFree(d_B));
 }
 } // namespace
-
 
 int main()
 {

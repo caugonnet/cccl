@@ -187,8 +187,8 @@ multiselect_kernel(runs_desc<_Tp> runs, targets_desc targets, int num_targets, s
   auto count_before = [&](int i, int r, const _Tp& x) -> size_t {
     const _Tp* b = runs.data[i];
     const _Tp* e = b + runs.n[i];
-    return static_cast<size_t>((i < r) ? (::cuda::std::upper_bound(b, e, x, cmp) - b)
-                                       : (::cuda::std::lower_bound(b, e, x, cmp) - b));
+    return static_cast<size_t>(
+      (i < r) ? (::cuda::std::upper_bound(b, e, x, cmp) - b) : (::cuda::std::lower_bound(b, e, x, cmp) - b));
   };
 
   // Global rank of run r's element m (key x) under the total order.
@@ -354,7 +354,8 @@ void merge_into(
     }
     if (i < cur.size())
     {
-      cuda_safe_call(cudaMemcpyAsync(bufs[wb] + off, cur[i].ptr, cur[i].count * sizeof(_Tp), cudaMemcpyDefault, stream));
+      cuda_safe_call(
+        cudaMemcpyAsync(bufs[wb] + off, cur[i].ptr, cur[i].count * sizeof(_Tp), cudaMemcpyDefault, stream));
       next.push_back(merge_range<_Tp>{bufs[wb] + off, cur[i].count});
     }
     cur.swap(next);
@@ -489,8 +490,8 @@ void sort_shared_va(place_group& group, sharded_array<_Tp>& data, _Compare comp)
       multiselect_kernel<_Tp, _Compare>
         <<<1, static_cast<unsigned>(num_targets), 0, s0.stream>>>(runs, targets, num_targets, d_splits, comp);
       cuda_safe_call(cudaGetLastError());
-      cuda_safe_call(cudaMemcpyAsync(
-        h_splits.data(), d_splits, splits_count * sizeof(size_t), cudaMemcpyDeviceToHost, s0.stream));
+      cuda_safe_call(
+        cudaMemcpyAsync(h_splits.data(), d_splits, splits_count * sizeof(size_t), cudaMemcpyDeviceToHost, s0.stream));
       cuda_safe_call(cudaStreamSynchronize(s0.stream));
       mr.deallocate(::cuda::stream_ref{s0.stream}, d_splits, splits_count * sizeof(size_t), alignof(size_t));
     }

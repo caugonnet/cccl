@@ -233,7 +233,7 @@ void test_row_partitioned_outputs(place_group& group)
   sharded_csr<double> A(group, m.rows, m.cols, m.offsets.data(), m.colinds.data(), m.values.data());
 
   const ::std::int64_t n_cols = 8;
-  auto C = A.make_row_partitioned(n_cols);
+  auto C                      = A.make_row_partitioned(n_cols);
   EXPECT(C.num_shards() == A.num_shards()); // every shard has rows >= 1
   EXPECT(C.size() == static_cast<size_t>(m.rows * n_cols));
   for (size_t d = 0; d < A.num_shards(); d++)
@@ -348,7 +348,6 @@ void test_time_balanced_boundaries_model()
 }
 } // namespace
 
-
 void test_from_device_and_contiguous(place_group& group)
 {
   const auto m = make_mixed_csr(10007, 512, 43);
@@ -423,7 +422,9 @@ void test_from_device_and_contiguous(place_group& group)
 __global__ void spin_kernel(long long cycles)
 {
   const long long start = clock64();
-  while (clock64() - start < cycles) {}
+  while (clock64() - start < cycles)
+  {
+  }
 }
 
 __global__ void scale_values_kernel(double* values, ::std::int64_t n, double factor)
