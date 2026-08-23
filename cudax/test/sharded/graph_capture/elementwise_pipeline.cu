@@ -20,7 +20,7 @@
  *        the instantiated graph.
  */
 
-#include <cuda/stream_ref>
+#include <cuda/stream>
 
 #include <cuda/experimental/sharded.cuh>
 

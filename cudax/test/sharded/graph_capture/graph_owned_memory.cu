@@ -23,7 +23,7 @@
  *           relaunch fail predictably until the pointer is freed outside.
  */
 
-#include <cuda/stream_ref>
+#include <cuda/stream>
 
 #include <cuda/experimental/sharded.cuh>
 
