@@ -50,12 +50,10 @@ void expect_equal(const ::std::vector<T>& actual, const ::std::vector<T>& expect
 
 void test_single_device_roundtrip()
 {
-
   const size_t n = 1000;
   auto input     = sequential<unsigned long long>(n);
 
-  auto arr = sharded_array<unsigned long long>::allocate(
-    {{n, data_place::device(0), exec_place::device(0), nullptr}});
+  auto arr = sharded_array<unsigned long long>::allocate({{n, data_place::device(0), exec_place::device(0), nullptr}});
   EXPECT(arr.num_shards() == 1UL);
   EXPECT(arr.size() == n);
   EXPECT(arr.is_owning());
@@ -70,7 +68,6 @@ void test_single_device_roundtrip()
 
 void test_multi_shard_roundtrip()
 {
-
   const size_t n = 1000;
   auto input     = sequential<unsigned long long>(n);
 
@@ -100,7 +97,6 @@ void test_multi_shard_roundtrip()
 
 void test_place_group_allocation()
 {
-
   auto group     = place_group::by_locality_domains({0});
   const size_t n = 10000;
 
@@ -137,7 +133,6 @@ void test_place_group_allocation()
 
 void test_allocate_like()
 {
-
   auto group = place_group::by_locality_domains({0});
   auto src   = sharded_array<long long>::allocate(group, 999);
 
@@ -160,12 +155,10 @@ void test_allocate_like()
 
 void test_copy_between_resharding()
 {
-
   const size_t n = 1000;
   auto input     = sequential<unsigned long long>(n);
 
-  auto one = sharded_array<unsigned long long>::allocate(
-    {{n, data_place::device(0), exec_place::device(0), nullptr}});
+  auto one = sharded_array<unsigned long long>::allocate({{n, data_place::device(0), exec_place::device(0), nullptr}});
   one.copy_from_host(input.data());
 
   // 1 shard -> 2 shards
@@ -192,8 +185,7 @@ void test_copy_between_resharding()
   expect_equal(output, input);
 
   // 2 shards -> 1 shard
-  auto back = sharded_array<unsigned long long>::allocate(
-    {{n, data_place::device(0), exec_place::device(0), nullptr}});
+  auto back = sharded_array<unsigned long long>::allocate({{n, data_place::device(0), exec_place::device(0), nullptr}});
   copy_between(dst, back);
   back.copy_to_host(output.data());
   expect_equal(output, input);
@@ -201,7 +193,6 @@ void test_copy_between_resharding()
 
 void test_adoption_and_slice()
 {
-
   const size_t n = 700;
   auto input     = sequential<long long>(n);
 
@@ -251,14 +242,11 @@ void test_adoption_and_slice()
 
 void test_check_compatible_throws()
 {
-
-  auto a = sharded_array<long long>::allocate(
-    {{100, data_place::device(0), exec_place::device(0), nullptr}});
+  auto a = sharded_array<long long>::allocate({{100, data_place::device(0), exec_place::device(0), nullptr}});
   auto b = sharded_array<long long>::allocate(
     {{50, data_place::device(0), exec_place::device(0), nullptr},
      {50, data_place::device(0), exec_place::device(0), nullptr}});
-  auto c = sharded_array<long long>::allocate(
-    {{60, data_place::device(0), exec_place::device(0), nullptr}});
+  auto c = sharded_array<long long>::allocate({{60, data_place::device(0), exec_place::device(0), nullptr}});
 
   bool threw = false;
   try
@@ -287,7 +275,6 @@ void test_check_compatible_throws()
 
 void test_uniform_and_host()
 {
-
   const size_t n = 1001;
   auto input     = sequential<long long>(n);
 
@@ -312,7 +299,6 @@ void test_uniform_and_host()
 
 int main()
 {
-
   cuda_safe_call(cudaSetDevice(0));
 
   test_single_device_roundtrip();

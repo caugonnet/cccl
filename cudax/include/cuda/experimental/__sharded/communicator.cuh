@@ -219,11 +219,11 @@ struct pending_collective
 //! A posted point-to-point half, waiting for its match.
 struct pending_p2p
 {
-  const void* src = nullptr; //!< send side
-  void* dst       = nullptr; //!< recv side
-  size_t bytes    = 0;
-  int rank        = -1; //!< the rank that posted this half
-  int peer        = -1; //!< the rank it is addressed to / expected from
+  const void* src     = nullptr; //!< send side
+  void* dst           = nullptr; //!< recv side
+  size_t bytes        = 0;
+  int rank            = -1; //!< the rank that posted this half
+  int peer            = -1; //!< the rank it is addressed to / expected from
   cudaStream_t stream = nullptr;
 };
 
@@ -621,7 +621,13 @@ public:
   void all_gather(group_guard_type&, const _Tp* sendbuff, _Tp* recvbuff, size_t count, ::cuda::stream_ref stream) const
   {
     detail::contribute(
-      *state_, detail::pending_collective::op_kind::all_gather, rank_, sendbuff, recvbuff, count, sizeof(_Tp),
+      *state_,
+      detail::pending_collective::op_kind::all_gather,
+      rank_,
+      sendbuff,
+      recvbuff,
+      count,
+      sizeof(_Tp),
       stream.get());
     if (state_->coll.contributed == size())
     {
@@ -646,8 +652,14 @@ public:
     ::cuda::stream_ref stream) const
   {
     detail::contribute(
-      *state_, detail::pending_collective::op_kind::all_gather_v, rank_, sendbuff, recvbuff,
-      /*count=*/0, sizeof(_Tp), stream.get());
+      *state_,
+      detail::pending_collective::op_kind::all_gather_v,
+      rank_,
+      sendbuff,
+      recvbuff,
+      /*count=*/0,
+      sizeof(_Tp),
+      stream.get());
     auto& c              = state_->coll;
     c.send_count[rank_]  = send_count;
     c.recv_counts[rank_] = recv_counts;
@@ -664,7 +676,13 @@ public:
   void all_to_all(group_guard_type&, const _Tp* sendbuff, _Tp* recvbuff, size_t count, ::cuda::stream_ref stream) const
   {
     detail::contribute(
-      *state_, detail::pending_collective::op_kind::all_to_all, rank_, sendbuff, recvbuff, count, sizeof(_Tp),
+      *state_,
+      detail::pending_collective::op_kind::all_to_all,
+      rank_,
+      sendbuff,
+      recvbuff,
+      count,
+      sizeof(_Tp),
       stream.get());
     if (state_->coll.contributed == size())
     {
@@ -689,8 +707,14 @@ public:
     ::cuda::stream_ref stream) const
   {
     detail::contribute(
-      *state_, detail::pending_collective::op_kind::all_to_all_v, rank_, sendbuff, recvbuff,
-      /*count=*/0, sizeof(_Tp), stream.get());
+      *state_,
+      detail::pending_collective::op_kind::all_to_all_v,
+      rank_,
+      sendbuff,
+      recvbuff,
+      /*count=*/0,
+      sizeof(_Tp),
+      stream.get());
     auto& c              = state_->coll;
     c.send_counts[rank_] = send_counts;
     c.send_displs[rank_] = send_displs;
@@ -723,7 +747,13 @@ public:
     group_guard_type&, const _Tp* sendbuff, _Tp* recvbuff, size_t count, _Op op, ::cuda::stream_ref stream) const
   {
     detail::contribute(
-      *state_, detail::pending_collective::op_kind::all_reduce, rank_, sendbuff, recvbuff, count, sizeof(_Tp),
+      *state_,
+      detail::pending_collective::op_kind::all_reduce,
+      rank_,
+      sendbuff,
+      recvbuff,
+      count,
+      sizeof(_Tp),
       stream.get());
     auto& c = state_->coll;
     if (!c.launch)

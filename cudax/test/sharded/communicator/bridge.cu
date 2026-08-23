@@ -64,8 +64,8 @@ template <typename Comm>
   ::std::vector<uint32_t> bits;
   for (int rep = 0; rep < repetitions; rep++)
   {
-    cudax::reduce(cudax::broadcasted, b.comms, b.envs, b.shard_data, b.shard_sizes, out, 0.0f, cuda::std::plus<>{},
-                  0.0f);
+    cudax::reduce(
+      cudax::broadcasted, b.comms, b.envs, b.shard_data, b.shard_sizes, out, 0.0f, cuda::std::plus<>{}, 0.0f);
 
     // Read back every rank's result; the broadcasted policy makes them all
     // carry the same value, which we check bitwise.
