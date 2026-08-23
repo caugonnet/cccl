@@ -40,6 +40,7 @@
 #include <nv/target>
 
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <exception>
 #include <stdexcept>
@@ -77,19 +78,19 @@ public:
   using default_queries = ::cuda::mr::properties_list<::cuda::mr::device_accessible>;
 
   /// @brief Construct a memory resource allocating from @p place.
-  explicit place_memory_resource(data_place place)
+  _CCCL_HOST_API explicit place_memory_resource(data_place place)
       : place_(mv(place))
       , is_stream_ordered_(place_.allocation_is_stream_ordered())
   {}
 
   /// @brief The underlying data place.
-  const data_place& place() const
+  [[nodiscard]] _CCCL_HOST_API const data_place& place() const noexcept
   {
     return place_;
   }
 
   /// @brief Whether allocations are stream-ordered on this place.
-  bool is_stream_ordered() const
+  [[nodiscard]] _CCCL_HOST_API bool is_stream_ordered() const noexcept
   {
     return is_stream_ordered_;
   }
@@ -97,7 +98,7 @@ public:
   /// @brief Alignments this resource can guarantee: at most (and dividing)
   /// `cuda::mr::default_cuda_malloc_alignment`, which every allocation path
   /// of a `data_place` satisfies.
-  [[nodiscard]] static constexpr bool is_valid_alignment(::std::size_t alignment) noexcept
+  [[nodiscard]] _CCCL_API static constexpr bool is_valid_alignment(::std::size_t alignment) noexcept
   {
     return alignment != 0 && alignment <= ::cuda::mr::default_cuda_malloc_alignment
         && ::cuda::mr::default_cuda_malloc_alignment % alignment == 0;
@@ -117,9 +118,11 @@ public:
       (
         if (!is_valid_alignment(alignment)) {
           _CCCL_THROW(::std::invalid_argument, "place_memory_resource: unsupported alignment");
+        } if (bytes > static_cast<::std::size_t>(PTRDIFF_MAX)) {
+          _CCCL_THROW(::std::invalid_argument, "place_memory_resource: allocation size exceeds PTRDIFF_MAX");
         } if (bytes != 0) {
-          cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
-          result                   = place_.allocate(static_cast<::std::ptrdiff_t>(bytes), cuda_stream);
+          const cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
+          result                         = place_.allocate(static_cast<::std::ptrdiff_t>(bytes), cuda_stream);
         }),
       ((void) stream; (void) bytes; (void) alignment; ::cuda::std::terminate();));
     return result;
@@ -154,11 +157,16 @@ public:
   }
 
   /// @brief Synchronous allocation (models the `cuda::mr` synchronous resource concept).
-  [[nodiscard]] void* allocate_sync(::std::size_t bytes, ::std::size_t alignment = alignof(::std::max_align_t))
+  [[nodiscard]] _CCCL_HOST_API void*
+  allocate_sync(::std::size_t bytes, ::std::size_t alignment = alignof(::std::max_align_t))
   {
     if (!is_valid_alignment(alignment))
     {
       _CCCL_THROW(::std::invalid_argument, "place_memory_resource: unsupported alignment");
+    }
+    if (bytes > static_cast<::std::size_t>(PTRDIFF_MAX))
+    {
+      _CCCL_THROW(::std::invalid_argument, "place_memory_resource: allocation size exceeds PTRDIFF_MAX");
     }
     if (bytes == 0)
     {
@@ -168,7 +176,7 @@ public:
   }
 
   /// @brief Synchronous deallocation (models the `cuda::mr` synchronous resource concept).
-  void
+  _CCCL_HOST_API void
   deallocate_sync(void* ptr, ::std::size_t bytes, ::std::size_t /*alignment*/ = alignof(::std::max_align_t)) noexcept
   {
     if (ptr == nullptr)
@@ -190,12 +198,14 @@ public:
   friend constexpr void get_property(const place_memory_resource&, ::cuda::mr::device_accessible) noexcept {}
 
   /// @brief Two resources are equal when they allocate from the same place.
-  friend bool operator==(const place_memory_resource& lhs, const place_memory_resource& rhs) noexcept
+  [[nodiscard]] _CCCL_HOST_API friend bool
+  operator==(const place_memory_resource& lhs, const place_memory_resource& rhs) noexcept
   {
     return lhs.place_ == rhs.place_;
   }
 
-  friend bool operator!=(const place_memory_resource& lhs, const place_memory_resource& rhs) noexcept
+  [[nodiscard]] _CCCL_HOST_API friend bool
+  operator!=(const place_memory_resource& lhs, const place_memory_resource& rhs) noexcept
   {
     return !(lhs == rhs);
   }
