@@ -67,10 +67,13 @@
 #include <cuda/experimental/__places/machine.cuh>
 #include <cuda/experimental/__places/place_partition.cuh>
 #include <cuda/experimental/__places/places.cuh>
+#include <cuda/experimental/__stf/utility/core.cuh>
+#include <cuda/experimental/__stf/utility/cuda_safe_call.cuh>
 
 #include <nv/target>
 
 #include <atomic>
+#include <cstdio>
 #include <memory>
 #include <mutex>
 #include <typeindex>
@@ -217,10 +220,21 @@ public:
     ::std::size_t bytes,
     ::std::size_t /*alignment*/ = alignof(::std::max_align_t)) noexcept
   {
+    // Deallocation is noexcept by the convention of the cuda::mr resources
+    // (their bodies never throw); a deallocation failure is not recoverable,
+    // so report it rather than terminate through the noexcept boundary.
+    // Device-side calls terminate (the CUB device_memory_resource idiom).
     NV_IF_ELSE_TARGET(NV_IS_HOST,
                       (if (ptr != nullptr) {
                         cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
-                        place_.deallocate(ptr, bytes, cuda_stream);
+                        try
+                        {
+                          place_.deallocate(ptr, bytes, cuda_stream);
+                        }
+                        catch (const ::std::exception& e)
+                        {
+                          ::fprintf(stderr, "place_memory_resource::deallocate failed: %s\n", e.what());
+                        }
                       }),
                       ((void) stream; (void) ptr; (void) bytes; ::cuda::std::terminate();));
   }
@@ -243,7 +257,14 @@ public:
     {
       return;
     }
-    place_.deallocate(ptr, bytes, nullptr);
+    try
+    {
+      place_.deallocate(ptr, bytes, nullptr);
+    }
+    catch (const ::std::exception& e)
+    {
+      ::fprintf(stderr, "place_memory_resource::deallocate_sync failed: %s\n", e.what());
+    }
   }
 
   /// @brief The resource's memory is device accessible (see `default_queries`).
@@ -284,9 +305,14 @@ inline void make_stream_wait_for(cudaStream_t wait_stream, cudaStream_t signal_s
 
   cudaEvent_t event = nullptr;
   cuda_safe_call(cudaEventCreateWithFlags(&event, cudaEventDisableTiming));
-  cuda_safe_call(cudaEventRecord(event, signal_stream));
-  cuda_safe_call(cudaStreamWaitEvent(wait_stream, event, 0));
+  // Destroy the event on every path; surface the first failure afterwards.
+  cudaError_t status = cudaEventRecord(event, signal_stream);
+  if (status == cudaSuccess)
+  {
+    status = cudaStreamWaitEvent(wait_stream, event, 0);
+  }
   cuda_safe_call(cudaEventDestroy(event));
+  cuda_safe_call(status);
 }
 
 namespace detail
@@ -452,9 +478,16 @@ public:
   }
 
   /// @brief Get the stream of @p place for a given color (default color 0).
+  ///
+  /// Colors wrap modulo the place's ACTUAL stream-pool size (places created
+  /// with custom pool sizes may hold fewer or more streams than
+  /// `exec_place_default_pool_size`; `num_stream_colors()` reports the
+  /// default advertised by the group).
   cudaStream_t get_stream(const exec_place& place, size_t color = 0)
   {
-    return get_or_create_streams(place)[color % exec_place_default_pool_size];
+    const auto& streams = get_or_create_streams(place);
+    _CCCL_ASSERT(!streams.empty(), "place has an empty stream pool");
+    return streams[color % streams.size()];
   }
 
   /// @brief Get the stream of the idx-th place for a given color.
@@ -622,7 +655,9 @@ public:
     return slot.find(::std::type_index(typeid(_State))) != slot.end();
   }
 
-  // Move-only: the group is a resource scope.
+  // Move-only: the group is a resource scope. Moving requires exclusive
+  // access to the source: no concurrent lazy stream creation (get_stream)
+  // may run on `other` during the move.
   place_group(place_group&& other) noexcept
       : places_(mv(other.places_))
       , owned_resources_(mv(other.owned_resources_))
