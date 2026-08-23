@@ -132,10 +132,8 @@ void tabulate(place_group&, sharded_array<_Tp>& data, _Fn f, bool blocking = tru
 {
   using shard_t = typename sharded_array<_Tp>::shard_type;
   data.each_shard->*[f](shard_t& s) {
-    thrust::tabulate(thrust::cuda::par_nosync.on(s.stream),
-                     s.data,
-                     s.data + s.size,
-                     detail::tabulate_fn<_Fn>{f, s.global_offset});
+    thrust::tabulate(
+      thrust::cuda::par_nosync.on(s.stream), s.data, s.data + s.size, detail::tabulate_fn<_Fn>{f, s.global_offset});
     cuda_safe_call(cudaGetLastError());
   };
   if (blocking)
