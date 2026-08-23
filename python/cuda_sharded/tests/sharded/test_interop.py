@@ -11,7 +11,7 @@ import pytest
 pytest.importorskip("cuda.sharded._experimental._sharded_bindings")
 cp = pytest.importorskip("cupy")
 
-import cuda.sharded._experimental as shd
+import cuda.sharded._experimental as shd  # noqa: E402  (must follow importorskip)
 
 
 class TestShardViewsWithCupy:
