@@ -651,8 +651,13 @@ public:
       }
       if (!event)
       {
-        int device = -1;
+        int device                             = -1;
+        cudaStreamCaptureStatus capture_status = cudaStreamCaptureStatusNone;
         if (stream)
+        {
+          cuda_safe_call(cudaStreamIsCapturing(stream, &capture_status));
+        }
+        if (stream && capture_status == cudaStreamCaptureStatusNone)
         {
           // stream_ref::device() is version-portable (cudaStreamGetDevice
           // itself requires CUDA 12.8+); green-context streams report their
@@ -661,6 +666,10 @@ public:
         }
         else
         {
+          // Under capture, querying a stream's device is not permitted on
+          // every driver (CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED); the event
+          // recorded on a capturing stream only becomes a graph dependency
+          // node, so the current device is the right home for it.
           cuda_safe_call(cudaGetDevice(&device));
         }
         event = fork_join_events_.fork_event(device);
