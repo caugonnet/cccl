@@ -6,7 +6,6 @@ set(
   exec_place_scope.cu
   placement.cu
   stream_pool.cu
-  place_group/place_group.cu
   place_group/lib_state.cu
 )
 
