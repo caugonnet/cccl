@@ -72,6 +72,8 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/stream_ref>
+
 #include <cuda/experimental/__places/place_group.cuh>
 #include <cuda/experimental/__places/places.cuh>
 #include <cuda/experimental/__sharded/fork_join.cuh>
@@ -523,7 +525,10 @@ public:
         int device = -1;
         if (stream)
         {
-          cuda_safe_call(cudaStreamGetDevice(stream, &device));
+          // stream_ref::device() is version-portable (cudaStreamGetDevice
+          // itself requires CUDA 12.8+); green-context streams report their
+          // underlying device, which is exactly the event-pool key we want.
+          device = ::cuda::stream_ref{stream}.device().get();
         }
         else
         {
