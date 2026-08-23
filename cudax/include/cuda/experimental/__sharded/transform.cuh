@@ -17,6 +17,7 @@
 #pragma once
 
 #include <cuda/__cccl_config>
+#include <cuda/stream_ref>
 
 #if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
 #  pragma GCC system_header
@@ -78,7 +79,7 @@ void transform(
   // Make each output stream wait for the corresponding input stream
   for (size_t g = 0; g < input.num_shards(); g++)
   {
-    places::make_stream_wait_for(output.shard(g).stream, input.shard(g).stream);
+    ::cuda::stream_ref{output.shard(g).stream}.wait(::cuda::stream_ref{input.shard(g).stream});
   }
 
   output.each_shard->*[&input, op](const size_t g, auto& out_shard) {
@@ -121,8 +122,8 @@ void transform(place_group&,
   for (size_t g = 0; g < input1.num_shards(); g++)
   {
     const auto& out_shard = output.shard(g);
-    places::make_stream_wait_for(out_shard.stream, input1.shard(g).stream);
-    places::make_stream_wait_for(out_shard.stream, input2.shard(g).stream);
+    ::cuda::stream_ref{out_shard.stream}.wait(::cuda::stream_ref{input1.shard(g).stream});
+    ::cuda::stream_ref{out_shard.stream}.wait(::cuda::stream_ref{input2.shard(g).stream});
   }
 
   output.each_shard->*[&input1, &input2, op](const size_t g, auto& out_shard) {
