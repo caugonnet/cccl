@@ -44,7 +44,7 @@ memory's lifetime); ``from_*`` = builds owned storage by copying or
 transforming its input. ``sharded_array<T>::adopt(shards)`` is the named
 form of the adopting constructor.
 
-``allocate_contiguous`` places the shards inside ONE contiguous virtual
+``allocate_contiguous`` places the shards inside *one* contiguous virtual
 address range (VMM-backed via ``localized_array``): logical shard boundaries
 are exact, physical ownership snaps to the allocation granularity, and
 ``contiguous_data()`` hands the whole array to unmodified single-pointer
@@ -54,7 +54,7 @@ size-mutating operations must refuse such arrays.
 Composing with a caller stream: ``fork_from`` / ``join_into``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sharded work runs on per-shard streams; callers usually have ONE stream
+Sharded work runs on per-shard streams; callers usually have *one* stream
 carrying the surrounding computation. ``fork_from(stream)`` declares that the
 shard streams depend on the work currently enqueued on the caller stream (one
 event recorded on it, every shard stream waits); ``join_into(stream)`` is the
