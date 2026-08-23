@@ -46,7 +46,6 @@
 
 namespace cuda::experimental::sharded::detail
 {
-
 /**
  * @brief Lazily created, reusable `cudaEventDisableTiming` events for stream
  *        fork/join choreography.
@@ -176,5 +175,4 @@ private:
   ::std::vector<cudaEvent_t> join_events_; // one per shard index
   ::std::vector<::std::pair<int, cudaEvent_t>> fork_events_; // one per caller-stream device
 };
-
 } // namespace cuda::experimental::sharded::detail

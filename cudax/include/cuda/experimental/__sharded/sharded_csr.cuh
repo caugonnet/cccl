@@ -72,6 +72,8 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/stream_ref>
+
 #include <cuda/experimental/__places/place_group.cuh>
 #include <cuda/experimental/__places/places.cuh>
 #include <cuda/experimental/__sharded/fork_join.cuh>
@@ -150,7 +152,7 @@ public:
               const int* h_colinds,
               const _Tp* h_values,
               ::std::vector<::std::int64_t> row_boundaries = {},
-              bool contiguous = false)
+              bool contiguous                              = false)
       : rows_(num_rows)
       , cols_(num_cols)
       , nnz_(h_offsets[num_rows])
@@ -184,11 +186,10 @@ public:
     const int* d_colinds,
     const _Tp* d_values,
     ::std::vector<::std::int64_t> row_boundaries = {},
-    bool contiguous = false)
+    bool contiguous                              = false)
   {
     ::std::vector<int> h_offsets(static_cast<size_t>(num_rows) + 1);
-    cuda_safe_call(
-      cudaMemcpy(h_offsets.data(), d_offsets, h_offsets.size() * sizeof(int), cudaMemcpyDefault));
+    cuda_safe_call(cudaMemcpy(h_offsets.data(), d_offsets, h_offsets.size() * sizeof(int), cudaMemcpyDefault));
     return sharded_csr(group, num_rows, num_cols, h_offsets.data(), d_colinds, d_values, mv(row_boundaries), contiguous);
   }
 
@@ -338,10 +339,9 @@ public:
     ::std::int64_t prev      = 0;
     for (size_t d = 1; d < num_shards; d++)
     {
-      const ::std::int64_t target =
-        static_cast<::std::int64_t>(d) * nnz / static_cast<::std::int64_t>(num_shards);
-      const int* lo      = ::std::lower_bound(h_offsets, h_offsets + num_rows + 1, static_cast<int>(target));
-      ::std::int64_t row = lo - h_offsets;
+      const ::std::int64_t target = static_cast<::std::int64_t>(d) * nnz / static_cast<::std::int64_t>(num_shards);
+      const int* lo               = ::std::lower_bound(h_offsets, h_offsets + num_rows + 1, static_cast<int>(target));
+      ::std::int64_t row          = lo - h_offsets;
       // Keep every shard non-empty in rows
       row  = ::std::min(::std::max(row, prev + 1), num_rows - static_cast<::std::int64_t>(num_shards - d));
       prev = row;
@@ -399,9 +399,9 @@ public:
     const double target = total_ms / static_cast<double>(num_shards);
 
     ::std::vector<::std::int64_t> bounds;
-    double acc            = 0.0; // predicted ms accumulated in the current new shard
-    size_t old_d          = 0;
-    ::std::int64_t prev   = 0;
+    double acc          = 0.0; // predicted ms accumulated in the current new shard
+    size_t old_d        = 0;
+    ::std::int64_t prev = 0;
     for (::std::int64_t r = 0; r < num_rows && bounds.size() < num_shards - 1; r++)
     {
       while (old_d + 1 < num_shards && r >= b[old_d + 1])
@@ -412,8 +412,8 @@ public:
       if (acc >= target)
       {
         ::std::int64_t row = r + 1;
-        row                = ::std::min(::std::max(row, prev + 1),
-                         num_rows - static_cast<::std::int64_t>(num_shards - 1 - bounds.size()));
+        row =
+          ::std::min(::std::max(row, prev + 1), num_rows - static_cast<::std::int64_t>(num_shards - 1 - bounds.size()));
         bounds.push_back(row);
         prev = row;
         acc  = 0.0;
@@ -422,8 +422,7 @@ public:
     while (bounds.size() < num_shards - 1)
     {
       // Degenerate tail: keep remaining shards non-empty
-      ::std::int64_t row =
-        ::std::min(prev + 1, num_rows - static_cast<::std::int64_t>(num_shards - 1 - bounds.size()));
+      ::std::int64_t row = ::std::min(prev + 1, num_rows - static_cast<::std::int64_t>(num_shards - 1 - bounds.size()));
       bounds.push_back(row);
       prev = row;
     }
@@ -523,7 +522,10 @@ public:
         int device = -1;
         if (stream)
         {
-          cuda_safe_call(cudaStreamGetDevice(stream, &device));
+          // stream_ref::device() is version-portable (cudaStreamGetDevice
+          // itself requires CUDA 12.8+); green-context streams report their
+          // underlying device, which is exactly the event-pool key we want.
+          device = ::cuda::stream_ref{stream}.device().get();
         }
         else
         {
@@ -587,12 +589,12 @@ public:
     {
       _State* s = make();
       it        = lib_state_
-             .emplace(key,
-                      ::std::shared_ptr<void>(s,
-                                              [](void* p) {
+                    .emplace(key,
+                             ::std::shared_ptr<void>(s,
+                                                     [](void* p) {
                                                 delete static_cast<_State*>(p);
-                                              }))
-             .first;
+                                                     }))
+                    .first;
     }
     return *static_cast<_State*>(it->second.get());
   }
