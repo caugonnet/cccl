@@ -17,7 +17,7 @@
 #pragma once
 
 #include <cuda/__cccl_config>
-#include <cuda/stream_ref>
+#include <cuda/stream>
 
 #if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
 #  pragma GCC system_header
