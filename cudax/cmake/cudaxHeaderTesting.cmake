@@ -107,7 +107,10 @@ function(cudax_add_header_test label definitions)
           "cuda/experimental/sharded_sparse.cuh"
         HEADER_TEMPLATE "${cudax_SOURCE_DIR}/cmake/header_test.in.cu"
       )
-      target_link_libraries(${headertest_target} PUBLIC cudax.compiler_interface)
+      target_link_libraries(
+        ${headertest_target}
+        PUBLIC cudax.compiler_interface
+      )
       target_compile_options(
         ${headertest_target}
         PRIVATE
