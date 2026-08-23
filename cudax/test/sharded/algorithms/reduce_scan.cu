@@ -35,7 +35,6 @@ struct max_op
 
 void test_reduce(place_group& group)
 {
-
   const size_t n = 1000001;
   auto data      = sharded_array<long long>::allocate(group, n);
   iota(group, data, 1LL); // 1..n
@@ -55,7 +54,6 @@ void test_reduce(place_group& group)
 
 void test_inclusive_scan(place_group& group)
 {
-
   const size_t n = 262147;
   auto data      = sharded_array<long long>::allocate(group, n);
   fill(group, data, 1LL);
@@ -80,7 +78,6 @@ void test_inclusive_scan(place_group& group)
 
 void test_exclusive_scan(place_group& group)
 {
-
   const size_t n = 131075;
   auto data      = sharded_array<long long>::allocate(group, n);
   fill(group, data, 2LL);
@@ -108,7 +105,6 @@ void test_exclusive_scan(place_group& group)
 
 void test_adjacent_difference(place_group& group)
 {
-
   const size_t n = 100000;
   auto input     = sharded_array<long long>::allocate(group, n);
   auto output    = sharded_array<long long>::allocate_like(input);
@@ -140,7 +136,6 @@ void test_adjacent_difference(place_group& group)
 
 int main()
 {
-
   cuda_safe_call(cudaSetDevice(0));
 
   auto group = place_group::by_locality_domains();

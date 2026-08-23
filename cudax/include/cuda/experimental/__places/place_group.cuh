@@ -63,12 +63,12 @@
 #include <cuda/std/type_traits>
 #include <cuda/stream>
 
-#include <nv/target>
-
 #include <cuda/experimental/__places/exec_place_resources.cuh>
 #include <cuda/experimental/__places/machine.cuh>
 #include <cuda/experimental/__places/place_partition.cuh>
 #include <cuda/experimental/__places/places.cuh>
+
+#include <nv/target>
 
 #include <atomic>
 #include <memory>
@@ -198,13 +198,12 @@ public:
   allocate(::cuda::stream_ref stream, ::std::size_t bytes, ::std::size_t /*alignment*/ = alignof(::std::max_align_t))
   {
     void* result = nullptr;
-    NV_IF_ELSE_TARGET(
-      NV_IS_HOST,
-      (if (bytes != 0) {
-        cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
-        result                   = place_.allocate(static_cast<::std::ptrdiff_t>(bytes), cuda_stream);
-      }),
-      ((void) stream; (void) bytes; ::cuda::std::terminate();));
+    NV_IF_ELSE_TARGET(NV_IS_HOST,
+                      (if (bytes != 0) {
+                        cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
+                        result                   = place_.allocate(static_cast<::std::ptrdiff_t>(bytes), cuda_stream);
+                      }),
+                      ((void) stream; (void) bytes; ::cuda::std::terminate();));
     return result;
   }
 
@@ -216,13 +215,12 @@ public:
     ::std::size_t bytes,
     ::std::size_t /*alignment*/ = alignof(::std::max_align_t)) noexcept
   {
-    NV_IF_ELSE_TARGET(
-      NV_IS_HOST,
-      (if (ptr != nullptr) {
-        cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
-        place_.deallocate(ptr, bytes, cuda_stream);
-      }),
-      ((void) stream; (void) ptr; (void) bytes; ::cuda::std::terminate();));
+    NV_IF_ELSE_TARGET(NV_IS_HOST,
+                      (if (ptr != nullptr) {
+                        cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
+                        place_.deallocate(ptr, bytes, cuda_stream);
+                      }),
+                      ((void) stream; (void) ptr; (void) bytes; ::cuda::std::terminate();));
   }
 
   /// @brief Synchronous allocation (models the `cuda::mr` synchronous resource concept).
@@ -236,7 +234,8 @@ public:
   }
 
   /// @brief Synchronous deallocation (models the `cuda::mr` synchronous resource concept).
-  void deallocate_sync(void* ptr, ::std::size_t bytes, ::std::size_t /*alignment*/ = alignof(::std::max_align_t)) noexcept
+  void
+  deallocate_sync(void* ptr, ::std::size_t bytes, ::std::size_t /*alignment*/ = alignof(::std::max_align_t)) noexcept
   {
     if (ptr == nullptr)
     {
@@ -371,8 +370,7 @@ public:
    * the borrowed pools remain valid for the lifetime of the group and there
    * is a single pool owner when a `place_group` coexists with an STF context.
    */
-  template <typename ResourceHandle,
-            typename = ::cuda::std::enable_if_t<detail::has_place_resources<ResourceHandle>>>
+  template <typename ResourceHandle, typename = ::cuda::std::enable_if_t<detail::has_place_resources<ResourceHandle>>>
   place_group(::std::vector<exec_place> places, ResourceHandle handle)
       : places_(mv(places))
   {
@@ -584,7 +582,7 @@ private:
   {
     // The machine singleton enables peer access (and memory-pool access)
     // between all device pairs once per process.
-    auto& m = reserved::machine::instance();
+    auto& m       = reserved::machine::instance();
     ::std::ignore = m;
 
     stream_cache_.resize(places_.size());

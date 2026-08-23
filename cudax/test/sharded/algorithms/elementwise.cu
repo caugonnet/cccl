@@ -67,7 +67,6 @@ struct const_gen
 
 void test_fill_and_sequence(place_group& group)
 {
-
   const size_t n = 100003;
   auto data      = sharded_array<long long>::allocate(group, n);
 
@@ -96,7 +95,6 @@ void test_fill_and_sequence(place_group& group)
 
 void test_tabulate_generate_for_each(place_group& group)
 {
-
   const size_t n = 65537;
   auto data      = sharded_array<long long>::allocate(group, n);
 
@@ -126,7 +124,6 @@ void test_tabulate_generate_for_each(place_group& group)
 
 void test_transform(place_group& group)
 {
-
   const size_t n = 50000;
   auto a         = sharded_array<long long>::allocate(group, n);
   iota(group, a, 0LL);
@@ -159,8 +156,7 @@ void test_transform(place_group& group)
   }
 
   // Incompatible layouts must throw
-  auto other = sharded_array<long long>::allocate(
-    {{n / 2, data_place::device(0), exec_place::device(0), nullptr}});
+  auto other = sharded_array<long long>::allocate({{n / 2, data_place::device(0), exec_place::device(0), nullptr}});
   bool threw = false;
   try
   {
@@ -176,7 +172,6 @@ void test_transform(place_group& group)
 
 int main()
 {
-
   cuda_safe_call(cudaSetDevice(0));
 
   auto group = place_group::by_locality_domains();
