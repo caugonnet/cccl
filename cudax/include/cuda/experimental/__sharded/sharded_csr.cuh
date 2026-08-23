@@ -72,7 +72,7 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/stream_ref>
+#include <cuda/stream>
 
 #include <cuda/experimental/__places/place_group.cuh>
 #include <cuda/experimental/__places/places.cuh>
