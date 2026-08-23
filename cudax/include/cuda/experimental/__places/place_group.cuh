@@ -63,12 +63,12 @@
 #include <cuda/std/type_traits>
 #include <cuda/stream>
 
-#include <nv/target>
-
 #include <cuda/experimental/__places/exec_place_resources.cuh>
 #include <cuda/experimental/__places/machine.cuh>
 #include <cuda/experimental/__places/place_partition.cuh>
 #include <cuda/experimental/__places/places.cuh>
+
+#include <nv/target>
 
 #include <atomic>
 #include <memory>
@@ -198,13 +198,12 @@ public:
   allocate(::cuda::stream_ref stream, ::std::size_t bytes, ::std::size_t /*alignment*/ = alignof(::std::max_align_t))
   {
     void* result = nullptr;
-    NV_IF_ELSE_TARGET(
-      NV_IS_HOST,
-      (if (bytes != 0) {
-        cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
-        result                   = place_.allocate(static_cast<::std::ptrdiff_t>(bytes), cuda_stream);
-      }),
-      ((void) stream; (void) bytes; ::cuda::std::terminate();));
+    NV_IF_ELSE_TARGET(NV_IS_HOST,
+                      (if (bytes != 0) {
+                        cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
+                        result                   = place_.allocate(static_cast<::std::ptrdiff_t>(bytes), cuda_stream);
+                      }),
+                      ((void) stream; (void) bytes; ::cuda::std::terminate();));
     return result;
   }
 
@@ -216,13 +215,12 @@ public:
     ::std::size_t bytes,
     ::std::size_t /*alignment*/ = alignof(::std::max_align_t)) noexcept
   {
-    NV_IF_ELSE_TARGET(
-      NV_IS_HOST,
-      (if (ptr != nullptr) {
-        cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
-        place_.deallocate(ptr, bytes, cuda_stream);
-      }),
-      ((void) stream; (void) ptr; (void) bytes; ::cuda::std::terminate();));
+    NV_IF_ELSE_TARGET(NV_IS_HOST,
+                      (if (ptr != nullptr) {
+                        cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
+                        place_.deallocate(ptr, bytes, cuda_stream);
+                      }),
+                      ((void) stream; (void) ptr; (void) bytes; ::cuda::std::terminate();));
   }
 
   /// @brief Synchronous allocation (models the `cuda::mr` synchronous resource concept).

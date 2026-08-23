@@ -44,7 +44,7 @@ int main()
 {
   cuda_safe_call(cudaSetDevice(0));
 
-  auto group = place_group::by_locality_domains();
+  auto group  = place_group::by_locality_domains();
   const int n = static_cast<int>(group.size());
 
   // Factory contract: one communicator per place, rank = place index,
