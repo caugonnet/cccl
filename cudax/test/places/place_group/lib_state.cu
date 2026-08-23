@@ -129,8 +129,8 @@ void test_group_isolation()
 
   // Two groups over the same places are distinct resource scopes: their
   // caches do not share state.
-  place_group a(places_from_devices({0}));
-  place_group b(places_from_devices({0}));
+  place_group a(exec_place::device(0));
+  place_group b(exec_place::device(0));
 
   auto* in_a = &a.lib_state<probe_state>(0, [] {
     return new probe_state(0);
@@ -167,7 +167,7 @@ void test_move_semantics()
 {
   reset_probe_counters();
 
-  place_group g(places_from_devices({0}));
+  place_group g(exec_place::device(0));
   auto* before = &g.lib_state<probe_state>(0, [] {
     return new probe_state(0);
   });
