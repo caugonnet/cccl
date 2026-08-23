@@ -48,8 +48,7 @@ __global__ void write_pattern_kernel(double* p, ::std::int64_t n, double base)
   }
 }
 
-__global__ void
-count_mismatch_kernel(const double* p, ::std::int64_t n, double base, unsigned long long* mismatches)
+__global__ void count_mismatch_kernel(const double* p, ::std::int64_t n, double base, unsigned long long* mismatches)
 {
   ::std::int64_t i            = blockIdx.x * static_cast<::std::int64_t>(blockDim.x) + threadIdx.x;
   const ::std::int64_t stride = gridDim.x * static_cast<::std::int64_t>(blockDim.x);
@@ -101,8 +100,8 @@ int main()
     {
       write_pattern_kernel<<<256, 256, 0, ext>>>(arr1.shard(d).data, n_per, 1000.0 * static_cast<double>(d));
       cuda_safe_call(cudaGetLastError());
-      cuda_safe_call(cudaMemcpyAsync(
-        d_chk1 + d * n_per, arr1.shard(d).data, n_per * sizeof(double), cudaMemcpyDeviceToDevice, ext));
+      cuda_safe_call(
+        cudaMemcpyAsync(d_chk1 + d * n_per, arr1.shard(d).data, n_per * sizeof(double), cudaMemcpyDeviceToDevice, ext));
     }
     // Host-side destruction while the writes/copies are (potentially) still
     // in flight: the frees are enqueued on `ext` BEHIND them.
@@ -115,8 +114,8 @@ int main()
     {
       write_pattern_kernel<<<256, 256, 0, ext>>>(arr2.shard(d).data, n_per, 5000.0 * static_cast<double>(d + 1));
       cuda_safe_call(cudaGetLastError());
-      cuda_safe_call(cudaMemcpyAsync(
-        d_chk2 + d * n_per, arr2.shard(d).data, n_per * sizeof(double), cudaMemcpyDeviceToDevice, ext));
+      cuda_safe_call(
+        cudaMemcpyAsync(d_chk2 + d * n_per, arr2.shard(d).data, n_per * sizeof(double), cudaMemcpyDeviceToDevice, ext));
     }
   }
   for (size_t d = 0; d < n_shards; d++)

@@ -182,8 +182,8 @@ void test_rebalance_moves_toward_equal_time(place_group& group, const host_csr& 
   // must decrease when round 0 was decisively skewed (monotone toward equal
   // time, not exact equality — rates shift as rows change shards).
   sharded_csr<double> A1(group, m.rows, m.cols, m.offsets.data(), m.colinds.data(), m.values.data(), b1);
-  auto C1           = A1.make_row_partitioned(n_cols);
-  const auto times1 = spmm_shard_times(group, A1, d_B, C1, n_cols, 1.0, 0.0, /* warmup */ 2, /* iters */ 6);
+  auto C1            = A1.make_row_partitioned(n_cols);
+  const auto times1  = spmm_shard_times(group, A1, d_B, C1, n_cols, 1.0, 0.0, /* warmup */ 2, /* iters */ 6);
   const double skew1 = imbalance(times1);
   if (skew0 > 1.25)
   {

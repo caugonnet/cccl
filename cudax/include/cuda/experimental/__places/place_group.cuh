@@ -601,12 +601,12 @@ public:
     {
       _State* s = make();
       it        = slot
-             .emplace(::std::type_index(typeid(_State)),
-                      ::std::shared_ptr<void>(s,
-                                              [](void* p) {
+                    .emplace(::std::type_index(typeid(_State)),
+                             ::std::shared_ptr<void>(s,
+                                                     [](void* p) {
                                                 delete static_cast<_State*>(p);
-                                              }))
-             .first;
+                                                     }))
+                    .first;
     }
     return *static_cast<_State*>(it->second.get());
   }
