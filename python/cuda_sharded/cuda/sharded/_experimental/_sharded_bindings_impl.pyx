@@ -594,9 +594,9 @@ def sort(place_group group, sharded_array data):
 
     The engine behind this name is the distributed sort of the multi-GPU
     layer; this binding targets correctness, and its throughput follows the
-    engine's (engine-side performance work is in progress upstream, see
-    NVIDIA/cccl#10915). Requires one shard per group place and all places on
-    a single device (``ValueError`` otherwise).
+    engine's (engine improvements land here transparently -- the engine
+    slot is a performance detail, not API). Requires one shard per group
+    place and all places on a single device (``ValueError`` otherwise).
     """
     cdef sa_handle* h = _handle(data)
     with nogil:

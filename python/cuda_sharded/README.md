@@ -54,8 +54,8 @@ on every place.
 
 `sort` note: the engine behind the sharded name is the distributed sort of
 the multi-GPU layer. This binding targets correctness; throughput follows the
-engine's (engine-side performance work is in progress upstream, see
-NVIDIA/cccl#10915). Shard sizes/offsets are preserved by the engine's final
+engine's, and engine improvements land here transparently (the engine slot
+is a performance detail, not part of this API). Shard sizes/offsets are preserved by the engine's final
 redistribution, so contiguous arrays remain valid after sorting.
 
 ## Free-threading (3.13t/3.14t) contract
