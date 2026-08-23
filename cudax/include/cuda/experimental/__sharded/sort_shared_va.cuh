@@ -56,6 +56,7 @@
 #pragma once
 
 #include <cuda/__cccl_config>
+#include <cuda/stream_ref>
 
 #if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
 #  pragma GCC system_header
@@ -485,7 +486,7 @@ void sort_shared_va(place_group& group, sharded_array<_Tp>& data, _Compare comp)
 
       for (size_t g = 1; g < p; g++)
       {
-        places::make_stream_wait_for(s0.stream, data.shard(g).stream);
+        ::cuda::stream_ref{s0.stream}.wait(::cuda::stream_ref{data.shard(g).stream});
       }
       multiselect_kernel<_Tp, _Compare>
         <<<1, static_cast<unsigned>(num_targets), 0, s0.stream>>>(runs, targets, num_targets, d_splits, comp);
