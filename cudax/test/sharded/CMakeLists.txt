@@ -15,6 +15,11 @@ set(
   communicator/verbs.cu
   communicator/bridge.cu
   sparse/sharded_csr.cu
+  graph_capture/elementwise_pipeline.cu
+  graph_capture/reduce_scan_capture.cu
+  graph_capture/must_not_capture.cu
+  graph_capture/graph_owned_memory.cu
+  graph_capture/contiguous_capture.cu
 )
 
 # Tests of the opt-in cuSPARSE-backed sparse products (sharded_sparse.cuh);

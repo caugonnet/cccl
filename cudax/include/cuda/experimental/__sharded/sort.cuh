@@ -111,6 +111,10 @@ void sort(place_group& group, sharded_array<_Tp>& data, _Compare comp = {}, sort
 
   check_places(data, group, "sharded::sort");
 
+  // Both engines synchronize with the host (splitter/count readbacks) and
+  // draw per-call temporaries: sorting cannot be recorded into a CUDA graph
+  reserved::check_not_capturing(data, "sharded::sort");
+
   const bool va_eligible = reserved::one_shared_address_space(data);
 
   if (engine == sort_engine::shared_va && !va_eligible)
