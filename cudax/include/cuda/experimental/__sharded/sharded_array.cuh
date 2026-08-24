@@ -1189,8 +1189,8 @@ void copy_between(const sharded_array<_Tp>& src, sharded_array<_Tp>& dst)
     return;
   }
 
-  places::check_not_capturing(src, "sharded::copy_between");
-  places::check_not_capturing(dst, "sharded::copy_between");
+  reserved::check_not_capturing(src, "sharded::copy_between");
+  reserved::check_not_capturing(dst, "sharded::copy_between");
 
   for (auto& dst_shard : dst)
   {
