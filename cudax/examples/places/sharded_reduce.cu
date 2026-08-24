@@ -26,6 +26,7 @@
 
 #include <cuda/experimental/sharded.cuh>
 
+#include <cstddef>
 #include <cstdio>
 
 using namespace cuda::experimental::sharded;
@@ -39,8 +40,8 @@ int main()
   printf("place_group with %zu place(s)\n", group.size());
 
   // 256M values, distributed evenly: shard i lives on place i
-  const size_t n = size_t{1} << 28;
-  auto data      = sharded_array<long long>::allocate(group, n);
+  const std::size_t n = std::size_t{1} << 28;
+  auto data           = sharded_array<long long>::allocate(group, n);
 
   // data[i] = i + 1 (global index), computed by each place on its shard
   iota(group, data, 1LL);
