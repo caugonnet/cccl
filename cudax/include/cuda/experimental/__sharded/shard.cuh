@@ -72,13 +72,13 @@ struct shard
   }
 
   /// @brief Logical size in bytes.
-  size_t size_bytes() const
+  [[nodiscard]] _CCCL_HOST_DEVICE_API size_t size_bytes() const noexcept
   {
     return size * sizeof(_Tp);
   }
 
   /// @brief Allocated capacity in bytes.
-  size_t capacity_bytes() const
+  [[nodiscard]] _CCCL_HOST_DEVICE_API size_t capacity_bytes() const noexcept
   {
     return capacity * sizeof(_Tp);
   }
@@ -89,38 +89,38 @@ struct shard
     size = capacity;
   }
 
-  bool empty() const
+  [[nodiscard]] _CCCL_HOST_DEVICE_API bool empty() const noexcept
   {
     return size == 0 || data == nullptr;
   }
 
   /// @brief First global index covered by this shard.
-  size_t global_begin() const
+  [[nodiscard]] _CCCL_HOST_DEVICE_API size_t global_begin() const noexcept
   {
     return global_offset;
   }
 
   /// @brief One-past-the-last global index covered by this shard.
-  size_t global_end() const
+  [[nodiscard]] _CCCL_HOST_DEVICE_API size_t global_end() const noexcept
   {
     return global_offset + size;
   }
 
   /// @brief Whether a global index falls within this shard.
-  bool contains(size_t global_idx) const
+  [[nodiscard]] _CCCL_HOST_DEVICE_API bool contains(size_t global_idx) const noexcept
   {
     return global_idx >= global_offset && global_idx < global_offset + size;
   }
 
   /// @brief Convert a global index to a shard-local index.
-  size_t to_local(size_t global_idx) const
+  [[nodiscard]] _CCCL_HOST_DEVICE_API size_t to_local(size_t global_idx) const noexcept
   {
     _CCCL_ASSERT(contains(global_idx), "shard::to_local: global index outside this shard");
     return global_idx - global_offset;
   }
 
   /// @brief Convert a shard-local index to a global index.
-  size_t to_global(size_t local_idx) const
+  [[nodiscard]] _CCCL_HOST_DEVICE_API size_t to_global(size_t local_idx) const noexcept
   {
     _CCCL_ASSERT(local_idx < size, "shard::to_global: local index out of range");
     return global_offset + local_idx;
