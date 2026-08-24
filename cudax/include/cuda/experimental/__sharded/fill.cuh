@@ -89,7 +89,7 @@ struct for_each_fn
 
 /// @brief Set every element to @p value.
 template <typename _Tp>
-void fill(place_group&, sharded_array<_Tp>& data, const _Tp& value, bool blocking = true)
+_CCCL_HOST_API void fill(place_group&, sharded_array<_Tp>& data, const _Tp& value, bool blocking = true)
 {
   data.each_shard->*[value](auto& s) {
     thrust::fill(thrust::cuda::par_nosync.on(s.stream), s.data, s.data + s.size, value);
@@ -103,7 +103,8 @@ void fill(place_group&, sharded_array<_Tp>& data, const _Tp& value, bool blockin
 
 /// @brief data[i] = start + i * step (global index i).
 template <typename _Tp>
-void sequence(place_group&, sharded_array<_Tp>& data, _Tp start = _Tp{0}, _Tp step = _Tp{1}, bool blocking = true)
+_CCCL_HOST_API void
+sequence(place_group&, sharded_array<_Tp>& data, _Tp start = _Tp{0}, _Tp step = _Tp{1}, bool blocking = true)
 {
   using shard_t = typename sharded_array<_Tp>::shard_type;
   data.each_shard->*[start, step](shard_t& s) {
@@ -121,14 +122,14 @@ void sequence(place_group&, sharded_array<_Tp>& data, _Tp start = _Tp{0}, _Tp st
 
 /// @brief data[i] = start + i (global index i).
 template <typename _Tp>
-void iota(place_group& group, sharded_array<_Tp>& data, _Tp start = _Tp{0}, bool blocking = true)
+_CCCL_HOST_API void iota(place_group& group, sharded_array<_Tp>& data, _Tp start = _Tp{0}, bool blocking = true)
 {
   sequence(group, data, start, _Tp{1}, blocking);
 }
 
 /// @brief data[i] = f(i) for the GLOBAL index i. `f` must be device-callable.
 template <typename _Tp, typename _Fn>
-void tabulate(place_group&, sharded_array<_Tp>& data, _Fn f, bool blocking = true)
+_CCCL_HOST_API void tabulate(place_group&, sharded_array<_Tp>& data, _Fn f, bool blocking = true)
 {
   using shard_t = typename sharded_array<_Tp>::shard_type;
   data.each_shard->*[f](shard_t& s) {
@@ -144,7 +145,7 @@ void tabulate(place_group&, sharded_array<_Tp>& data, _Fn f, bool blocking = tru
 
 /// @brief data[i] = gen() with a stateless, device-callable generator.
 template <typename _Tp, typename _Gen>
-void generate(place_group&, sharded_array<_Tp>& data, _Gen gen, bool blocking = true)
+_CCCL_HOST_API void generate(place_group&, sharded_array<_Tp>& data, _Gen gen, bool blocking = true)
 {
   data.each_shard->*[gen](auto& s) {
     thrust::generate(thrust::cuda::par_nosync.on(s.stream), s.data, s.data + s.size, gen);
@@ -158,7 +159,7 @@ void generate(place_group&, sharded_array<_Tp>& data, _Gen gen, bool blocking = 
 
 /// @brief Apply `op(element&, global_index)` to every element.
 template <typename _Tp, typename _Op>
-void for_each(place_group&, sharded_array<_Tp>& data, _Op op, bool blocking = true)
+_CCCL_HOST_API void for_each(place_group&, sharded_array<_Tp>& data, _Op op, bool blocking = true)
 {
   using shard_t = typename sharded_array<_Tp>::shard_type;
   data.each_shard->*[op](shard_t& s) {

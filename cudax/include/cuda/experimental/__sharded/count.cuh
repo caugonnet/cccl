@@ -85,7 +85,7 @@ struct equals_value_fn
  * @param pred  host- and device-callable predicate: `bool operator()(T)`
  */
 template <typename _Tp, typename _Pred>
-size_t count_if(place_group& group, const sharded_array<_Tp>& data, _Pred pred)
+[[nodiscard]] _CCCL_HOST_API size_t count_if(place_group& group, const sharded_array<_Tp>& data, _Pred pred)
 {
   if (data.empty())
   {
@@ -147,7 +147,7 @@ size_t count_if(place_group& group, const sharded_array<_Tp>& data, _Pred pred)
 
 /// @brief Count the elements equal to `value`.
 template <typename _Tp>
-size_t count(place_group& group, const sharded_array<_Tp>& data, _Tp value)
+[[nodiscard]] _CCCL_HOST_API size_t count(place_group& group, const sharded_array<_Tp>& data, _Tp value)
 {
   return count_if(group, data, reserved::equals_value_fn<_Tp>{value});
 }

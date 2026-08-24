@@ -369,6 +369,18 @@ public:
     {
       if (size == 0)
       {
+        // Same invariant as allocate(): the shard exists (empty, a zero-length
+        // view at the running offset) so shard positions keep corresponding to
+        // spec positions and group places.
+        shard_type s;
+        s.data          = base + offset;
+        s.size          = 0;
+        s.capacity      = 0;
+        s.global_offset = offset;
+        s.place         = dplace;
+        s.exec          = eplace;
+        s.stream        = stream;
+        arr.shards_.push_back(s);
         continue;
       }
       shard_type s;
@@ -583,24 +595,34 @@ public:
   /// @brief Shard visitation entry point: `arr.each_shard->*functor`.
   each_shard_visitor each_shard;
 
+  /// @brief Synchronize one shard's reference stream (in the shard's
+  /// execution context). Prefer this over synchronizing the raw stream: it
+  /// activates the shard's exec place the way every other shard operation
+  /// does.
+  /// @throws std::runtime_error under an active CUDA stream capture.
+  void sync(size_t shard_idx) const
+  {
+    const auto& s = shard(shard_idx);
+    places::check_not_capturing(nullptr, "sharded_array::sync");
+    if (s.stream)
+    {
+      places::check_not_capturing(s.stream, "sharded_array::sync");
+      exec_place_scope scope(s.exec);
+      cuda_safe_call(cudaStreamSynchronize(s.stream));
+    }
+  }
+
   /// @brief Synchronize every shard's reference stream.
   /// @throws std::runtime_error under an active CUDA stream capture
   /// (synchronization cannot be recorded into a graph; the capture stays
   /// valid, so pass `blocking = false` to the elementwise algorithms and
   /// synchronize outside capture instead).
-  ///
-  /// One shard: `cuda::stream_ref{arr.shard(i).stream}.sync()` is the
-  /// per-shard spelling; this member is the whole-container operation.
   void sync() const
   {
     check_not_capturing_any("sharded_array::sync");
-    for (const auto& s : shards_)
+    for (size_t i = 0; i < shards_.size(); i++)
     {
-      if (s.stream)
-      {
-        exec_place_scope scope(s.exec);
-        cuda_safe_call(cudaStreamSynchronize(s.stream));
-      }
+      sync(i);
     }
   }
 
@@ -892,8 +914,21 @@ public:
   }
 
   /// @brief Release ownership: the caller becomes responsible for the memory.
+  ///
+  /// Only meaningful for `ownership::owning_shards` (per-shard allocations
+  /// the caller can free individually). A contiguous (VMM) backing cannot be
+  /// handed over through raw pointers — the mapping dies with the backing —
+  /// so releasing it is refused.
+  ///
+  /// @throws std::invalid_argument for `ownership::owning_backing`
   void release()
   {
+    if (ownership_ == ownership::owning_backing)
+    {
+      _CCCL_THROW(::std::invalid_argument,
+                  "sharded_array::release: a contiguous (VMM) backing cannot be released through "
+                  "raw pointers; keep the array alive instead");
+    }
     ownership_ = ownership::view;
   }
 

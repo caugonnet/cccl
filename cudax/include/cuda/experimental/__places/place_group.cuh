@@ -81,6 +81,7 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <string>
 #include <tuple>
 #include <typeindex>
 #include <unordered_map>

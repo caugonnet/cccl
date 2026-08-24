@@ -67,7 +67,7 @@ struct negate_pred_fn
 };
 
 template <typename _Tp, typename _Pred>
-size_t copy_if_impl(place_group& group, sharded_array<_Tp>& data, _Pred pred)
+[[nodiscard]] _CCCL_HOST_API size_t copy_if_impl(place_group& group, sharded_array<_Tp>& data, _Pred pred)
 {
   if (data.empty())
   {
@@ -146,7 +146,7 @@ size_t copy_if_impl(place_group& group, sharded_array<_Tp>& data, _Pred pred)
  *         elements across the requested placement.
  */
 template <typename _Tp, typename _Pred>
-size_t copy_if(place_group& group, sharded_array<_Tp>& data, _Pred pred)
+[[nodiscard]] _CCCL_HOST_API size_t copy_if(place_group& group, sharded_array<_Tp>& data, _Pred pred)
 {
   if (data.is_contiguous())
   {
@@ -161,7 +161,7 @@ size_t copy_if(place_group& group, sharded_array<_Tp>& data, _Pred pred)
 
 /// @brief Alias for `copy_if`.
 template <typename _Tp, typename _Pred>
-size_t filter(place_group& group, sharded_array<_Tp>& data, _Pred pred)
+[[nodiscard]] _CCCL_HOST_API size_t filter(place_group& group, sharded_array<_Tp>& data, _Pred pred)
 {
   return copy_if(group, data, pred);
 }
@@ -173,7 +173,7 @@ size_t filter(place_group& group, sharded_array<_Tp>& data, _Pred pred)
  * @throws std::invalid_argument on contiguous arrays (see `copy_if`)
  */
 template <typename _Tp, typename _Pred>
-size_t remove_if(place_group& group, sharded_array<_Tp>& data, _Pred pred)
+[[nodiscard]] _CCCL_HOST_API size_t remove_if(place_group& group, sharded_array<_Tp>& data, _Pred pred)
 {
   if (data.is_contiguous())
   {

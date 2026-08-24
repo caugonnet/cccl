@@ -110,6 +110,9 @@ void test_refusals(place_group& group)
     data.sync();
   });
   expect_refusal_keeps_capture(origin, [&] {
+    data.sync(0); // per-shard member refuses the same way
+  });
+  expect_refusal_keeps_capture(origin, [&] {
     group.sync();
   });
 

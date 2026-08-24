@@ -39,7 +39,7 @@ namespace cuda::experimental::sharded
 {
 /// @brief In-place unary transform: data[i] = op(data[i]).
 template <typename _Tp, typename _UnaryOp>
-void transform(place_group&, sharded_array<_Tp>& data, _UnaryOp op, bool blocking = true)
+_CCCL_HOST_API void transform(place_group&, sharded_array<_Tp>& data, _UnaryOp op, bool blocking = true)
 {
   if (data.empty())
   {
@@ -66,8 +66,8 @@ void transform(place_group&, sharded_array<_Tp>& data, _UnaryOp op, bool blockin
  * @throws std::invalid_argument when the layouts are not compatible
  */
 template <typename _Tp, typename _Up, typename _UnaryOp>
-void transform(
-  place_group&, const sharded_array<_Tp>& input, sharded_array<_Up>& output, _UnaryOp op, bool blocking = true)
+_CCCL_HOST_API void
+transform(place_group&, const sharded_array<_Tp>& input, sharded_array<_Up>& output, _UnaryOp op, bool blocking = true)
 {
   check_compatible(input, output, "transform (unary out-of-place)");
 
@@ -103,12 +103,13 @@ void transform(
  * @throws std::invalid_argument when the layouts are not compatible
  */
 template <typename _Tp, typename _Up, typename _BinaryOp>
-void transform(place_group&,
-               const sharded_array<_Tp>& input1,
-               const sharded_array<_Tp>& input2,
-               sharded_array<_Up>& output,
-               _BinaryOp op,
-               bool blocking = true)
+_CCCL_HOST_API void transform(
+  place_group&,
+  const sharded_array<_Tp>& input1,
+  const sharded_array<_Tp>& input2,
+  sharded_array<_Up>& output,
+  _BinaryOp op,
+  bool blocking = true)
 {
   check_compatible(input1, input2, "transform (binary): input1 vs input2");
   check_compatible(input1, output, "transform (binary): inputs vs output");

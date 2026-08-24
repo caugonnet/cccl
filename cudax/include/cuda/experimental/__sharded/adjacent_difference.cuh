@@ -32,6 +32,8 @@
 #include <cuda/experimental/__places/place_group.cuh>
 #include <cuda/experimental/__sharded/sharded_array.cuh>
 
+#include <stdexcept>
+
 #include <cuda_runtime.h>
 
 namespace cuda::experimental::sharded
@@ -77,9 +79,16 @@ __global__ void adjacent_difference_kernel(const _Tp* input, _Tp* output, size_t
  * @throws std::invalid_argument when the layouts are not compatible
  */
 template <typename _Tp, typename _BinaryOp>
-void adjacent_difference(place_group&, sharded_array<_Tp>& input, sharded_array<_Tp>& output, _BinaryOp op)
+_CCCL_HOST_API void
+adjacent_difference(place_group&, sharded_array<_Tp>& input, sharded_array<_Tp>& output, _BinaryOp op)
 {
   check_compatible(input, output, "adjacent_difference");
+  if (&input == &output)
+  {
+    _CCCL_THROW(::std::invalid_argument,
+                "adjacent_difference: input and output must be distinct arrays (element i-1 is "
+                "read while element i is written)");
+  }
 
   const size_t num_shards = output.num_shards();
   if (num_shards == 0 || input.size() == 0)
@@ -110,7 +119,17 @@ void adjacent_difference(place_group&, sharded_array<_Tp>& input, sharded_array<
     constexpr int block_size = 256;
     const auto& in_shard     = input.shard(g);
 
-    const _Tp* prev_last = (g > 0) && (input.shard(g - 1).size > 0) ? &h_last_elements[g - 1] : nullptr;
+    // The logical predecessor is the last element of the previous NON-EMPTY
+    // shard (empty shards hold no elements and no boundary).
+    const _Tp* prev_last = nullptr;
+    for (size_t p = g; p-- > 0;)
+    {
+      if (input.shard(p).size > 0)
+      {
+        prev_last = &h_last_elements[p];
+        break;
+      }
+    }
     const int num_blocks = static_cast<int>((out_shard.size + block_size - 1) / block_size);
 
     reserved::adjacent_difference_kernel<<<num_blocks, block_size, 0, out_shard.stream>>>(
@@ -124,7 +143,7 @@ void adjacent_difference(place_group&, sharded_array<_Tp>& input, sharded_array<
 
 /// @brief Out-of-place adjacent difference with subtraction.
 template <typename _Tp>
-void adjacent_difference(place_group& group, sharded_array<_Tp>& input, sharded_array<_Tp>& output)
+_CCCL_HOST_API void adjacent_difference(place_group& group, sharded_array<_Tp>& input, sharded_array<_Tp>& output)
 {
   adjacent_difference(group, input, output, ::cuda::std::minus<_Tp>{});
 }
