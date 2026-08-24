@@ -3,6 +3,7 @@ set(
   include_only.cu
   containers/sharded_array.cu
   containers/contiguous.cu
+  containers/stream_ordered_lifecycle.cu
   containers/fork_join.cu
   algorithms/elementwise.cu
   algorithms/reduce_scan.cu
@@ -12,6 +13,16 @@ set(
   communicator/concepts.cu
   communicator/verbs.cu
   communicator/bridge.cu
+  sparse/sharded_csr.cu
+)
+
+# Tests of the opt-in cuSPARSE-backed sparse products (sharded_sparse.cuh);
+# these link against cuSPARSE and are gated like the STF mathlib tests.
+set(
+  sharded_sparse_test_sources
+  sparse/spmv_spmm.cu
+  sparse/rebalance.cu
+  sparse/handle_lifecycle.cu
 )
 
 cccl_get_cudatoolkit()
@@ -44,3 +55,10 @@ endfunction()
 foreach (source IN LISTS sharded_test_sources)
   cudax_add_sharded_test(test_target "${source}")
 endforeach()
+
+if (cudax_ENABLE_CUSPARSE)
+  foreach (source IN LISTS sharded_sparse_test_sources)
+    cudax_add_sharded_test(test_target "${source}")
+    target_link_libraries(${test_target} PRIVATE CUDA::cusparse)
+  endforeach()
+endif()
