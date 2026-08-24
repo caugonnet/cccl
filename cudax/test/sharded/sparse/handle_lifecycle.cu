@@ -116,7 +116,7 @@ double* device_upload(const ::std::vector<double>& host)
 cusparseHandle_t place_handle(place_group& group, size_t idx)
 {
   cuda::experimental::places::exec_place_scope scope(group.place(idx));
-  return detail::get_place_cusparse_handle(group, idx);
+  return reserved::get_place_cusparse_handle(group, idx);
 }
 
 // Run spmv on a fresh matrix over @p group and validate against the host
@@ -142,7 +142,7 @@ void test_shared_within_group_distinct_across_groups(const host_csr& m)
   // Handles are lazy: nothing in the cache before the first product.
   for (size_t i = 0; i < group.size(); i++)
   {
-    EXPECT(!group.has_lib_state<detail::cusparse_place_handle>(i));
+    EXPECT(!group.has_lib_state<reserved::cusparse_place_handle>(i));
   }
 
   // Two matrices over ONE group: after both ran, each place has exactly ONE
@@ -158,7 +158,7 @@ void test_shared_within_group_distinct_across_groups(const host_csr& m)
   ::std::vector<cusparseHandle_t> after_first(group.size());
   for (size_t i = 0; i < group.size(); i++)
   {
-    EXPECT(group.has_lib_state<detail::cusparse_place_handle>(i));
+    EXPECT(group.has_lib_state<reserved::cusparse_place_handle>(i));
     after_first[i] = place_handle(group, i);
     EXPECT(after_first[i] != nullptr);
   }
@@ -224,7 +224,7 @@ void test_container_death_leaves_handle_alive(const host_csr& m)
   // The handles survive the container: still cached, same objects...
   for (size_t i = 0; i < group.size(); i++)
   {
-    EXPECT(group.has_lib_state<detail::cusparse_place_handle>(i));
+    EXPECT(group.has_lib_state<reserved::cusparse_place_handle>(i));
     EXPECT(place_handle(group, i) == handles[i]);
   }
 
