@@ -205,11 +205,10 @@ scan_impl(place_group&, sharded_array<_Tp>& data, scan_type type, _ScanOp scan_o
     {
       return;
     }
+    // No identity-prefix shortcut: it would impose an undeclared operator==
+    // requirement on _Tp. The fold is a cheap elementwise pass; skipping it
+    // is a pure optimization the value-type contract should not pay for.
     const _Tp prefix = h_prefixes[g];
-    if (type == scan_type::exclusive && prefix == identity)
-    {
-      return; // identity prefix: nothing to fold
-    }
     thrust::transform(
       thrust::cuda::par_nosync.on(s.stream),
       s.data,
