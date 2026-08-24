@@ -18,6 +18,8 @@
 
 #include <cuda/experimental/sharded.cuh>
 
+#include <algorithm>
+#include <limits>
 #include <vector>
 
 using namespace cuda::experimental::sharded;
@@ -133,6 +135,134 @@ void test_adjacent_difference(place_group& group)
   // more than one place (indices at shard boundaries take the prev_last path)
 }
 
+void test_scan_semantics(place_group& group)
+{
+  // Non-additive operator across shards: inclusive product needs NO identity
+  // and must fold the true cross-shard prefix (regression: a zero seed used
+  // to collapse every prefix for multiplies).
+  {
+    const size_t n = 64; // 2^64 would overflow; use values of 1 with a few 2s
+    auto data      = sharded_array<long long>::allocate(group, n);
+    fill(group, data, 1LL);
+    ::std::vector<long long> host(n, 1);
+    host[3]     = 2;
+    host[n / 2] = 2;
+    host[n - 1] = 2; // three 2s, spread across shards
+    data.copy_from_host(host.data());
+    inclusive_scan(group, data, ::cuda::std::multiplies<long long>{});
+    data.copy_to_host(host.data());
+    long long running = 1;
+    ::std::vector<long long> ref(n, 1);
+    ref[3]     = 2;
+    ref[n / 2] = 2;
+    ref[n - 1] = 2;
+    for (size_t i = 0; i < n; i++)
+    {
+      running *= ref[i];
+      EXPECT(host[i] == running);
+    }
+  }
+
+  // Exclusive scan with a non-zero init folds the init exactly ONCE into the
+  // global sequence (regression: it used to be folded per shard).
+  {
+    const size_t n = 4099;
+    auto data      = sharded_array<long long>::allocate(group, n);
+    fill(group, data, 1LL);
+    exclusive_scan(group, data, 5LL); // 5, 6, 7, ...
+    ::std::vector<long long> host(n);
+    data.copy_to_host(host.data());
+    for (size_t i = 0; i < n; i++)
+    {
+      EXPECT(host[i] == 5LL + static_cast<long long>(i));
+    }
+  }
+
+  // Custom-op exclusive scan takes init AND identity explicitly.
+  {
+    const size_t n = 1025;
+    auto data      = sharded_array<long long>::allocate(group, n);
+    iota(group, data, 0LL);
+    // running max, seeded with 7: out[i] = max(7, 0, ..., i-1) = max(7, i-1)
+    exclusive_scan(group, data, max_op{}, 7LL, ::std::numeric_limits<long long>::lowest());
+    ::std::vector<long long> host(n);
+    data.copy_to_host(host.data());
+    for (size_t i = 0; i < n; i++)
+    {
+      const long long expected = (i == 0) ? 7LL : ::std::max(7LL, static_cast<long long>(i) - 1);
+      EXPECT(host[i] == expected);
+    }
+  }
+
+  // Scans cross allocation-empty shards unharmed.
+  if (group.size() >= 2)
+  {
+    ::std::vector<size_t> sizes(group.size(), 0);
+    const size_t n          = 513;
+    sizes[group.size() - 1] = n; // only the LAST place holds data
+    auto data               = sharded_array<long long>::allocate(group, sizes);
+    fill(group, data, 1LL);
+    inclusive_scan(group, data);
+    ::std::vector<long long> host(n);
+    data.copy_to_host(host.data());
+    for (size_t i = 0; i < n; i++)
+    {
+      EXPECT(host[i] == static_cast<long long>(i) + 1);
+    }
+  }
+}
+
+void test_adjacent_difference_empty_shard(place_group& group)
+{
+  if (group.size() < 2)
+  {
+    return;
+  }
+  // {nonzero, 0, ...}: the predecessor boundary must cross the empty shard.
+  ::std::vector<size_t> sizes(group.size(), 0);
+  const size_t n_first    = 100;
+  const size_t n_last     = 101;
+  sizes[0]                = n_first;
+  sizes[group.size() - 1] = n_last;
+  const size_t n          = n_first + n_last;
+
+  auto input  = sharded_array<long long>::allocate(group, sizes);
+  auto output = sharded_array<long long>::allocate(group, sizes);
+  iota(group, input, 0LL);
+  adjacent_difference(group, input, output);
+  ::std::vector<long long> host(n);
+  output.copy_to_host(host.data());
+  EXPECT(host[0] == 0LL); // first element copied
+  for (size_t i = 1; i < n; i++)
+  {
+    EXPECT(host[i] == 1LL); // iota differences, INCLUDING across the empty shard
+  }
+
+  // Aliasing refusal
+  bool threw = false;
+  try
+  {
+    adjacent_difference(group, input, input);
+  }
+  catch (const ::std::invalid_argument&)
+  {
+    threw = true;
+  }
+  EXPECT(threw);
+}
+
+void test_per_shard_sync(place_group& group)
+{
+  const size_t n = 4096;
+  auto data      = sharded_array<long long>::allocate(group, n);
+  fill(group, data, 9LL, /*blocking=*/false);
+  for (size_t i = 0; i < data.num_shards(); i++)
+  {
+    data.sync(i); // per-shard member: exec scope + synchronize
+  }
+  EXPECT(count(group, data, 9LL) == n);
+}
+
 void test_reduce_with_empty_shard(place_group& group)
 {
   if (group.size() < 2)
@@ -159,6 +289,9 @@ int main()
   test_exclusive_scan(group);
   test_adjacent_difference(group);
   test_reduce_with_empty_shard(group);
+  test_scan_semantics(group);
+  test_adjacent_difference_empty_shard(group);
+  test_per_shard_sync(group);
 
   return 0;
 }
