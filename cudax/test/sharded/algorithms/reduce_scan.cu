@@ -132,6 +132,20 @@ void test_adjacent_difference(place_group& group)
   // The cross-shard boundary elements are exercised whenever the group has
   // more than one place (indices at shard boundaries take the prev_last path)
 }
+
+void test_reduce_with_empty_shard(place_group& group)
+{
+  if (group.size() < 2)
+  {
+    return;
+  }
+  ::std::vector<size_t> sizes(group.size(), 0);
+  const size_t n = 4097;
+  sizes[0]       = n;
+  auto arr       = sharded_array<long long>::allocate(group, sizes);
+  fill(group, arr, 3LL);
+  EXPECT(sum(group, arr) == 3LL * static_cast<long long>(n));
+}
 } // namespace
 
 int main()
@@ -144,6 +158,7 @@ int main()
   test_inclusive_scan(group);
   test_exclusive_scan(group);
   test_adjacent_difference(group);
+  test_reduce_with_empty_shard(group);
 
   return 0;
 }
