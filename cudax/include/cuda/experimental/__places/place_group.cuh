@@ -810,5 +810,162 @@ UNITTEST("place_group move semantics")
   EXPECT(moved.get_stream(0) == s);
 };
 
+// A probe standing in for a per-place library handle: counts constructions
+// and destructions, and remembers which place it was made for. Inline
+// statics: this only exists in the unittest TU.
+struct lib_state_probe
+{
+  static inline int live      = 0;
+  static inline int created   = 0;
+  static inline int destroyed = 0;
+
+  static void reset()
+  {
+    live = created = destroyed = 0;
+  }
+
+  size_t place_idx;
+
+  explicit lib_state_probe(size_t idx)
+      : place_idx(idx)
+  {
+    created++;
+    live++;
+  }
+
+  lib_state_probe(const lib_state_probe&)            = delete;
+  lib_state_probe& operator=(const lib_state_probe&) = delete;
+
+  ~lib_state_probe()
+  {
+    destroyed++;
+    live--;
+  }
+};
+
+// A second cached type: (place, type) keys must not collide across types.
+struct lib_state_other
+{
+  int tag = 7;
+};
+
+UNITTEST("place_group lib_state: identity and laziness")
+{
+  lib_state_probe::reset();
+
+  place_group group = place_group::by_locality_domains();
+  const size_t n    = group.size();
+
+  // Nothing is created before first use.
+  for (size_t i = 0; i < n; i++)
+  {
+    EXPECT(!group.has_lib_state<lib_state_probe>(i));
+  }
+  EXPECT(lib_state_probe::created == 0);
+
+  // First use creates; the same (place, type) always yields the SAME object.
+  ::std::vector<lib_state_probe*> first(n);
+  for (size_t i = 0; i < n; i++)
+  {
+    first[i] = &group.lib_state<lib_state_probe>(i, [i] {
+      return new lib_state_probe(i);
+    });
+    EXPECT(group.has_lib_state<lib_state_probe>(i));
+    EXPECT(first[i]->place_idx == i);
+  }
+  EXPECT(lib_state_probe::created == static_cast<int>(n));
+
+  for (size_t i = 0; i < n; i++)
+  {
+    auto* again = &group.lib_state<lib_state_probe>(i, [i]() -> lib_state_probe* {
+      // Must not be invoked: the slot is already populated.
+      EXPECT(false);
+      return nullptr;
+    });
+    EXPECT(again == first[i]);
+  }
+  EXPECT(lib_state_probe::created == static_cast<int>(n));
+
+  // Different places hold different objects.
+  for (size_t i = 1; i < n; i++)
+  {
+    EXPECT(first[i] != first[0]);
+  }
+
+  // A different type on the same place is a different slot.
+  auto& other = group.lib_state<lib_state_other>(0, [] {
+    return new lib_state_other();
+  });
+  EXPECT(other.tag == 7);
+  EXPECT(static_cast<void*>(&other) != static_cast<void*>(first[0]));
+  // ...and creating it did not disturb the probe slots.
+  EXPECT(lib_state_probe::created == static_cast<int>(n));
+};
+
+UNITTEST("place_group lib_state: isolation between groups")
+{
+  lib_state_probe::reset();
+
+  // Two groups over the same places are distinct resource scopes: their
+  // caches do not share state.
+  place_group a(exec_place::device(0));
+  place_group b(exec_place::device(0));
+
+  auto* in_a = &a.lib_state<lib_state_probe>(0, [] {
+    return new lib_state_probe(0);
+  });
+  EXPECT(!b.has_lib_state<lib_state_probe>(0));
+  auto* in_b = &b.lib_state<lib_state_probe>(0, [] {
+    return new lib_state_probe(0);
+  });
+  EXPECT(in_a != in_b);
+  EXPECT(lib_state_probe::created == 2);
+};
+
+UNITTEST("place_group lib_state: teardown destroys exactly once, with the group")
+{
+  lib_state_probe::reset();
+
+  {
+    place_group group = place_group::by_locality_domains();
+    for (size_t i = 0; i < group.size(); i++)
+    {
+      group.lib_state<lib_state_probe>(i, [i] {
+        return new lib_state_probe(i);
+      });
+    }
+    EXPECT(lib_state_probe::live == static_cast<int>(group.size()));
+    // Cached objects live for the whole group lifetime...
+  }
+  // ...and are destroyed exactly once, with the group.
+  EXPECT(lib_state_probe::live == 0);
+  EXPECT(lib_state_probe::destroyed == lib_state_probe::created);
+};
+
+UNITTEST("place_group lib_state: cache survives a move")
+{
+  lib_state_probe::reset();
+
+  auto* before = static_cast<lib_state_probe*>(nullptr);
+  {
+    place_group g(exec_place::device(0));
+    before = &g.lib_state<lib_state_probe>(0, [] {
+      return new lib_state_probe(0);
+    });
+
+    place_group moved(mv(g));
+    // The cached object survives the move, no re-creation, no double destroy.
+    EXPECT(moved.has_lib_state<lib_state_probe>(0));
+    auto* after = &moved.lib_state<lib_state_probe>(0, []() -> lib_state_probe* {
+      EXPECT(false);
+      return nullptr;
+    });
+    EXPECT(after == before);
+    EXPECT(lib_state_probe::created == 1);
+  }
+  // Global balance after the surviving owner dies.
+  EXPECT(lib_state_probe::live == 0);
+};
+
 #endif // UNITTESTED_FILE
 } // namespace cuda::experimental::places
