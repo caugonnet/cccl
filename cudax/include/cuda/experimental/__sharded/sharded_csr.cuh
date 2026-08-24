@@ -506,7 +506,7 @@ public:
    * share the matrix's per-place reference streams, ordering the shard
    * streams orders every consumer of the matrix. Same pooled-event mechanics
    * and capture behavior as `sharded_array<T>::fork_from` (see there and
-   * `detail::fork_join_event_pool`).
+   * `reserved::fork_join_event_pool`).
    */
   void fork_from(cudaStream_t stream) const
   {
@@ -618,6 +618,6 @@ private:
   ::std::unordered_map<::std::string, ::std::shared_ptr<void>> lib_state_;
   // Pooled events for fork_from/join_into (lazily created; mutable because
   // the ordering declarations are const -- they do not modify the matrix).
-  mutable detail::fork_join_event_pool fork_join_events_;
+  mutable reserved::fork_join_event_pool fork_join_events_;
 };
 } // namespace cuda::experimental::sharded

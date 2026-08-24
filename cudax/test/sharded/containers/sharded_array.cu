@@ -101,7 +101,7 @@ void test_place_group_allocation()
   const size_t n = 10000;
 
   auto arr = sharded_array<long long>::allocate(group, n);
-  EXPECT(arr.num_shards() <= group.size()); // empty shards are skipped
+  EXPECT(arr.num_shards() == group.size()); // one shard per place, empty or not
   EXPECT(arr.size() == n);
   EXPECT(arr.is_owning());
   EXPECT(arr.validate());
@@ -297,6 +297,36 @@ void test_uniform_and_host()
 }
 } // namespace
 
+void test_empty_shard_allocation()
+{
+  auto group = place_group::by_locality_domains();
+  if (group.size() < 2)
+  {
+    return; // needs at least two places so one can be empty
+  }
+
+  // One place gets a zero size: the shard EXISTS (place correspondence is
+  // preserved), it just holds no storage.
+  ::std::vector<size_t> sizes(group.size(), 0);
+  const size_t n = 1000;
+  sizes[0]       = n;
+
+  auto arr = sharded_array<long long>::allocate(group, sizes);
+  EXPECT(arr.num_shards() == group.size());
+  EXPECT(arr.size() == n);
+  EXPECT(arr.shard(1).size == 0);
+  EXPECT(arr.shard(1).data == nullptr);
+  EXPECT(arr.shard(1).capacity == 0);
+  EXPECT(arr.validate());
+
+  // Host round-trip crosses the empty shard unharmed
+  auto input = sequential<long long>(n);
+  arr.copy_from_host(input.data());
+  ::std::vector<long long> output(n);
+  arr.copy_to_host(output.data());
+  expect_equal(output, input);
+}
+
 int main()
 {
   cuda_safe_call(cudaSetDevice(0));
@@ -309,6 +339,7 @@ int main()
   test_adoption_and_slice();
   test_check_compatible_throws();
   test_uniform_and_host();
+  test_empty_shard_allocation();
 
   return 0;
 }

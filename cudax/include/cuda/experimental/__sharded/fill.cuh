@@ -46,7 +46,7 @@
 
 namespace cuda::experimental::sharded
 {
-namespace detail
+namespace reserved
 {
 template <typename _Tp>
 struct sequence_fn
@@ -85,7 +85,7 @@ struct for_each_fn
     op(thrust::get<0>(t), thrust::get<1>(t));
   }
 };
-} // namespace detail
+} // namespace reserved
 
 /// @brief Set every element to @p value.
 template <typename _Tp>
@@ -110,7 +110,7 @@ void sequence(place_group&, sharded_array<_Tp>& data, _Tp start = _Tp{0}, _Tp st
     thrust::tabulate(thrust::cuda::par_nosync.on(s.stream),
                      s.data,
                      s.data + s.size,
-                     detail::sequence_fn<_Tp>{start, step, s.global_offset});
+                     reserved::sequence_fn<_Tp>{start, step, s.global_offset});
     cuda_safe_call(cudaGetLastError());
   };
   if (blocking)
@@ -133,7 +133,7 @@ void tabulate(place_group&, sharded_array<_Tp>& data, _Fn f, bool blocking = tru
   using shard_t = typename sharded_array<_Tp>::shard_type;
   data.each_shard->*[f](shard_t& s) {
     thrust::tabulate(
-      thrust::cuda::par_nosync.on(s.stream), s.data, s.data + s.size, detail::tabulate_fn<_Fn>{f, s.global_offset});
+      thrust::cuda::par_nosync.on(s.stream), s.data, s.data + s.size, reserved::tabulate_fn<_Fn>{f, s.global_offset});
     cuda_safe_call(cudaGetLastError());
   };
   if (blocking)
@@ -167,7 +167,7 @@ void for_each(place_group&, sharded_array<_Tp>& data, _Op op, bool blocking = tr
     auto end   = thrust::make_zip_iterator(
       thrust::make_tuple(s.data + s.size, thrust::make_counting_iterator(global_offset + s.size)));
 
-    thrust::for_each(thrust::cuda::par_nosync.on(s.stream), begin, end, detail::for_each_fn<_Tp, _Op>{op});
+    thrust::for_each(thrust::cuda::par_nosync.on(s.stream), begin, end, reserved::for_each_fn<_Tp, _Op>{op});
     cuda_safe_call(cudaGetLastError());
   };
   if (blocking)

@@ -96,7 +96,7 @@ inline void cusparse_safe_call(cusparseStatus_t status,
   }
 }
 
-namespace detail
+namespace reserved
 {
 /// @brief Maps element types to cuSPARSE data types (FP64 is the primary
 /// target; FP32 is provided for completeness).
@@ -598,7 +598,7 @@ double time_on_stream(cudaStream_t stream, int warmup, int iters, _Body&& body)
   cuda_safe_call(cudaEventDestroy(e1));
   return static_cast<double>(t) / iters;
 }
-} // namespace detail
+} // namespace reserved
 
 /**
  * @brief Localized cuSPARSE SpMV: y = alpha * A * x + beta * y.
@@ -630,13 +630,13 @@ void spmv(
   {
     _CCCL_THROW(::std::invalid_argument, "sharded::spmv: matrix was not partitioned over this group's places");
   }
-  auto& st          = detail::get_spmv_state(A);
-  const auto shards = detail::matched_output_shards(A, y, 1, "sharded::spmv");
+  auto& st          = reserved::get_spmv_state(A);
+  const auto shards = reserved::matched_output_shards(A, y, 1, "sharded::spmv");
   for (const auto& [i, y_ptr] : shards)
   {
     auto& sh = A.shard(i);
     places::exec_place_scope scope(sh.exec);
-    cusparseHandle_t handle = detail::get_place_cusparse_handle(group, i);
+    cusparseHandle_t handle = reserved::get_place_cusparse_handle(group, i);
     st.plans[i].run(handle, sh, A.num_cols(), x, y_ptr, alpha, beta, sh.stream);
   }
 }
@@ -671,13 +671,13 @@ void spmm(place_group& group,
   {
     _CCCL_THROW(::std::invalid_argument, "sharded::spmm: matrix was not partitioned over this group's places");
   }
-  auto& st          = detail::get_spmm_state(A, n_cols);
-  const auto shards = detail::matched_output_shards(A, C, n_cols, "sharded::spmm");
+  auto& st          = reserved::get_spmm_state(A, n_cols);
+  const auto shards = reserved::matched_output_shards(A, C, n_cols, "sharded::spmm");
   for (const auto& [i, C_ptr] : shards)
   {
     auto& sh = A.shard(i);
     places::exec_place_scope scope(sh.exec);
-    cusparseHandle_t handle = detail::get_place_cusparse_handle(group, i);
+    cusparseHandle_t handle = reserved::get_place_cusparse_handle(group, i);
     st.plans[i].run(handle, sh, A.num_cols(), n_cols, B, C_ptr, alpha, beta, sh.stream);
   }
 }
@@ -708,8 +708,8 @@ template <typename _Tp>
     _CCCL_THROW(::std::invalid_argument,
                 "sharded::spmv_shard_times: matrix was not partitioned over this group's places");
   }
-  auto& st          = detail::get_spmv_state(A);
-  const auto shards = detail::matched_output_shards(A, y, 1, "sharded::spmv_shard_times");
+  auto& st          = reserved::get_spmv_state(A);
+  const auto shards = reserved::matched_output_shards(A, y, 1, "sharded::spmv_shard_times");
   ::std::vector<double> ms(A.num_shards(), 0.0);
   for (const auto& pair : shards)
   {
@@ -717,8 +717,8 @@ template <typename _Tp>
     _Tp* y_ptr     = pair.second;
     auto& sh       = A.shard(i);
     places::exec_place_scope scope(sh.exec);
-    cusparseHandle_t handle = detail::get_place_cusparse_handle(group, i);
-    ms[i]                   = detail::time_on_stream(sh.stream, warmup, iters, [&, i, y_ptr, handle] {
+    cusparseHandle_t handle = reserved::get_place_cusparse_handle(group, i);
+    ms[i]                   = reserved::time_on_stream(sh.stream, warmup, iters, [&, i, y_ptr, handle] {
       st.plans[i].run(handle, sh, A.num_cols(), x, y_ptr, alpha, beta, sh.stream);
     });
   }
@@ -746,8 +746,8 @@ template <typename _Tp>
     _CCCL_THROW(::std::invalid_argument,
                 "sharded::spmm_shard_times: matrix was not partitioned over this group's places");
   }
-  auto& st          = detail::get_spmm_state(A, n_cols);
-  const auto shards = detail::matched_output_shards(A, C, n_cols, "sharded::spmm_shard_times");
+  auto& st          = reserved::get_spmm_state(A, n_cols);
+  const auto shards = reserved::matched_output_shards(A, C, n_cols, "sharded::spmm_shard_times");
   ::std::vector<double> ms(A.num_shards(), 0.0);
   for (const auto& pair : shards)
   {
@@ -755,8 +755,8 @@ template <typename _Tp>
     _Tp* C_ptr     = pair.second;
     auto& sh       = A.shard(i);
     places::exec_place_scope scope(sh.exec);
-    cusparseHandle_t handle = detail::get_place_cusparse_handle(group, i);
-    ms[i]                   = detail::time_on_stream(sh.stream, warmup, iters, [&, i, C_ptr, handle] {
+    cusparseHandle_t handle = reserved::get_place_cusparse_handle(group, i);
+    ms[i]                   = reserved::time_on_stream(sh.stream, warmup, iters, [&, i, C_ptr, handle] {
       st.plans[i].run(handle, sh, A.num_cols(), n_cols, B, C_ptr, alpha, beta, sh.stream);
     });
   }
