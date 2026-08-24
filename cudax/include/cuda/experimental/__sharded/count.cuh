@@ -85,7 +85,7 @@ struct equals_value_fn
  * @param pred  host- and device-callable predicate: `bool operator()(T)`
  */
 template <typename _Tp, typename _Pred>
-size_t count_if(place_group& group, const sharded_array<_Tp>& data, _Pred pred)
+[[nodiscard]] _CCCL_HOST_API size_t count_if(place_group& group, const sharded_array<_Tp>& data, _Pred pred)
 {
   if (data.empty())
   {
@@ -113,7 +113,13 @@ size_t count_if(place_group& group, const sharded_array<_Tp>& data, _Pred pred)
     // Temporaries come from the shard's place through the group's resources
     const auto env = group.env(s.place, s.stream);
     cuda_safe_call(cub::DeviceReduce::TransformReduce(
-      s.data, d_out, s.size, ::cuda::std::plus<size_t>{}, reserved::count_transform_fn<_Tp, _Pred>{pred}, size_t{0}, env));
+      s.data,
+      d_out,
+      s.size,
+      ::cuda::std::plus<size_t>{},
+      reserved::count_transform_fn<_Tp, _Pred>{pred},
+      size_t{0},
+      env));
 
     cuda_safe_call(cudaMemcpyAsync(&h_counts[g], d_out, sizeof(size_t), cudaMemcpyDeviceToHost, s.stream));
   };
@@ -138,7 +144,7 @@ size_t count_if(place_group& group, const sharded_array<_Tp>& data, _Pred pred)
 
 /// @brief Count the elements equal to `value`.
 template <typename _Tp>
-size_t count(place_group& group, const sharded_array<_Tp>& data, _Tp value)
+[[nodiscard]] _CCCL_HOST_API size_t count(place_group& group, const sharded_array<_Tp>& data, _Tp value)
 {
   return count_if(group, data, reserved::equals_value_fn<_Tp>{value});
 }

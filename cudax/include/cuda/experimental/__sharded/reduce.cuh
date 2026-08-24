@@ -40,6 +40,8 @@
 #include <cuda/experimental/__places/place_group.cuh>
 #include <cuda/experimental/__sharded/sharded_array.cuh>
 
+#include <algorithm>
+#include <utility>
 #include <vector>
 
 #include <cuda_runtime.h>
@@ -59,7 +61,8 @@ namespace cuda::experimental::sharded
  * @param init_value initial (identity) value
  */
 template <typename _Tp, typename _ReduceOp>
-_Tp reduce(place_group& group, const sharded_array<_Tp>& data, _ReduceOp reduce_op, _Tp init_value = _Tp{})
+[[nodiscard]] _CCCL_HOST_API _Tp
+reduce(place_group& group, const sharded_array<_Tp>& data, _ReduceOp reduce_op, _Tp init_value = _Tp{})
 {
   if (data.empty())
   {
@@ -111,21 +114,21 @@ _Tp reduce(place_group& group, const sharded_array<_Tp>& data, _ReduceOp reduce_
 
 /// @brief Sum of all elements.
 template <typename _Tp>
-_Tp sum(place_group& group, const sharded_array<_Tp>& data)
+[[nodiscard]] _CCCL_HOST_API _Tp sum(place_group& group, const sharded_array<_Tp>& data)
 {
   return reduce(group, data, ::cuda::std::plus<_Tp>{}, _Tp{0});
 }
 
 /// @brief Minimum element.
 template <typename _Tp>
-_Tp min(place_group& group, const sharded_array<_Tp>& data)
+[[nodiscard]] _CCCL_HOST_API _Tp min(place_group& group, const sharded_array<_Tp>& data)
 {
   return reduce(group, data, ::cuda::minimum<_Tp>{}, ::cuda::std::numeric_limits<_Tp>::max());
 }
 
 /// @brief Maximum element.
 template <typename _Tp>
-_Tp max(place_group& group, const sharded_array<_Tp>& data)
+[[nodiscard]] _CCCL_HOST_API _Tp max(place_group& group, const sharded_array<_Tp>& data)
 {
   return reduce(group, data, ::cuda::maximum<_Tp>{}, ::cuda::std::numeric_limits<_Tp>::lowest());
 }
