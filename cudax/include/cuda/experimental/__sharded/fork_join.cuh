@@ -44,7 +44,7 @@
 
 #include <cuda_runtime.h>
 
-namespace cuda::experimental::sharded::detail
+namespace cuda::experimental::sharded::reserved
 {
 /**
  * @brief Lazily created, reusable `cudaEventDisableTiming` events for stream
@@ -175,4 +175,4 @@ private:
   ::std::vector<cudaEvent_t> join_events_; // one per shard index
   ::std::vector<::std::pair<int, cudaEvent_t>> fork_events_; // one per caller-stream device
 };
-} // namespace cuda::experimental::sharded::detail
+} // namespace cuda::experimental::sharded::reserved
