@@ -51,7 +51,7 @@
 
 namespace cuda::experimental::sharded
 {
-namespace detail
+namespace reserved
 {
 /// @brief Negation of a predicate (for `remove_if`).
 template <typename _Tp, typename _Pred>
@@ -122,7 +122,7 @@ size_t copy_if_impl(place_group& group, sharded_array<_Tp>& data, _Pred pred)
 
   return data.size();
 }
-} // namespace detail
+} // namespace reserved
 
 /**
  * @brief Keep only the elements satisfying a predicate, in place.
@@ -153,7 +153,7 @@ size_t copy_if(place_group& group, sharded_array<_Tp>& data, _Pred pred)
                 "contiguous_data(), and compacting across the gaps would migrate elements across the placement the "
                 "caller asked for. Use a non-contiguous sharded_array, or copy into one first.");
   }
-  return detail::copy_if_impl(group, data, pred);
+  return reserved::copy_if_impl(group, data, pred);
 }
 
 /// @brief Alias for `copy_if`.
@@ -180,6 +180,6 @@ size_t remove_if(place_group& group, sharded_array<_Tp>& data, _Pred pred)
                 "contiguous_data(), and compacting across the gaps would migrate elements across the placement the "
                 "caller asked for. Use a non-contiguous sharded_array, or copy into one first.");
   }
-  return detail::copy_if_impl(group, data, detail::negate_pred_fn<_Tp, _Pred>{pred});
+  return reserved::copy_if_impl(group, data, reserved::negate_pred_fn<_Tp, _Pred>{pred});
 }
 } // namespace cuda::experimental::sharded

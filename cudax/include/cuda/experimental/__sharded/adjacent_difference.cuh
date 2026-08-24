@@ -36,7 +36,7 @@
 
 namespace cuda::experimental::sharded
 {
-namespace detail
+namespace reserved
 {
 /**
  * @brief Per-shard adjacent difference kernel.
@@ -64,7 +64,7 @@ __global__ void adjacent_difference_kernel(const _Tp* input, _Tp* output, size_t
     output[idx] = op(input[idx], input[idx - 1]);
   }
 }
-} // namespace detail
+} // namespace reserved
 
 /**
  * @brief Out-of-place adjacent difference with a custom binary operator:
@@ -109,7 +109,7 @@ void adjacent_difference(place_group&, sharded_array<_Tp>& input, sharded_array<
     const _Tp* prev_last = (g > 0) && (input.shard(g - 1).size > 0) ? &h_last_elements[g - 1] : nullptr;
     const int num_blocks = static_cast<int>((out_shard.size + block_size - 1) / block_size);
 
-    detail::adjacent_difference_kernel<<<num_blocks, block_size, 0, out_shard.stream>>>(
+    reserved::adjacent_difference_kernel<<<num_blocks, block_size, 0, out_shard.stream>>>(
       in_shard.data, out_shard.data, out_shard.size, prev_last, op);
     cuda_safe_call(cudaGetLastError());
   };
