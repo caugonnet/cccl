@@ -32,9 +32,12 @@
 #endif // no system header
 
 #include <cuda/memory_resource>
+#include <cuda/std/__exception/terminate.h>
 #include <cuda/stream>
 
 #include <cuda/experimental/__places/places.cuh>
+
+#include <nv/target>
 
 #include <cstddef>
 #include <cstdint>
@@ -65,6 +68,15 @@ namespace cuda::experimental::places
 class place_memory_resource
 {
 public:
+  /// @brief Default property set for containers created from this resource.
+  ///
+  /// Every `data_place` hands out device-accessible memory (device and
+  /// locality-domain allocations, managed memory, and pinned host memory),
+  /// so `device_accessible` is the honest common denominator. This is what
+  /// lets a `place_memory_resource` travel through an environment into
+  /// `cuda::buffer`-based algorithm temporaries.
+  using default_queries = ::cuda::mr::properties_list<::cuda::mr::device_accessible>;
+
   /// @brief Construct a memory resource allocating from @p place.
   _CCCL_HOST_API explicit place_memory_resource(data_place place)
       : place_(mv(place))
@@ -93,49 +105,55 @@ public:
   }
 
   /// @brief Stream-ordered allocation (models the `cuda::mr` resource concept).
-  [[nodiscard]] _CCCL_HOST_API void*
+  ///
+  /// Host/device-annotated so the resource can travel through environments
+  /// into `CUB_RUNTIME_FUNCTION` dispatch layers; calling it from device code
+  /// terminates (placement decisions are host-side).
+  [[nodiscard]] _CCCL_HOST_DEVICE void*
   allocate(::cuda::stream_ref stream, ::std::size_t bytes, ::std::size_t alignment = alignof(::std::max_align_t))
   {
-    if (!is_valid_alignment(alignment))
-    {
-      _CCCL_THROW(::std::invalid_argument, "place_memory_resource: unsupported alignment");
-    }
-    if (bytes > static_cast<::std::size_t>(PTRDIFF_MAX))
-    {
-      _CCCL_THROW(::std::invalid_argument, "place_memory_resource: allocation size exceeds PTRDIFF_MAX");
-    }
-    if (bytes == 0)
-    {
-      return nullptr;
-    }
-    const cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
-    return place_.allocate(static_cast<::std::ptrdiff_t>(bytes), cuda_stream);
+    void* result = nullptr;
+    NV_IF_ELSE_TARGET(
+      NV_IS_HOST,
+      (
+        if (!is_valid_alignment(alignment)) {
+          _CCCL_THROW(::std::invalid_argument, "place_memory_resource: unsupported alignment");
+        } if (bytes > static_cast<::std::size_t>(PTRDIFF_MAX)) {
+          _CCCL_THROW(::std::invalid_argument, "place_memory_resource: allocation size exceeds PTRDIFF_MAX");
+        } if (bytes != 0) {
+          const cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
+          result                         = place_.allocate(static_cast<::std::ptrdiff_t>(bytes), cuda_stream);
+        }),
+      ((void) stream; (void) bytes; (void) alignment; ::cuda::std::terminate();));
+    return result;
   }
 
-  /// @brief Stream-ordered deallocation (models the `cuda::mr` resource concept).
-  _CCCL_HOST_API void deallocate(
+  /// @brief Stream-ordered deallocation (models the `cuda::mr` resource
+  /// concept). Host-side only; calling it from device code terminates.
+  _CCCL_HOST_DEVICE void deallocate(
     ::cuda::stream_ref stream,
     void* ptr,
     ::std::size_t bytes,
     ::std::size_t /*alignment*/ = alignof(::std::max_align_t)) noexcept
   {
-    if (ptr == nullptr)
-    {
-      return;
-    }
-    const cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
     // Deallocation is noexcept by the convention of the cuda::mr resources
     // (their bodies never throw); a deallocation failure is not recoverable,
     // so report it rather than terminate through the noexcept boundary.
-    try
-    {
-      place_.deallocate(ptr, bytes, cuda_stream);
-    }
-    catch (const ::std::exception& e)
-    {
-      ::fprintf(stderr, "place_memory_resource::deallocate failed: %s\n", e.what());
-      _CCCL_ASSERT(false, "place_memory_resource::deallocate failed");
-    }
+    // Device-side calls terminate (the CUB device_memory_resource idiom).
+    NV_IF_ELSE_TARGET(NV_IS_HOST,
+                      (if (ptr != nullptr) {
+                        cudaStream_t cuda_stream = is_stream_ordered_ ? stream.get() : nullptr;
+                        try
+                        {
+                          place_.deallocate(ptr, bytes, cuda_stream);
+                        }
+                        catch (const ::std::exception& e)
+                        {
+                          ::fprintf(stderr, "place_memory_resource::deallocate failed: %s\n", e.what());
+                          _CCCL_ASSERT(false, "place_memory_resource::deallocate failed");
+                        }
+                      }),
+                      ((void) stream; (void) ptr; (void) bytes; ::cuda::std::terminate();));
   }
 
   /// @brief Synchronous allocation (models the `cuda::mr` synchronous resource concept).
@@ -175,6 +193,9 @@ public:
       _CCCL_ASSERT(false, "place_memory_resource::deallocate_sync failed");
     }
   }
+
+  /// @brief The resource's memory is device accessible (see `default_queries`).
+  friend constexpr void get_property(const place_memory_resource&, ::cuda::mr::device_accessible) noexcept {}
 
   /// @brief Two resources are equal when they allocate from the same place.
   [[nodiscard]] _CCCL_HOST_API friend bool
