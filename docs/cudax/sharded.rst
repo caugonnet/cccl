@@ -104,7 +104,9 @@ The algorithm family:
   compaction in place, then shard sizes and offsets are updated;
 - ``unique``: per-place CUB ``DeviceSelect::Unique`` in place, then
   duplicates straddling shard boundaries are trimmed with an O(1) size
-  decrement per boundary.
+  decrement per boundary;
+- ``sort``: global in-place sort with the MGMN distributed sort as the
+  engine, driven through the places communicator (see below).
 
 Algorithm temporaries are drawn from each shard's place through the group's
 per-place memory resources.
@@ -151,3 +153,23 @@ Engine temporaries are drawn from each rank's environment, so scratch is
 placed where the rank's work runs. Code written against the communicator
 surface is portable across rungs: the same call runs over in-process places
 here and over multi-process ranks with an NCCL-backed communicator.
+
+sort: an MGMN construct as the engine
+-------------------------------------
+
+``sort(group, data, comp)`` sorts the logical array globally, in place. It is
+the two-tier structure end to end: the container tier manufactures the
+communicator/environment/iterator ranges with ``bind_engine``; the engine
+tier is the ``__multi_gpu`` distributed sort running over them, unmodified.
+
+The engine delivers to each rank its slice of the globally sorted sequence,
+redistributed back to the rank's original element count — so shard sizes,
+offsets and capacities are unchanged by construction, and contiguous
+(``allocate_contiguous``) arrays are fully supported: after the sort,
+``contiguous_data()`` reads as one globally sorted array. Sorting is not
+stable. For keys-only sorting the result is unique as a multiset, so repeated
+runs on the same input are byte-identical.
+
+The engine slot is swappable behind the same name and contract: an
+in-process, placement-aware specialization can replace it later as a
+performance change, not an API change.

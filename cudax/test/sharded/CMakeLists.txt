@@ -8,6 +8,7 @@ set(
   algorithms/reduce_scan.cu
   algorithms/count_histogram.cu
   algorithms/compaction.cu
+  algorithms/sort.cu
   communicator/concepts.cu
   communicator/verbs.cu
   communicator/bridge.cu
