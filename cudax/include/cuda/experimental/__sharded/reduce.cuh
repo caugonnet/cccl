@@ -67,7 +67,7 @@ _Tp reduce(place_group& group, const sharded_array<_Tp>& data, _ReduceOp reduce_
   }
 
   // Host-side combine + synchronization: cannot be recorded into a CUDA graph
-  detail::check_not_capturing(data, "sharded::reduce");
+  reserved::check_not_capturing(data, "sharded::reduce");
 
   const size_t num_shards = data.num_shards();
 

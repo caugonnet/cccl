@@ -127,7 +127,7 @@ private:
   int devid_ = -1;
 };
 
-namespace detail
+namespace reserved
 {
 //! RAII: make a driver context current (push/pop).
 class ctx_scope
@@ -498,7 +498,7 @@ inline void match_p2p(comm_group_state& st)
     s = matched ? st.posted_sends.erase(s) : s + 1;
   }
 }
-} // namespace detail
+} // namespace reserved
 
 /**
  * @brief Group-semantics guard: collective calls made while a guard is alive
@@ -513,7 +513,7 @@ inline void match_p2p(comm_group_state& st)
 class comm_group_guard
 {
 public:
-  explicit comm_group_guard(::std::shared_ptr<detail::comm_group_state> st)
+  explicit comm_group_guard(::std::shared_ptr<reserved::comm_group_state> st)
       : state_(::std::move(st))
   {}
 
@@ -548,7 +548,7 @@ public:
   }
 
 private:
-  ::std::shared_ptr<detail::comm_group_state> state_;
+  ::std::shared_ptr<reserved::comm_group_state> state_;
 };
 
 /**
@@ -565,7 +565,7 @@ public:
   using native_handle_type = exec_place;
   using group_guard_type   = comm_group_guard;
 
-  basic_places_communicator(::std::shared_ptr<detail::comm_group_state> st, int rank)
+  basic_places_communicator(::std::shared_ptr<reserved::comm_group_state> st, int rank)
       : state_(::std::move(st))
       , rank_(rank)
   {}
@@ -605,14 +605,14 @@ public:
    */
   void send(group_guard_type&, const void* buf, size_t nbytes, ::std::int32_t peer, ::cuda::stream_ref stream) const
   {
-    state_->posted_sends.push_back(detail::pending_p2p{buf, nullptr, nbytes, rank_, peer, stream.get()});
-    detail::match_p2p(*state_);
+    state_->posted_sends.push_back(reserved::pending_p2p{buf, nullptr, nbytes, rank_, peer, stream.get()});
+    reserved::match_p2p(*state_);
   }
 
   void recv(group_guard_type&, void* buf, size_t nbytes, ::std::int32_t peer, ::cuda::stream_ref stream) const
   {
-    state_->posted_recvs.push_back(detail::pending_p2p{nullptr, buf, nbytes, rank_, peer, stream.get()});
-    detail::match_p2p(*state_);
+    state_->posted_recvs.push_back(reserved::pending_p2p{nullptr, buf, nbytes, rank_, peer, stream.get()});
+    reserved::match_p2p(*state_);
   }
 
   /// @brief all_gather: every rank's `count` elements become addressable in
@@ -620,9 +620,9 @@ public:
   template <typename _Tp>
   void all_gather(group_guard_type&, const _Tp* sendbuff, _Tp* recvbuff, size_t count, ::cuda::stream_ref stream) const
   {
-    detail::contribute(
+    reserved::contribute(
       *state_,
-      detail::pending_collective::op_kind::all_gather,
+      reserved::pending_collective::op_kind::all_gather,
       rank_,
       sendbuff,
       recvbuff,
@@ -631,7 +631,7 @@ public:
       stream.get());
     if (state_->coll.contributed == size())
     {
-      detail::flush_collective(*state_);
+      reserved::flush_collective(*state_);
     }
   }
 
@@ -651,9 +651,9 @@ public:
     const size_t* displs,
     ::cuda::stream_ref stream) const
   {
-    detail::contribute(
+    reserved::contribute(
       *state_,
-      detail::pending_collective::op_kind::all_gather_v,
+      reserved::pending_collective::op_kind::all_gather_v,
       rank_,
       sendbuff,
       recvbuff,
@@ -666,7 +666,7 @@ public:
     c.recv_displs[rank_] = displs;
     if (c.contributed == size())
     {
-      detail::flush_collective(*state_);
+      reserved::flush_collective(*state_);
     }
   }
 
@@ -675,9 +675,9 @@ public:
   template <typename _Tp>
   void all_to_all(group_guard_type&, const _Tp* sendbuff, _Tp* recvbuff, size_t count, ::cuda::stream_ref stream) const
   {
-    detail::contribute(
+    reserved::contribute(
       *state_,
-      detail::pending_collective::op_kind::all_to_all,
+      reserved::pending_collective::op_kind::all_to_all,
       rank_,
       sendbuff,
       recvbuff,
@@ -686,7 +686,7 @@ public:
       stream.get());
     if (state_->coll.contributed == size())
     {
-      detail::flush_collective(*state_);
+      reserved::flush_collective(*state_);
     }
   }
 
@@ -706,9 +706,9 @@ public:
     const size_t* recv_displs,
     ::cuda::stream_ref stream) const
   {
-    detail::contribute(
+    reserved::contribute(
       *state_,
-      detail::pending_collective::op_kind::all_to_all_v,
+      reserved::pending_collective::op_kind::all_to_all_v,
       rank_,
       sendbuff,
       recvbuff,
@@ -722,12 +722,12 @@ public:
     c.recv_displs[rank_] = recv_displs;
     if (c.contributed == size())
     {
-      detail::flush_collective(*state_);
+      reserved::flush_collective(*state_);
     }
   }
 
 protected:
-  ::std::shared_ptr<detail::comm_group_state> state_;
+  ::std::shared_ptr<reserved::comm_group_state> state_;
   ::std::int32_t rank_ = -1;
 };
 
@@ -741,14 +741,14 @@ public:
   using basic_places_communicator::basic_places_communicator;
 
   /// @brief all_reduce with a FIXED fold order (bit-identical results run to
-  /// run; see `detail::fold_kernel`).
+  /// run; see `reserved::fold_kernel`).
   template <typename _Tp, typename _Op>
   void all_reduce(
     group_guard_type&, const _Tp* sendbuff, _Tp* recvbuff, size_t count, _Op op, ::cuda::stream_ref stream) const
   {
-    detail::contribute(
+    reserved::contribute(
       *state_,
-      detail::pending_collective::op_kind::all_reduce,
+      reserved::pending_collective::op_kind::all_reduce,
       rank_,
       sendbuff,
       recvbuff,
@@ -758,8 +758,8 @@ public:
     auto& c = state_->coll;
     if (!c.launch)
     {
-      c.launch = [op](detail::comm_group_state& st, detail::pending_collective& cc) {
-        detail::fold_args<_Tp> a{};
+      c.launch = [op](reserved::comm_group_state& st, reserved::pending_collective& cc) {
+        reserved::fold_args<_Tp> a{};
         const int n = static_cast<int>(st.ranks.size());
         for (int r = 0; r < n; ++r)
         {
@@ -769,13 +769,13 @@ public:
         const int threads = 256;
         const int blocks  = static_cast<int>(::std::min<size_t>((cc.count + threads - 1) / threads, size_t{1024}));
         // rank 0's context is current here (flush_collective holds it)
-        detail::fold_kernel<_Tp, _Op><<<blocks, threads, 0, cc.stream[0]>>>(a, n, cc.count, op);
+        reserved::fold_kernel<_Tp, _Op><<<blocks, threads, 0, cc.stream[0]>>>(a, n, cc.count, op);
         cuda_safe_call(cudaGetLastError());
       };
     }
     if (c.contributed == size())
     {
-      detail::flush_collective(*state_);
+      reserved::flush_collective(*state_);
     }
   }
 };
@@ -799,11 +799,11 @@ template <class _Comm = places_communicator>
                 "sharded::make_communicators: need 1.." + ::std::to_string(comm_max_ranks) + " places");
   }
 
-  auto st = ::std::make_shared<detail::comm_group_state>();
+  auto st = ::std::make_shared<reserved::comm_group_state>();
   st->ranks.reserve(places.size());
   for (auto& p : places)
   {
-    detail::comm_rank_state r;
+    reserved::comm_rank_state r;
     r.place = p;
     {
       exec_place_scope scope(p);

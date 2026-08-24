@@ -88,7 +88,7 @@ template <typename _Tp, typename _LevelT>
   }
 
   // Host-side combine + synchronization: cannot be recorded into a CUDA graph
-  detail::check_not_capturing(data, "sharded::histogram_even");
+  reserved::check_not_capturing(data, "sharded::histogram_even");
 
   const size_t num_shards = data.num_shards();
   using counter_type      = unsigned long long; // device-atomics-capable bin counter

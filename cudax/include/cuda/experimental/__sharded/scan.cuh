@@ -53,7 +53,7 @@ enum class scan_type
   exclusive //!< output[i] = op(init, input[0], ..., input[i-1])
 };
 
-namespace detail
+namespace reserved
 {
 template <typename _Tp, typename _ScanOp>
 struct apply_prefix_fn
@@ -77,7 +77,8 @@ void scan_impl(place_group&, sharded_array<_Tp>& data, scan_type type, _ScanOp s
   }
 
   // Host-side prefix combine + synchronization: cannot be recorded into a graph
-  check_not_capturing(data, type == scan_type::inclusive ? "sharded::inclusive_scan" : "sharded::exclusive_scan");
+  reserved::check_not_capturing(
+    data, type == scan_type::inclusive ? "sharded::inclusive_scan" : "sharded::exclusive_scan");
 
   const size_t num_shards = data.num_shards();
 
@@ -192,20 +193,20 @@ void scan_impl(place_group&, sharded_array<_Tp>& data, scan_type type, _ScanOp s
   }
   host_mr.deallocate_sync(h_shard_totals, host_bytes, alignof(_Tp));
 }
-} // namespace detail
+} // namespace reserved
 
 /// @brief In-place inclusive scan with a custom operator.
 template <typename _Tp, typename _ScanOp>
 void inclusive_scan(place_group& group, sharded_array<_Tp>& data, _ScanOp scan_op)
 {
-  detail::scan_impl<_Tp>(group, data, scan_type::inclusive, scan_op, _Tp{0});
+  reserved::scan_impl<_Tp>(group, data, scan_type::inclusive, scan_op, _Tp{0});
 }
 
 /// @brief In-place inclusive sum.
 template <typename _Tp>
 void inclusive_scan(place_group& group, sharded_array<_Tp>& data)
 {
-  detail::scan_impl<_Tp>(group, data, scan_type::inclusive, ::cuda::std::plus<_Tp>{}, _Tp{0});
+  reserved::scan_impl<_Tp>(group, data, scan_type::inclusive, ::cuda::std::plus<_Tp>{}, _Tp{0});
 }
 
 /// @brief In-place exclusive scan with a custom operator and initial value.
@@ -214,14 +215,14 @@ template <typename _Tp,
           typename = ::cuda::std::enable_if_t<::cuda::std::is_invocable_v<_ScanOp, _Tp, _Tp>>>
 void exclusive_scan(place_group& group, sharded_array<_Tp>& data, _ScanOp scan_op, _Tp init_value = _Tp{0})
 {
-  detail::scan_impl<_Tp>(group, data, scan_type::exclusive, scan_op, init_value);
+  reserved::scan_impl<_Tp>(group, data, scan_type::exclusive, scan_op, init_value);
 }
 
 /// @brief In-place exclusive sum.
 template <typename _Tp>
 void exclusive_scan(place_group& group, sharded_array<_Tp>& data, _Tp init_value = _Tp{0})
 {
-  detail::scan_impl<_Tp>(group, data, scan_type::exclusive, ::cuda::std::plus<_Tp>{}, init_value);
+  reserved::scan_impl<_Tp>(group, data, scan_type::exclusive, ::cuda::std::plus<_Tp>{}, init_value);
 }
 
 /// @brief Alias for the inclusive sum.

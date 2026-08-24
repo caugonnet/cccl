@@ -222,10 +222,6 @@ record the pipeline, and ``join_into(origin)`` before ending the capture
    out.join_into(origin);                           // join
    cudaStreamEndCapture(origin, &graph);
 
-(For streams not owned by a container — e.g. raw ``place_group`` streams —
-``cuda::stream_ref{wait}.wait(stream_ref{signal})`` remains the underlying event
-primitive.)
-
 The captured graph is placement-faithful: each shard's kernels are recorded
 from that place's stream, and the per-place SM confinement of those streams
 survives instantiation and replay (pinned by an SM-id check in the test
