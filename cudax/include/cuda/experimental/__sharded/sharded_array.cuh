@@ -176,6 +176,19 @@ public:
     {
       if (size == 0)
       {
+        // Keep the shard (empty, no storage): shard positions correspond to
+        // spec positions -- and to group places in the place_group overloads
+        // -- even when a size is zero, the same way compaction leaves
+        // emptied shards in place.
+        shard_type s;
+        s.size          = 0;
+        s.capacity      = 0;
+        s.global_offset = offset;
+        s.place         = dplace;
+        s.exec          = eplace;
+        s.stream        = stream;
+        s.data          = nullptr;
+        arr.shards_.push_back(s);
         continue;
       }
 
@@ -463,6 +476,10 @@ public:
   {
     for (auto& s : shards_)
     {
+      if (s.size == 0)
+      {
+        continue;
+      }
       exec_place_scope scope(s.exec);
       if (s.stream)
       {
@@ -547,6 +564,9 @@ public:
   each_shard_visitor each_shard;
 
   /// @brief Synchronize every shard's reference stream.
+  ///
+  /// One shard: `cuda::stream_ref{arr.shard(i).stream}.sync()` is the
+  /// per-shard spelling; this member is the whole-container operation.
   void sync() const
   {
     for (const auto& s : shards_)
@@ -583,7 +603,7 @@ public:
    * composition idiom between a captured caller stream and the shard streams.
    *
    * Events are drawn from a small pool owned by the container (lazily
-   * created, reused across calls; see `detail::fork_join_event_pool` for the
+   * created, reused across calls; see `reserved::fork_join_event_pool` for the
    * ownership rationale), so adopted arrays with foreign streams are fully
    * supported. Shards without a reference stream are skipped: their
    * operations are synchronous and need no ordering. Concurrent
@@ -1036,7 +1056,7 @@ private:
   ::std::shared_ptr<places::localized_array> contiguous_backing_;
   // Pooled events for fork_from/join_into (lazily created; mutable because
   // the ordering declarations are const — they do not modify elements).
-  mutable detail::fork_join_event_pool fork_join_events_;
+  mutable reserved::fork_join_event_pool fork_join_events_;
 };
 
 // ============================================================================

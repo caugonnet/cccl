@@ -49,7 +49,7 @@
 
 namespace cuda::experimental::sharded
 {
-namespace detail
+namespace reserved
 {
 template <typename _Tp>
 size_t unique_impl(place_group& group, sharded_array<_Tp>& data)
@@ -146,7 +146,7 @@ size_t unique_impl(place_group& group, sharded_array<_Tp>& data)
 
   return data.size();
 }
-} // namespace detail
+} // namespace reserved
 
 /**
  * @brief Remove consecutive duplicate elements, in place (`std::unique`
@@ -178,6 +178,6 @@ size_t unique(place_group& group, sharded_array<_Tp>& data)
                 "contiguous_data(), and compacting across the gaps would migrate elements across the placement the "
                 "caller asked for. Use a non-contiguous sharded_array, or copy into one first.");
   }
-  return detail::unique_impl(group, data);
+  return reserved::unique_impl(group, data);
 }
 } // namespace cuda::experimental::sharded
