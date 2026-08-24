@@ -27,6 +27,7 @@
 #pragma once
 
 #include <cuda/__cccl_config>
+#include <cuda/std/cstddef>
 
 #if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
 #  pragma GCC system_header
@@ -106,7 +107,7 @@ public:
    * The caller must have the shard's execution place ACTIVE (the event is
    * created in the current context so it matches the shard's stream).
    */
-  cudaEvent_t join_event(size_t idx)
+  cudaEvent_t join_event(::cuda::std::size_t idx)
   {
     const ::std::lock_guard<::std::mutex> lock(mutex_);
     if (idx >= join_events_.size())
@@ -141,12 +142,14 @@ public:
     {
       places::cuda_safe_call(cudaSetDevice(device));
     }
-    cudaEvent_t ev = nullptr;
-    places::cuda_safe_call(cudaEventCreateWithFlags(&ev, cudaEventDisableTiming));
+    cudaEvent_t ev                = nullptr;
+    const cudaError_t create_stat = cudaEventCreateWithFlags(&ev, cudaEventDisableTiming);
+    // Restore the current device on EVERY path before surfacing a failure.
     if (prev != device)
     {
       places::cuda_safe_call(cudaSetDevice(prev));
     }
+    places::cuda_safe_call(create_stat);
     fork_events_.emplace_back(device, ev);
     return ev;
   }
