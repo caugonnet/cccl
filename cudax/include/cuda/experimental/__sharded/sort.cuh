@@ -111,7 +111,7 @@ void sort(place_group& group, sharded_array<_Tp>& data, _Compare comp = {}, sort
 
   check_places(data, group, "sharded::sort");
 
-  const bool va_eligible = detail_sort_va::one_shared_address_space(data);
+  const bool va_eligible = reserved::one_shared_address_space(data);
 
   if (engine == sort_engine::shared_va && !va_eligible)
   {
@@ -121,7 +121,7 @@ void sort(place_group& group, sharded_array<_Tp>& data, _Compare comp = {}, sort
 
   if (engine == sort_engine::shared_va || (engine == sort_engine::automatic && va_eligible))
   {
-    detail_sort_va::sort_shared_va(group, data, comp);
+    reserved::sort_shared_va(group, data, comp);
     return;
   }
 

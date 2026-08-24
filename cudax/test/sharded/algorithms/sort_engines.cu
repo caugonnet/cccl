@@ -247,13 +247,13 @@ void test_eligibility(place_group& group)
   // Device-backed shards of one device share an address space.
   {
     auto dev = sharded_array<int>::allocate(group, size_t{1024});
-    EXPECT(detail_sort_va::one_shared_address_space(dev));
+    EXPECT(reserved::one_shared_address_space(dev));
   }
 
   // A host shard does not; the explicit shared_va request is refused.
   {
     auto host_arr = sharded_array<int>::allocate_host(1024);
-    EXPECT(!detail_sort_va::one_shared_address_space(host_arr));
+    EXPECT(!reserved::one_shared_address_space(host_arr));
 
     // Give it a matching single-place "group" to pass the shape check.
     place_group host_group(

@@ -86,7 +86,7 @@
 
 namespace cuda::experimental::sharded
 {
-namespace detail_sort_va
+namespace reserved
 {
 /// @brief Maximum number of places the multiselect kernel accepts by value.
 inline constexpr int max_places = 64;
@@ -553,5 +553,5 @@ void sort_shared_va(place_group& group, sharded_array<_Tp>& data, _Compare comp)
   }
   (void) group;
 }
-} // namespace detail_sort_va
+} // namespace reserved
 } // namespace cuda::experimental::sharded
