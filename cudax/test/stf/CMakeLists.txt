@@ -116,6 +116,7 @@ set(
   stackable/composite_conditional.cu
   stackable/executable_graph_cache_streams.cu
   stackable/graph_scope_test.cu
+  stackable/sibling_scope_dependencies.cu
   stencil/stencil-1D.cu
   stress/empty_tasks.cu
   stress/empty_tasks_alloc.cu
