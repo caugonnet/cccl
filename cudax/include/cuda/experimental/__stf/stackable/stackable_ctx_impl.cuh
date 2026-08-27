@@ -427,6 +427,24 @@ public:
       }
     };
 
+    // Keep a cached executable graph unavailable for update/reuse until the
+    // parent context has consumed the completion event for its last launch.
+    class executable_graph_lease_resource : public ctx_resource
+    {
+    public:
+      explicit executable_graph_lease_resource(::std::shared_ptr<cudaGraphExec_t> exec)
+          : exec_(mv(exec))
+      {}
+
+      bool can_release_in_callback() const noexcept override
+      {
+        return true;
+      }
+
+    private:
+      ::std::shared_ptr<cudaGraphExec_t> exec_;
+    };
+
     /*
      * Graph context node - uses explicit graph management
      */
@@ -756,6 +774,10 @@ public:
 
         // Create an event that depends on the completion of previous operations in the stream
         auto& parent_ctx = parent_ctx_node->ctx;
+        if (exec_graph_)
+        {
+          parent_ctx.add_resource(::std::make_shared<executable_graph_lease_resource>(exec_graph_));
+        }
         return parent_ctx.stream_to_event_list(support_stream, "finalized");
       }
 

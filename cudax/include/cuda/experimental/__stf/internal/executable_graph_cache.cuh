@@ -165,6 +165,15 @@ public:
     for (auto it = range.first; it != range.second; ++it)
     {
       auto& e = it->second;
+      // Updating or launching a cudaGraphExec_t that still has an asynchronous
+      // launch in flight serializes with that launch. Stackable graph launches
+      // retain an additional shared owner until the parent consumes their
+      // completion, so only the cache's sole-owner entries are reusable.
+      if (e.exec_g.use_count() != 1)
+      {
+        continue;
+      }
+
       if (reserved::try_updating_executable_graph(*e.exec_g, g))
       {
         // update the last use index for the LRU algorithm
