@@ -1346,20 +1346,22 @@ public:
         , tdeps(mv(deps)...)
     {}
 
-    template <typename T>
-    using data_t_of = typename T::data_t;
-
     template <typename CondFunc>
     void operator->*(CondFunc&& cond_func)
     {
+      // The lambda is generic because cuda_kernel filters void_interface
+      // (token) instances out of the arguments it passes; declaring
+      // data_t_of<Deps>... here would mismatch the filtered arity whenever a
+      // dependency is a token. The condition functor consequently receives
+      // only the non-void instances, consistent with other constructs.
       ::std::apply(
         [this](auto&&... deps) {
           return this->ctx_.cuda_kernel(deps...).set_symbol("condition_update");
         },
         tdeps)
-          ->*[cond_func = mv(cond_func), h = handle_](data_t_of<Deps>... args) {
+          ->*[cond_func = mv(cond_func), h = handle_](auto... args) {
                 return cuda_kernel_desc{
-                  reserved::condition_update_kernel<CondFunc, data_t_of<Deps>...>, 1, 1, 0, h, cond_func, args...};
+                  reserved::condition_update_kernel<CondFunc, decltype(args)...>, 1, 1, 0, h, cond_func, args...};
               };
     }
 
