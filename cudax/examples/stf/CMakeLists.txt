@@ -31,6 +31,7 @@ set(
   fdtd_repeat_n.cu
   frozen_data_init.cu
   graph_algorithms/degree_centrality.cu
+  graph_algorithms/eigenvector_tokens.cu
   graph_algorithms/jaccard.cu
   graph_algorithms/pagerank.cu
   graph_algorithms/pagerank_batched.cu
