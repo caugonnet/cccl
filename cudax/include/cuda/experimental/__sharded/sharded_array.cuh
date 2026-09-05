@@ -38,9 +38,11 @@
 #include <cuda/std/type_traits>
 #include <cuda/stream>
 
+#include <cuda/experimental/__places/exec/locality_domain.cuh>
 #include <cuda/experimental/__places/localized_array.cuh>
 #include <cuda/experimental/__places/place_group.cuh>
 #include <cuda/experimental/__places/places.cuh>
+#include <cuda/experimental/__sharded/cuda_safe_call.cuh>
 #include <cuda/experimental/__sharded/fork_join.cuh>
 #include <cuda/experimental/__sharded/shard.cuh>
 
@@ -58,8 +60,8 @@
 
 namespace cuda::experimental::sharded
 {
-using ::cuda::experimental::places::cuda_safe_call;
 using ::cuda::experimental::places::exec_place_scope;
+using ::cuda::experimental::places::make_locality_domain_grid;
 using ::cuda::experimental::places::mv;
 using ::cuda::experimental::places::place_group;
 
@@ -251,12 +253,12 @@ public:
    *
    * Each shard lives on the affine data place of the corresponding group
    * place and gets a reference stream from the group's per-place pool at the
-   * given color (or a round-robin color by default).
+   * given lane_id (or a round-robin lane_id by default).
    *
    * @throws std::invalid_argument when `sizes.size() != group.size()`.
    */
   static sharded_array
-  allocate(place_group& group, const ::std::vector<size_t>& sizes, size_t color = place_group::auto_stream_color)
+  allocate(place_group& group, const ::std::vector<size_t>& sizes, size_t lane_id = place_group::auto_lane_id)
   {
     if (sizes.size() != group.size())
     {
@@ -265,23 +267,23 @@ public:
                     + ") must equal the number of places in the group (" + ::std::to_string(group.size()) + ")");
     }
 
-    const size_t effective_color = (color == place_group::auto_stream_color) ? group.next_stream_color() : color;
+    const size_t effective_lane = (lane_id == place_group::auto_lane_id) ? group.next_lane_id() : lane_id;
 
     ::std::vector<shard_spec> specs;
     specs.reserve(sizes.size());
     for (size_t i = 0; i < sizes.size(); i++)
     {
       const auto& place = group.place(i);
-      specs.emplace_back(sizes[i], place.affine_data_place(), place, group.get_stream(i, effective_color));
+      specs.emplace_back(sizes[i], place.affine_data_place(), place, group.get_stream(i, effective_lane));
     }
     return allocate(specs);
   }
 
   /// @brief Allocate `total_size` elements distributed evenly over a group's
   /// places (remainder to the first shards).
-  static sharded_array allocate(place_group& group, size_t total_size, size_t color = place_group::auto_stream_color)
+  static sharded_array allocate(place_group& group, size_t total_size, size_t lane_id = place_group::auto_lane_id)
   {
-    return allocate(group, split_evenly(total_size, group.size()), color);
+    return allocate(group, split_evenly(total_size, group.size()), lane_id);
   }
 
   // ========== Contiguous (VMM-backed) allocation ==========
@@ -400,17 +402,17 @@ public:
 
   /// @brief Contiguous allocation distributed evenly over a group's places.
   static sharded_array
-  allocate_contiguous(place_group& group, size_t total_size, size_t color = place_group::auto_stream_color)
+  allocate_contiguous(place_group& group, size_t total_size, size_t lane_id = place_group::auto_lane_id)
   {
-    const auto sizes             = split_evenly(total_size, group.size());
-    const size_t effective_color = (color == place_group::auto_stream_color) ? group.next_stream_color() : color;
+    const auto sizes            = split_evenly(total_size, group.size());
+    const size_t effective_lane = (lane_id == place_group::auto_lane_id) ? group.next_lane_id() : lane_id;
 
     ::std::vector<shard_spec> specs;
     specs.reserve(sizes.size());
     for (size_t i = 0; i < sizes.size(); i++)
     {
       const auto& place = group.place(i);
-      specs.emplace_back(sizes[i], place.affine_data_place(), place, group.get_stream(i, effective_color));
+      specs.emplace_back(sizes[i], place.affine_data_place(), place, group.get_stream(i, effective_lane));
     }
     return allocate_contiguous(specs);
   }
@@ -532,9 +534,21 @@ public:
   void copy_to_host(_Tp* host_data) const
   {
     check_not_capturing_any("sharded_array::copy_to_host");
+    // Asynchronous per-shard copies + one join: shards copy concurrently
+    // (mirrors copy_from_host; a pinned destination gets the overlap, a
+    // pageable one degrades per-copy but stays correct and ordered).
     each_shard->*[host_data](const auto& s) {
-      cuda_safe_call(cudaMemcpy(host_data + s.global_offset, s.data, s.size_bytes(), cudaMemcpyDefault));
+      if (s.stream)
+      {
+        cuda_safe_call(
+          cudaMemcpyAsync(host_data + s.global_offset, s.data, s.size_bytes(), cudaMemcpyDefault, s.stream));
+      }
+      else
+      {
+        cuda_safe_call(cudaMemcpy(host_data + s.global_offset, s.data, s.size_bytes(), cudaMemcpyDefault));
+      }
     };
+    sync(); // join all shard streams (the SYNCHRONOUS contract)
   }
 
   // ==========================================================================
@@ -956,6 +970,43 @@ public:
     recalculate_offsets();
   }
 
+  /**
+   * @brief Atomically set every shard's logical size and re-tile the global
+   * offsets: the owning structure's size-mutation verb.
+   *
+   * The view invariants (regions disjoint, ordered, exactly tiling
+   * `[0, total_size())`) hold before and after; there is no observable
+   * intermediate state. Capacities are unchanged; each new size must not
+   * exceed the shard's capacity. Refused on contiguous backing (the flat
+   * view's element order could not survive per-shard shrinkage).
+   *
+   * @throws std::invalid_argument on size/count mismatch, capacity overflow,
+   *         or contiguous backing.
+   */
+  void commit_sizes(const ::std::vector<size_t>& new_sizes)
+  {
+    if (new_sizes.size() != shards_.size())
+    {
+      _CCCL_THROW(::std::invalid_argument, "sharded_array::commit_sizes: one size per shard required");
+    }
+    if (is_contiguous())
+    {
+      _CCCL_THROW(::std::invalid_argument, "sharded_array::commit_sizes: not supported on contiguous backing");
+    }
+    for (size_t i = 0; i < shards_.size(); i++)
+    {
+      if (new_sizes[i] > shards_[i].capacity)
+      {
+        _CCCL_THROW(::std::invalid_argument, "sharded_array::commit_sizes: new size exceeds shard capacity");
+      }
+    }
+    for (size_t i = 0; i < shards_.size(); i++)
+    {
+      shards_[i].size = new_sizes[i];
+    }
+    recalculate_offsets();
+  }
+
   /// @brief Recompute global offsets from current shard sizes. Call after an
   /// operation that legitimately updated shard sizes.
   void recalculate_offsets()
@@ -1160,39 +1211,6 @@ void check_not_capturing(const sharded_array<_Tp>& data, const char* what)
 // ============================================================================
 // Compatibility checks
 // ============================================================================
-
-/**
- * @brief Validate that two sharded arrays have matching structure: same shard
- * count, same per-shard sizes, same per-shard data places.
- *
- * @throws std::invalid_argument on mismatch
- */
-template <typename _Tp, typename _Up>
-void check_compatible(const sharded_array<_Tp>& a, const sharded_array<_Up>& b, const char* context = "operation")
-{
-  if (a.num_shards() != b.num_shards())
-  {
-    _CCCL_THROW(::std::invalid_argument,
-                ::std::string(context) + ": shard count mismatch (" + ::std::to_string(a.num_shards()) + " vs "
-                  + ::std::to_string(b.num_shards()) + ")");
-  }
-
-  for (size_t g = 0; g < a.num_shards(); g++)
-  {
-    if (a.shard(g).size != b.shard(g).size)
-    {
-      _CCCL_THROW(::std::invalid_argument,
-                  ::std::string(context) + ": shard " + ::std::to_string(g) + " size mismatch ("
-                    + ::std::to_string(a.shard(g).size) + " vs " + ::std::to_string(b.shard(g).size) + ")");
-    }
-
-    if (a.shard(g).place != b.shard(g).place)
-    {
-      _CCCL_THROW(::std::invalid_argument,
-                  ::std::string(context) + ": shard " + ::std::to_string(g) + " data_place mismatch");
-    }
-  }
-}
 
 /// @brief Validate that an array has one shard per place of a group.
 /// @throws std::invalid_argument on mismatch

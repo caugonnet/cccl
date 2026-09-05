@@ -26,6 +26,7 @@
 #include <vector>
 
 using namespace cuda::experimental::sharded;
+using cuda::experimental::places::make_locality_domain_grid;
 using cuda::experimental::places::place_group;
 
 namespace
@@ -67,7 +68,7 @@ void test_refusals(place_group& group)
 {
   const size_t n = 65537;
   auto data      = sharded_array<long long>::allocate(group, n);
-  iota(group, data, 0LL);
+  iota(data, 0LL);
   ::std::vector<long long> host(n, 1);
 
   cudaStream_t origin;
@@ -107,22 +108,22 @@ void test_refusals(place_group& group)
 
   // Other synchronous collectives (host-side combine or size write-back)
   expect_refusal_keeps_capture(origin, [&] {
-    (void) count(group, data, 7LL);
+    (void) count(data, 7LL);
   });
   expect_refusal_keeps_capture(origin, [&] {
-    (void) histogram_even(group, data, 8, 0LL, static_cast<long long>(n));
+    (void) histogram_even(data, 8, 0LL, static_cast<long long>(n));
   });
   expect_refusal_keeps_capture(origin, [&] {
-    (void) copy_if(group, data, is_even_op{});
+    (void) copy_if(data, is_even_op{});
   });
   expect_refusal_keeps_capture(origin, [&] {
-    (void) unique(group, data);
+    (void) unique(data);
   });
 
-  // A blocking elementwise call records its kernels, then refuses at the
-  // final sync — still without invalidating the capture
+  // A synchronous elementwise call refuses at ENTRY, before any kernel is
+  // recorded — still without invalidating the capture
   expect_refusal_keeps_capture(origin, [&] {
-    fill(group, data, 3LL); // blocking = true
+    fill(data, 3LL); // synchronous form
   });
 
   // Abandon this capture (it holds the blocking fill's kernels)
@@ -137,10 +138,62 @@ void test_refusals(place_group& group)
   (void) other;
   data.copy_from_host(host.data());
   data.copy_to_host(host.data());
-  EXPECT(count(group, data, 1LL) == n); // copy_from_host wrote all ones
+  EXPECT(count(data, 1LL) == n); // copy_from_host wrote all ones
   data.sync();
   group.sync();
 
+  cuda_safe_call(cudaStreamDestroy(origin));
+}
+
+// The lane-ordered capture guard: an asynchronous call whose call stream is
+// capturing while the shard environments' streams are NOT must refuse at
+// entry (the work would silently escape the graph), leaving the capture
+// valid; forking the lanes first makes the same call legal.
+void test_lane_ordered_capture_guard(place_group& group)
+{
+  const size_t n = 4096;
+  auto data      = sharded_array<float>::allocate(group, n);
+  fill(data, 1.0f);
+  data.sync();
+
+  cudaStream_t origin;
+  cuda_safe_call(cudaStreamCreate(&origin));
+  cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
+
+  const auto cprop = ::cuda::std::execution::prop{::cuda::get_stream, ::cuda::stream_ref{origin}};
+  const auto ce    = ::cuda::std::execution::env{cprop};
+  bool threw       = false;
+  try
+  {
+    fill(data, default_envs(data), 2.0f, ce); // lanes not forked: refused
+  }
+  catch (const ::std::runtime_error&)
+  {
+    threw = true;
+  }
+  EXPECT(threw);
+  EXPECT(capture_active(origin));
+
+  // Forked lanes: the same call is legal and records.
+  data.fork_from(origin);
+  fill(data, default_envs(data), 2.0f, ce);
+  data.join_into(origin);
+
+  cudaGraph_t graph = nullptr;
+  cuda_safe_call(cudaStreamEndCapture(origin, &graph));
+  EXPECT(graph != nullptr);
+  cudaGraphExec_t exec = nullptr;
+  cuda_safe_call(cudaGraphInstantiate(&exec, graph, 0));
+  cuda_safe_call(cudaGraphLaunch(exec, origin));
+  cuda_safe_call(cudaStreamSynchronize(origin));
+  ::std::vector<float> host(n);
+  data.copy_to_host(host.data());
+  for (size_t i = 0; i < n; i++)
+  {
+    EXPECT(host[i] == 2.0f);
+  }
+  cuda_safe_call(cudaGraphExecDestroy(exec));
+  cuda_safe_call(cudaGraphDestroy(graph));
   cuda_safe_call(cudaStreamDestroy(origin));
 }
 
@@ -150,7 +203,7 @@ void test_adoption_is_benign(place_group& group)
 {
   const size_t n = 4096;
   auto owner     = sharded_array<float>::allocate(group, n);
-  fill(group, owner, 1.0f);
+  fill(owner, 1.0f);
 
   cudaStream_t origin;
   cuda_safe_call(cudaStreamCreate(&origin));
@@ -160,7 +213,9 @@ void test_adoption_is_benign(place_group& group)
   auto view = owner.slice(0, n); // adoption path (non-owning view)
   EXPECT(view.is_view());
   EXPECT(capture_active(origin));
-  fill(group, view, 2.0f, /*blocking=*/false); // captured through the view
+  const auto view_prop = ::cuda::std::execution::prop{::cuda::get_stream, ::cuda::stream_ref{origin}};
+  fill(view, default_envs(view), 2.0f, ::cuda::std::execution::env{view_prop}); // captured through the view (async
+                                                                                // form)
 
   owner.join_into(origin);
   cudaGraph_t graph = nullptr;
@@ -192,7 +247,7 @@ void test_group_materialization_records_nothing()
   cudaStream_t origin;
   cuda_safe_call(cudaStreamCreate(&origin));
 
-  auto group = place_group::by_locality_domains();
+  auto group = place_group{make_locality_domain_grid()};
 
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
   cudaStream_t s0 = group.get_stream(0); // lazy pool materialization
@@ -208,7 +263,7 @@ void test_group_materialization_records_nothing()
 
   // The group is fully usable after
   auto data = sharded_array<int>::allocate(group, 1000);
-  fill(group, data, 5);
+  fill(data, 5);
   ::std::vector<int> host(1000);
   data.copy_to_host(host.data());
   for (int v : host)
@@ -224,9 +279,10 @@ int main()
 {
   cuda_safe_call(cudaSetDevice(0));
 
-  auto group = place_group::by_locality_domains();
+  auto group = place_group{make_locality_domain_grid()};
 
   test_refusals(group);
+  test_lane_ordered_capture_guard(group);
   test_adoption_is_benign(group);
   test_group_materialization_records_nothing();
 

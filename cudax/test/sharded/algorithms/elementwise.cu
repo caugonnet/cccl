@@ -21,6 +21,7 @@
 #include <vector>
 
 using namespace cuda::experimental::sharded;
+using cuda::experimental::places::make_locality_domain_grid;
 using cuda::experimental::places::place_group;
 
 namespace
@@ -70,7 +71,7 @@ void test_fill_and_sequence(place_group& group)
   const size_t n = 100003;
   auto data      = sharded_array<long long>::allocate(group, n);
 
-  fill(group, data, 17LL);
+  fill(data, 17LL);
   ::std::vector<long long> host(n);
   data.copy_to_host(host.data());
   for (size_t i = 0; i < n; i++)
@@ -78,14 +79,14 @@ void test_fill_and_sequence(place_group& group)
     EXPECT(host[i] == 17LL);
   }
 
-  sequence(group, data, 5LL, 3LL); // 5, 8, 11, ...
+  sequence(data, default_envs(data), 5LL, 3LL); // 5, 8, 11, ...
   data.copy_to_host(host.data());
   for (size_t i = 0; i < n; i++)
   {
     EXPECT(host[i] == 5LL + 3LL * static_cast<long long>(i));
   }
 
-  iota(group, data, 100LL);
+  iota(data, 100LL);
   data.copy_to_host(host.data());
   for (size_t i = 0; i < n; i++)
   {
@@ -98,7 +99,7 @@ void test_tabulate_generate_for_each(place_group& group)
   const size_t n = 65537;
   auto data      = sharded_array<long long>::allocate(group, n);
 
-  tabulate(group, data, times_two_plus_index{});
+  tabulate(data, times_two_plus_index{});
   ::std::vector<long long> host(n);
   data.copy_to_host(host.data());
   for (size_t i = 0; i < n; i++)
@@ -106,7 +107,7 @@ void test_tabulate_generate_for_each(place_group& group)
     EXPECT(host[i] == 2 * static_cast<long long>(i) + 7);
   }
 
-  generate(group, data, const_gen{});
+  generate(data, const_gen{});
   data.copy_to_host(host.data());
   for (size_t i = 0; i < n; i++)
   {
@@ -114,7 +115,7 @@ void test_tabulate_generate_for_each(place_group& group)
   }
 
   // for_each sees the GLOBAL index: 42 + i
-  for_each(group, data, set_to_index{});
+  for_each(data, set_to_index{});
   data.copy_to_host(host.data());
   for (size_t i = 0; i < n; i++)
   {
@@ -126,10 +127,10 @@ void test_transform(place_group& group)
 {
   const size_t n = 50000;
   auto a         = sharded_array<long long>::allocate(group, n);
-  iota(group, a, 0LL);
+  iota(a, 0LL);
 
   // In-place
-  transform(group, a, negate_op{});
+  transform(a, negate_op{});
   ::std::vector<long long> host(n);
   a.copy_to_host(host.data());
   for (size_t i = 0; i < n; i++)
@@ -139,7 +140,7 @@ void test_transform(place_group& group)
 
   // Unary out-of-place
   auto b = sharded_array<long long>::allocate_like(a);
-  transform(group, a, b, negate_op{});
+  zip_transform(b, negate_op{}, a);
   b.copy_to_host(host.data());
   for (size_t i = 0; i < n; i++)
   {
@@ -148,7 +149,7 @@ void test_transform(place_group& group)
 
   // Binary: c = 3*a + b = -3i + i = -2i
   auto c = sharded_array<long long>::allocate_like(a);
-  transform(group, a, b, c, saxpy_op{});
+  zip_transform(c, saxpy_op{}, a, b);
   c.copy_to_host(host.data());
   for (size_t i = 0; i < n; i++)
   {
@@ -160,7 +161,7 @@ void test_transform(place_group& group)
   bool threw = false;
   try
   {
-    transform(group, a, other, negate_op{});
+    zip_transform(other, negate_op{}, a);
   }
   catch (const ::std::invalid_argument&)
   {
@@ -174,7 +175,7 @@ int main()
 {
   cuda_safe_call(cudaSetDevice(0));
 
-  auto group = place_group::by_locality_domains();
+  auto group = place_group{make_locality_domain_grid()};
 
   test_fill_and_sequence(group);
   test_tabulate_generate_for_each(group);
