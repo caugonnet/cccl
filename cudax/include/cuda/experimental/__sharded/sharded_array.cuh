@@ -35,6 +35,8 @@
 #  pragma system_header
 #endif // no system header
 
+#include <cuda/std/__execution/env.h>
+#include <cuda/std/optional>
 #include <cuda/std/type_traits>
 #include <cuda/stream>
 
@@ -64,6 +66,9 @@ using ::cuda::experimental::places::exec_place_scope;
 using ::cuda::experimental::places::make_locality_domain_grid;
 using ::cuda::experimental::places::mv;
 using ::cuda::experimental::places::place_group;
+
+//! @brief The lane a group-built container lives on: `place_group::lane_view`.
+using lane_view = place_group::lane_view;
 
 /// @brief How a container's memory is owned and released.
 enum class ownership
@@ -246,44 +251,147 @@ public:
     return allocate(full);
   }
 
-  // ========== place_group-based allocation ==========
+  // ========== Lane-based allocation (place_group) ==========
+  //
+  // A container built from a group lives on ONE lane: each shard's reference
+  // stream is its place's stream on that lane, so consecutive verbs on
+  // `default_envs(arr)` are stream-ordered per place and two containers on the
+  // same lane are ordered with each other. The lane is chosen by the view the
+  // container is built from — `allocate(group.lane(k), n)` — and a plain
+  // `group` means lane 0. It is the container's DEFAULT ordering domain, not a
+  // binding: verbs still take explicit environment ranges.
 
   /**
-   * @brief Allocate with explicit per-shard sizes over a `place_group`.
+   * @brief Allocate with explicit per-shard sizes on a lane of a group.
    *
    * Each shard lives on the affine data place of the corresponding group
-   * place and gets a reference stream from the group's per-place pool at the
-   * given lane_id (or a round-robin lane_id by default).
+   * place and gets that place's stream on the lane as its reference stream.
    *
-   * @throws std::invalid_argument when `sizes.size() != group.size()`.
+   * @throws std::invalid_argument when `sizes.size() != lane.size()`.
    */
-  static sharded_array
-  allocate(place_group& group, const ::std::vector<size_t>& sizes, size_t lane_id = place_group::auto_lane_id)
+  static sharded_array allocate(lane_view lane, const ::std::vector<size_t>& sizes)
   {
-    if (sizes.size() != group.size())
+    if (sizes.size() != lane.size())
     {
       _CCCL_THROW(::std::invalid_argument,
                   "sharded_array::allocate: sizes count (" + ::std::to_string(sizes.size())
-                    + ") must equal the number of places in the group (" + ::std::to_string(group.size()) + ")");
+                    + ") must equal the number of places in the group (" + ::std::to_string(lane.size()) + ")");
     }
-
-    const size_t effective_lane = (lane_id == place_group::auto_lane_id) ? group.next_lane_id() : lane_id;
 
     ::std::vector<shard_spec> specs;
     specs.reserve(sizes.size());
     for (size_t i = 0; i < sizes.size(); i++)
     {
-      const auto& place = group.place(i);
-      specs.emplace_back(sizes[i], place.affine_data_place(), place, group.get_stream(i, effective_lane));
+      const auto& place = lane.place(i);
+      specs.emplace_back(sizes[i], place.affine_data_place(), place, lane.stream(i));
     }
-    return allocate(specs);
+    auto arr  = allocate(specs);
+    arr.lane_ = lane.lane_id();
+    return arr;
   }
 
-  /// @brief Allocate `total_size` elements distributed evenly over a group's
-  /// places (remainder to the first shards).
-  static sharded_array allocate(place_group& group, size_t total_size, size_t lane_id = place_group::auto_lane_id)
+  /// @brief Allocate `total_size` elements distributed evenly over the
+  /// group's places (remainder to the first shards), on the view's lane.
+  static sharded_array allocate(lane_view lane, size_t total_size)
   {
-    return allocate(group, split_evenly(total_size, group.size()), lane_id);
+    return allocate(lane, split_evenly(total_size, lane.size()));
+  }
+
+  // ========== Lane-based adoption (place_group) ==========
+  //
+  // Adopting onto a lane enforces the lane semantic upfront: the caller's
+  // memory becomes a container whose reference streams are the lane's, so
+  // ordering against everything else on that lane is guaranteed before any
+  // verb runs. The producer's timeline, if there is one, enters exactly once
+  // as a dependency (`ready_on`) that is forked into the lane at adoption and
+  // then forgotten: the container never retains a foreign stream. Foreign
+  // reference streams have no place on the group path — they would force
+  // every verb to guess at conservative synchronization; use `adopt(shards)`
+  // only for foreign models consumed with explicit environments.
+  //
+  // The reverse edge stays explicit: before the producer reuses or frees the
+  // memory it joins the lane back into its own timeline (`join_into(stream)`
+  // or `barrier(envs, stream)`). Destroying the container enqueues nothing.
+
+  /// @brief One adopted piece: caller memory, its element count and the data
+  /// place its bytes live at.
+  struct adopted_shard
+  {
+    _Tp* data = nullptr;
+    size_t size = 0;
+    data_place place;
+  };
+
+  /**
+   * @brief Adopt caller-owned pieces onto a lane of a group (zero-copy view).
+   *
+   * Piece i is executed by the group's i-th place and gets that place's
+   * stream on the lane as its reference stream; its bytes are declared to
+   * live at `pieces[i].place`. The memory is assumed valid when the call is
+   * made (synchronous producers: `cudaMalloc` + a synchronous fill); pass a
+   * `ready_on` to the overload below for stream-ordered producers. The caller
+   * owes the memory's lifetime for as long as the view (or anything sliced
+   * from it) is used.
+   *
+   * @throws std::invalid_argument when `pieces.size() != lane.size()`.
+   */
+  static sharded_array adopt(lane_view lane, const ::std::vector<adopted_shard>& pieces)
+  {
+    if (pieces.size() != lane.size())
+    {
+      _CCCL_THROW(::std::invalid_argument,
+                  "sharded_array::adopt: pieces count (" + ::std::to_string(pieces.size())
+                    + ") must equal the number of places in the group (" + ::std::to_string(lane.size()) + ")");
+    }
+    ::std::vector<shard_type> shards(pieces.size());
+    size_t offset = 0;
+    for (size_t i = 0; i < pieces.size(); i++)
+    {
+      shard_type& s   = shards[i];
+      s.data          = pieces[i].data;
+      s.size          = pieces[i].size;
+      s.capacity      = pieces[i].size;
+      s.global_offset = offset;
+      s.place         = pieces[i].place;
+      s.exec          = lane.place(i);
+      s.stream        = lane.stream(i);
+      offset += s.size;
+    }
+    sharded_array arr(mv(shards));
+    arr.lane_ = lane.lane_id();
+    return arr;
+  }
+
+  /// @brief Adopt `(pointer, count)` pieces onto a lane; piece i's bytes are
+  /// declared at the affine data place of the group's i-th place.
+  static sharded_array adopt(lane_view lane, const ::std::vector<::std::pair<_Tp*, size_t>>& pieces)
+  {
+    ::std::vector<adopted_shard> full;
+    full.reserve(pieces.size());
+    for (size_t i = 0; i < pieces.size(); i++)
+    {
+      full.push_back(
+        adopted_shard{pieces[i].first, pieces[i].second, i < lane.size() ? lane.place(i).affine_data_place() : data_place{}});
+    }
+    return adopt(lane, full);
+  }
+
+  /**
+   * @brief Adopt onto a lane, depending on a producer's timeline.
+   *
+   * Same as the `ready_on`-less overloads, plus one ordering declaration: the
+   * memory is valid in the order of @p ready_on — a `cudaStream_t`, a
+   * `cuda::stream_ref`, or a per-call environment answering `cuda::get_stream`
+   * (the same spelling the verbs use for their call stream) — so every lane
+   * stream first waits on an event recorded there (`fork_from`). The producer
+   * stream is consumed at this call and not retained.
+   */
+  template <class _Pieces, class _ReadyOn>
+  static sharded_array adopt(lane_view lane, const _Pieces& pieces, const _ReadyOn& ready_on)
+  {
+    auto arr = adopt(lane, pieces);
+    arr.fork_from(ready_on);
+    return arr;
   }
 
   // ========== Contiguous (VMM-backed) allocation ==========
@@ -400,21 +508,22 @@ public:
     return arr;
   }
 
-  /// @brief Contiguous allocation distributed evenly over a group's places.
-  static sharded_array
-  allocate_contiguous(place_group& group, size_t total_size, size_t lane_id = place_group::auto_lane_id)
+  /// @brief Contiguous allocation distributed evenly over the group's places,
+  /// on the view's lane (plain `group` = lane 0).
+  static sharded_array allocate_contiguous(lane_view lane, size_t total_size)
   {
-    const auto sizes            = split_evenly(total_size, group.size());
-    const size_t effective_lane = (lane_id == place_group::auto_lane_id) ? group.next_lane_id() : lane_id;
+    const auto sizes = split_evenly(total_size, lane.size());
 
     ::std::vector<shard_spec> specs;
     specs.reserve(sizes.size());
     for (size_t i = 0; i < sizes.size(); i++)
     {
-      const auto& place = group.place(i);
-      specs.emplace_back(sizes[i], place.affine_data_place(), place, group.get_stream(i, effective_lane));
+      const auto& place = lane.place(i);
+      specs.emplace_back(sizes[i], place.affine_data_place(), place, lane.stream(i));
     }
-    return allocate_contiguous(specs);
+    auto arr  = allocate_contiguous(specs);
+    arr.lane_ = lane.lane_id();
+    return arr;
   }
 
   /// @brief True when the whole array is one contiguous VA range (`allocate_contiguous`).
@@ -479,7 +588,9 @@ public:
       const auto& s = other.shard(i);
       specs.emplace_back(s.size, s.place, s.exec, s.stream);
     }
-    return allocate(specs);
+    auto arr  = allocate(specs);
+    arr.lane_ = other.lane();
+    return arr;
   }
 
   // ========== Host transfer ==========
@@ -492,10 +603,11 @@ public:
     return arr;
   }
 
-  /// @brief Allocate evenly over a group's places and copy from host (synchronous).
-  static sharded_array from_host(place_group& group, const _Tp* host_data, size_t total_size)
+  /// @brief Allocate evenly over a group's places on the view's lane and copy
+  /// from host (synchronous).
+  static sharded_array from_host(lane_view lane, const _Tp* host_data, size_t total_size)
   {
-    auto arr = allocate(group, total_size);
+    auto arr = allocate(lane, total_size);
     arr.copy_from_host(host_data);
     return arr;
   }
@@ -671,6 +783,15 @@ public:
    * `fork_from`/`join_into` calls on the same container reuse the pooled
    * events and must be ordered externally.
    */
+  template <class _Source, ::cuda::std::enable_if_t<!::cuda::std::is_same_v<_Source, cudaStream_t>, int> = 0>
+  void fork_from(const _Source& source) const
+  {
+    // A `cuda::stream_ref` or any per-call environment answering
+    // `cuda::get_stream`: the same spelling the verbs use for their call
+    // stream, so fork and join read alike.
+    fork_from(::cuda::get_stream(source).get());
+  }
+
   void fork_from(cudaStream_t stream) const
   {
     cudaEvent_t event = nullptr; // recorded once, on the first distinct shard stream
@@ -728,6 +849,12 @@ public:
    * Capture-safe and pool-backed exactly like `fork_from` (see there for the
    * event-ownership and concurrency notes).
    */
+  template <class _Target, ::cuda::std::enable_if_t<!::cuda::std::is_same_v<_Target, cudaStream_t>, int> = 0>
+  void join_into(const _Target& target) const
+  {
+    join_into(::cuda::get_stream(target).get());
+  }
+
   void join_into(cudaStream_t stream) const
   {
     for (size_t i = 0; i < shards_.size(); i++)
@@ -756,6 +883,7 @@ public:
       , ownership_(other.ownership_)
       , contiguous_backing_(mv(other.contiguous_backing_))
       , fork_join_events_(mv(other.fork_join_events_))
+      , lane_(other.lane_)
   {
     each_shard.parent_ = this;
     other.total_size_  = 0;
@@ -772,6 +900,7 @@ public:
       ownership_          = other.ownership_;
       contiguous_backing_ = mv(other.contiguous_backing_);
       fork_join_events_   = mv(other.fork_join_events_);
+      lane_               = other.lane_;
       other.total_size_   = 0;
       other.ownership_    = ownership::view;
       // each_shard.parent_ already points to this
@@ -788,6 +917,15 @@ public:
   }
 
   // ========== Size and shard access ==========
+
+  /// @brief The lane this container was built on (`allocate(group.lane(k),
+  /// ...)`, `adopt(group.lane(k), ...)`): its default ordering domain, the
+  /// one `default_envs` reports. Disengaged for containers whose reference
+  /// streams came from explicit `shard_spec`s or adopted shards.
+  [[nodiscard]] ::cuda::std::optional<size_t> lane() const noexcept
+  {
+    return lane_;
+  }
 
   size_t size() const
   {
@@ -909,7 +1047,9 @@ public:
       current_pos = shard_end;
     }
 
-    return sharded_array(mv(new_shards)); // non-owning
+    sharded_array view(mv(new_shards)); // non-owning
+    view.lane_ = lane_; // same reference streams, same lane
+    return view;
   }
 
   // ========== Ownership ==========
@@ -1183,6 +1323,8 @@ private:
   // Pooled events for fork_from/join_into (lazily created; mutable because
   // the ordering declarations are const — they do not modify elements).
   mutable reserved::fork_join_event_pool fork_join_events_;
+  // The lane the container was built on (see `lane()`); slices inherit it.
+  ::cuda::std::optional<size_t> lane_;
 };
 
 namespace reserved

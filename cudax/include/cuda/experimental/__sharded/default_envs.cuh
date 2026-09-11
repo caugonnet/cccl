@@ -50,18 +50,21 @@
 namespace cuda::experimental::sharded
 {
 //! @brief The environment type manufactured for one shard: answers
-//! `cuda::get_stream` (the shard's reference stream) and
+//! `cuda::get_stream` (the shard's reference stream),
 //! `cuda::mr::get_memory_resource` (a `place_memory_resource` at the shard's
-//! data place).
+//! data place) and `places::get_lane_id` (the container's lane, if any).
 using shard_env_t =
   decltype(places::place_group::env(::cuda::std::declval<const places::data_place&>(), cudaStream_t{}));
 
 //! @brief Per-shard environments of a `sharded_array`, derived from the
-//! binding its shards recorded at construction or adoption.
+//! binding its shards recorded at construction or adoption: each shard's
+//! reference stream, a memory resource at its data place, and the lane the
+//! container was built on (`arr.lane()`, answered through `get_lane_id`;
+//! disengaged for containers built from explicit streams).
 //!
 //! The returned environments *borrow* the shards' streams: they are valid
-//! for as long as the array's streams are (provider-owned pool streams, or
-//! the caller's own streams on adopted arrays).
+//! for as long as the array's streams are (the group's pool streams for
+//! lane-built containers, or the caller's own streams on adopted shards).
 template <class _Tp>
 [[nodiscard]] ::std::vector<shard_env_t> default_envs(const sharded_array<_Tp>& __arr)
 {
@@ -71,7 +74,7 @@ template <class _Tp>
   for (const auto __i : each(__n))
   {
     const auto& __s = __arr.shard(__i);
-    __envs.push_back(places::place_group::env(__s.place, __s.stream));
+    __envs.push_back(places::place_group::env(__s.place, __s.stream, __arr.lane()));
   }
   return __envs;
 }

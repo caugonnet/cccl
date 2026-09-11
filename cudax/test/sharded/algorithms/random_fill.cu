@@ -122,13 +122,14 @@ int run_case(const char* name, place_group& group, bool normal)
     pieces.push_back({d_buf + prev, N - prev});
     const auto view = make_sharded_view(pieces);
 
-    // One env per shard, shard i on domain (i mod P), distinct lanes.
+    // One env per shard, shard i on domain (i mod P), lanes spread explicitly
+    // (ids reduced against num_lanes(): lane ids never wrap on their own).
     std::vector<decltype(place_group::env(std::declval<const cuda::experimental::places::data_place&>(), cudaStream_t{}))>
       envs;
     for (size_t i = 0; i < pieces.size(); i++)
     {
       const size_t p = i % group.size();
-      envs.push_back(place_group::env(group.place(p).affine_data_place(), group.get_stream(p, i / group.size())));
+      envs.push_back(place_group::env(group.place(p).affine_data_place(), group.get_stream(p, (i / group.size()) % group.num_lanes())));
     }
 
     if (normal)

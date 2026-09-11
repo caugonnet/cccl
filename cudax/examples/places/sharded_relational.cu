@@ -754,9 +754,9 @@ template <class Envs>
   zip_transform(ws.price_sorted, envs, gather_float_by_packed{column_base(price)}, default_call_env{}, ws.keys);
   zip_transform(ws.valid_sorted, envs, gather_valid_by_packed{column_base(validity)}, default_call_env{}, ws.keys);
 
-  auto sum_qty   = sharded_array<long long>::allocate(group, pieces_per_shard, 0);
-  auto sum_price = sharded_array<float>::allocate(group, pieces_per_shard, 0);
-  auto count     = sharded_array<long long>::allocate(group, pieces_per_shard, 0);
+  auto sum_qty   = sharded_array<long long>::allocate(group, pieces_per_shard);
+  auto sum_price = sharded_array<float>::allocate(group, pieces_per_shard);
+  auto count     = sharded_array<long long>::allocate(group, pieces_per_shard);
   segmented_reduce(ws.q_sorted, envs, d_off, sum_qty, sum_ll{}, 0ll);
   segmented_reduce(ws.price_sorted, envs, d_off, sum_price, sum_f{}, 0.0f);
   segmented_reduce(ws.valid_sorted, envs, d_off, count, sum_ll{}, 0ll);
@@ -840,8 +840,8 @@ bool check_q1(const ::std::vector<q1_group>& groups,
 q6_workspace make_q6_workspace(place_group& group, const row_cut& cut)
 {
   q6_workspace ws;
-  ws.survivors = sharded_array<int>::allocate(group, cut.rows, 0); // capacity = worst case
-  ws.products  = sharded_array<float>::allocate(group, cut.rows, 0);
+  ws.survivors = sharded_array<int>::allocate(group, cut.rows); // capacity = worst case
+  ws.products  = sharded_array<float>::allocate(group, cut.rows);
   cuda_safe_call(cudaMallocHost(&ws.h_revenue, sizeof(float)));
   return ws;
 }
@@ -849,12 +849,12 @@ q6_workspace make_q6_workspace(place_group& group, const row_cut& cut)
 q1_workspace make_q1_workspace(place_group& group, const row_cut& cut)
 {
   q1_workspace ws;
-  ws.keys         = sharded_array<unsigned long long>::allocate(group, cut.rows, 0);
+  ws.keys         = sharded_array<unsigned long long>::allocate(group, cut.rows);
   ws.marks        = allocate_contiguous_column<unsigned long long>(group, cut.rows);
-  ws.boundaries   = sharded_array<int>::allocate(group, cut.rows, 0);
-  ws.q_sorted     = sharded_array<int>::allocate(group, cut.rows, 0);
-  ws.valid_sorted = sharded_array<int>::allocate(group, cut.rows, 0);
-  ws.price_sorted = sharded_array<float>::allocate(group, cut.rows, 0);
+  ws.boundaries   = sharded_array<int>::allocate(group, cut.rows);
+  ws.q_sorted     = sharded_array<int>::allocate(group, cut.rows);
+  ws.valid_sorted = sharded_array<int>::allocate(group, cut.rows);
+  ws.price_sorted = sharded_array<float>::allocate(group, cut.rows);
   return ws;
 }
 
@@ -873,22 +873,20 @@ template <class T>
 sharded_array<T>
 adopt_cudf_buffer(place_group& group, const row_cut& cut, const T* data, const ::std::vector<::std::size_t>& sizes)
 {
-  ::std::vector<shard<T>> shards(cut.P);
+  // Adopted onto the group's lane 0 (plain `group`): the columns' reference
+  // streams are the lane's, so they are ordered with everything else the
+  // pipeline puts on that lane. The columns are already materialized (no
+  // producer stream to depend on), so no `ready_on` is passed.
+  ::std::vector<typename sharded_array<T>::adopted_shard> pieces(cut.P);
   ::std::size_t begin = 0;
   for (::std::size_t g = 0; g < cut.P; g++)
   {
-    // The verbs only read through these views; `shard<T>` carries a
-    // mutable pointer because it is also the write-side descriptor.
-    shards[g].data          = const_cast<T*>(data) + begin;
-    shards[g].size          = sizes[g];
-    shards[g].capacity      = sizes[g];
-    shards[g].global_offset = begin;
-    shards[g].place         = data_place::device(0);
-    shards[g].exec          = group.place(g);
-    shards[g].stream        = group.get_stream(g, 0);
+    // The verbs only read through these views; the shard descriptor carries
+    // a mutable pointer because it is also the write-side descriptor.
+    pieces[g] = {const_cast<T*>(data) + begin, sizes[g], data_place::device(0)};
     begin += sizes[g];
   }
-  return sharded_array<T>::adopt(::std::move(shards));
+  return sharded_array<T>::adopt(group, pieces);
 }
 
 template <class T>
@@ -1027,7 +1025,7 @@ int main(int argc, char** argv)
 
   // Row ids, materialized once: `copy_if` selects from a sharded VIEW, so
   // there is no "copy_if over a counting iterator" spelling yet (gap).
-  auto row_ids = sharded_array<int>::allocate(group, cut.rows, 0);
+  auto row_ids = sharded_array<int>::allocate(group, cut.rows);
   sequence(row_ids, envs, 0, 1);
 
   // A caller stream for the asynchronous terminators (`reduce_into`).
@@ -1129,8 +1127,8 @@ int main(int argc, char** argv)
   // `result.begin() + unmatched_valid`. There is no append form of
   // `copy_if` (select into `out` from its committed size) yet, so the two
   // results are two ragged arrays here (gap).
-  auto unmatched = sharded_array<int>::allocate(group, cut.rows, 0);
-  auto nulls     = sharded_array<int>::allocate(group, cut.rows, 0);
+  auto unmatched = sharded_array<int>::allocate(group, cut.rows);
+  auto nulls     = sharded_array<int>::allocate(group, cut.rows);
   const ::std::size_t n_unmatched =
     copy_if(row_ids, envs, unmatched, unmatched_valid_pred{set, orderkey_base, validity_base});
   const ::std::size_t n_nulls = copy_if(row_ids, envs, nulls, null_row_pred{validity_base});

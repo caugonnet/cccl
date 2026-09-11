@@ -198,7 +198,7 @@ void test_copy_if_out_of_place(place_group& group)
   {
     caps[g] = static_cast<size_t>(src.shard(g).size);
   }
-  auto dst = sharded_array<long long>::allocate(group, caps, 0);
+  auto dst = sharded_array<long long>::allocate(group, caps);
 
   // Self-bound form.
   const size_t kept = copy_if(src_view, dst, is_even{});
@@ -246,7 +246,7 @@ void test_copy_if_out_of_place(place_group& group)
   // Capacity refusal: a destination with a too-small shard refuses at entry
   // and stays untouched.
   ::std::vector<size_t> small(src.num_shards(), 1);
-  auto tiny = sharded_array<long long>::allocate(group, small, 0);
+  auto tiny = sharded_array<long long>::allocate(group, small);
   fill(tiny, -7LL);
   bool threw = false;
   try

@@ -25,7 +25,7 @@
  *
  * The verbs are concepts-tier free functions: their only requirement is an
  * environment range answering `cuda::get_stream`, so any binding — the
- * containers' `default_envs`, `place_group::envs(lane_id)`, foreign
+ * containers' `default_envs`, `group.lane(k).envs()`, foreign
  * user-built ranges — gets them unchanged. Providers manufacture
  * environments; composition needs only their streams.
  *

@@ -42,8 +42,18 @@ placement: a ``data_place``, an ``exec_place`` and a reference stream.
 Factory naming follows a two-word rule: ``adopt`` = zero-copy view over
 caller-owned memory (the container becomes a view and the caller owes the
 memory's lifetime); ``from_*`` = builds owned storage by copying or
-transforming its input. ``sharded_array<T>::adopt(shards)`` is the named
-form of the adopting constructor.
+transforming its input. On the group path adoption is spelled with a lane:
+``adopt(group.lane(k), pieces)`` gives the pieces the lane's streams as
+reference streams (dependencies enforced upfront; memory assumed valid), and
+``adopt(group.lane(k), pieces, ready_on)`` additionally forks the lane from a
+producer's timeline — a ``cudaStream_t``, a ``stream_ref`` or a call
+environment answering ``get_stream`` — consumed at the call and not retained.
+Foreign reference streams have no place on the group path (verbs would have
+to guess at conservative synchronization); ``sharded_array<T>::adopt(shards)``
+remains the low-level form for foreign models consumed with explicit
+environments. The reverse edge stays explicit: join the lane back into the
+producer's stream (``join_into(stream)`` / ``barrier(envs, stream)``) before
+reusing or freeing adopted memory; destroying a view enqueues nothing.
 
 ``allocate_contiguous`` places the shards inside *one* contiguous virtual
 address range (VMM-backed via ``localized_array``): logical shard boundaries

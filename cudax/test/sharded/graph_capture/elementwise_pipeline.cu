@@ -16,7 +16,7 @@
  *        lane-ordered transform/for_each chain, join the lanes back with the
  *        stream barrier, instantiate, and replay —
  *        including replays with inputs mutated between launches, a
- *        cross-stream (different-lane_id) captured dependency, and a check that
+ *        cross-stream (different-lane) captured dependency, and a check that
  *        the per-place SM confinement of the shard streams survives inside
  *        the instantiated graph.
  */
@@ -78,8 +78,8 @@ __global__ void smid_probe_kernel(unsigned* smids)
 void test_pipeline_capture_and_replay(place_group& group)
 {
   const size_t n = 1 << 20;
-  auto in        = sharded_array<float>::allocate(group, n, /*lane_id*/ 0);
-  auto out       = sharded_array<float>::allocate(group, n, /*lane_id*/ 0);
+  auto in        = sharded_array<float>::allocate(group, n);
+  auto out       = sharded_array<float>::allocate(group, n);
 
   fill(in, 1.0f); // eager warm-up outside capture (modules, pools)
   auto envs = default_envs(out);
@@ -160,8 +160,8 @@ void test_cross_lane_dependency(place_group& group)
   }
 
   const size_t n = 100003;
-  auto in        = sharded_array<float>::allocate(group, n, /*lane_id*/ 0);
-  auto out       = sharded_array<float>::allocate(group, n, /*lane_id*/ 1);
+  auto in        = sharded_array<float>::allocate(group, n);
+  auto out       = sharded_array<float>::allocate(group.lane(1), n);
 
   fill(in, 4.0f);
 
@@ -171,7 +171,7 @@ void test_cross_lane_dependency(place_group& group)
   const auto origin_prop  = ::cuda::std::execution::prop{::cuda::get_stream, ::cuda::stream_ref{origin}};
   const auto bracket_prop = ::cuda::std::execution::prop{get_composition_t{}, composition::bracketed};
   const auto ce           = ::cuda::std::execution::env{origin_prop, bracket_prop};
-  auto envs_out           = default_envs(out); // lane_id-1 streams
+  auto envs_out           = default_envs(out); // lane-1 streams
 
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
   zip_transform(out, envs_out, scale_op{}, ce, in); // sealed per call: capture edges via the bracket

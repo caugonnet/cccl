@@ -120,7 +120,7 @@ void test_ragged_correctness(place_group& group)
   const auto in        = make_sharded_view(vin);
   EXPECT(validate(seg_begin));
 
-  auto out = sharded_array<float>::allocate(group, c.seg_sizes, 0);
+  auto out = sharded_array<float>::allocate(group, c.seg_sizes);
 
   // Explicit-envs form.
   segmented_reduce(in, envs, seg_begin, seg_end, out, sum_op{}, 0.0f);
@@ -174,11 +174,11 @@ void test_refusals(place_group& group)
   const ::std::size_t P = group.size();
 
   ::std::vector<::std::size_t> two_per(P, 2), three_per(P, 3);
-  auto out   = sharded_array<int>::allocate(group, two_per, 0);
-  auto out3  = sharded_array<int>::allocate(group, three_per, 0);
-  auto in    = sharded_array<int>::allocate(group, three_per, 0);
-  auto seg_b = sharded_array<int>::allocate(group, two_per, 0);
-  auto seg_e = sharded_array<int>::allocate(group, two_per, 0);
+  auto out   = sharded_array<int>::allocate(group, two_per);
+  auto out3  = sharded_array<int>::allocate(group, three_per);
+  auto in    = sharded_array<int>::allocate(group, three_per);
+  auto seg_b = sharded_array<int>::allocate(group, two_per);
+  auto seg_e = sharded_array<int>::allocate(group, two_per);
   fill(seg_b, 0);
   fill(seg_e, 0); // empty segments everywhere: valid, results = init
 
@@ -249,10 +249,10 @@ void test_async_capture(place_group& group)
   // Uniform segments: every shard has 8 segments of 5 elements.
   const ::std::size_t segs_per = 8, w = 5;
   ::std::vector<::std::size_t> seg_sizes(P, segs_per), in_sizes(P, segs_per * w);
-  auto in    = sharded_array<float>::allocate(group, in_sizes, 0);
-  auto out   = sharded_array<float>::allocate(group, seg_sizes, 0);
-  auto seg_b = sharded_array<int>::allocate(group, seg_sizes, 0);
-  auto seg_e = sharded_array<int>::allocate(group, seg_sizes, 0);
+  auto in    = sharded_array<float>::allocate(group, in_sizes);
+  auto out   = sharded_array<float>::allocate(group, seg_sizes);
+  auto seg_b = sharded_array<int>::allocate(group, seg_sizes);
+  auto seg_e = sharded_array<int>::allocate(group, seg_sizes);
   fill(in, 2.0f);
   // Offsets via host upload (shard-local).
   {
@@ -332,9 +332,9 @@ void test_whole_offsets_correctness(place_group& group)
   int* d_goff = nullptr;
   cuda_safe_call(cudaMalloc(&d_goff, h_goff.size() * sizeof(int)));
   cuda_safe_call(cudaMemcpy(d_goff, h_goff.data(), h_goff.size() * sizeof(int), cudaMemcpyHostToDevice));
-  auto in = sharded_array<float>::allocate(group, c.in_sizes, 0);
+  auto in = sharded_array<float>::allocate(group, c.in_sizes);
   in.copy_from_host(h_gin.data());
-  auto out = sharded_array<float>::allocate(group, c.seg_sizes, 0);
+  auto out = sharded_array<float>::allocate(group, c.seg_sizes);
 
   // Reference: the shard-local begin/end form over shifted-alias views of
   // per-shard rebased offsets (the container spelling).
@@ -412,8 +412,8 @@ void test_whole_offsets_cut_refusal(place_group& group)
   }
   auto envs = group.envs(0);
   ::std::vector<::std::size_t> two_per(P, 2), three_per(P, 3);
-  auto in  = sharded_array<int>::allocate(group, three_per, 0);
-  auto out = sharded_array<int>::allocate(group, two_per, 0);
+  auto in  = sharded_array<int>::allocate(group, three_per);
+  auto out = sharded_array<int>::allocate(group, two_per);
   fill(in, 1);
 
   // Valid: shard g's two segments split its 3 values as 1 + 2.

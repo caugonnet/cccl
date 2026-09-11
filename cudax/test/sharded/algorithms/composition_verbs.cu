@@ -142,9 +142,9 @@ void test_lane_wait(place_group& group)
   }
   const size_t per = 100003;
   const ::std::vector<size_t> sizes(group.size(), per); // one shard per place
-  // x on one lane set, y on another (distinct lane_ids = independent lanes).
-  auto x      = sharded_array<long long>::allocate(group, sizes, 0);
-  auto y      = sharded_array<long long>::allocate(group, sizes, 1);
+  // x on lane 0 (plain group), y on lane 1: distinct lanes = independent.
+  auto x      = sharded_array<long long>::allocate(group, sizes);
+  auto y      = sharded_array<long long>::allocate(group.lane(1), sizes);
   auto envs_x = default_envs(x);
   auto envs_y = default_envs(y);
 

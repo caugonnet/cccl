@@ -22,7 +22,7 @@
  * the same environments are ordered per lane by stream order; everything
  * else is said explicitly:
  *
- *  - Two fields x and y live on DISTINCT lanes (`allocate(..., lane_id)`),
+ *  - Two fields x and y live on DISTINCT lanes (`allocate(group.lane(1), n)`),
  *    so their per-iteration map chains run concurrently — inspect a timeline
  *    capture (e.g. nsys) to see the two fields' kernels overlap.
  *  - Once per iteration, y consumes a scalar reduced from x. The reduction
@@ -76,8 +76,8 @@ int main()
   std::printf("place_group with %zu place(s)\n", group.size());
 
   const size_t n = size_t{1} << 22;
-  auto x         = sharded_array<float>::allocate(group, n, /*lane_id*/ 0);
-  auto y         = sharded_array<float>::allocate(group, n, /*lane_id*/ 1);
+  auto x         = sharded_array<float>::allocate(group, n);
+  auto y         = sharded_array<float>::allocate(group.lane(1), n);
   auto envs_x    = default_envs(x);
   auto envs_y    = default_envs(y);
 

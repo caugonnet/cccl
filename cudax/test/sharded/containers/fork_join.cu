@@ -15,8 +15,11 @@
  *        bridging a caller stream and the per-shard streams. Covers the eager
  *        producer -> fork -> per-shard consumers -> join -> reader chain with
  *        NO host synchronization between the stages, the same chain on an
- *        ADOPTED array over foreign streams, and the members inside a CUDA
- *        graph capture (record/wait become graph dependencies).
+ *        ADOPTED array over foreign streams, adoption ONTO A LANE with the
+ *        producer's timeline as `ready_on` (the fork folded into `adopt`,
+ *        the join spelled with the same call-environment form), and the
+ *        members inside a CUDA graph capture (record/wait become graph
+ *        dependencies).
  */
 
 #include <cuda/experimental/sharded.cuh>
@@ -198,6 +201,102 @@ void test_adopted_foreign_streams()
   }
 }
 
+// Adoption onto a LANE: caller-owned buffers (synchronous cudaMalloc) become a
+// container whose reference streams are the group's lane streams, the
+// producer's timeline enters once as `ready_on` (call-environment spelling),
+// and the join back into the producer is the same spelling. The container
+// knows its lane and its environments report it.
+void test_adopt_on_lane(place_group& group)
+{
+  const size_t P     = group.size();
+  const size_t n_per = 1 << 19;
+  const size_t n     = n_per * P;
+
+  ::std::vector<::std::pair<int*, size_t>> pieces(P);
+  for (size_t i = 0; i < P; i++)
+  {
+    exec_place_scope scope(group.place(i));
+    cuda_safe_call(cudaMalloc(&pieces[i].first, n_per * sizeof(int)));
+    pieces[i].second = n_per;
+  }
+
+  cudaStream_t caller = nullptr;
+  cuda_safe_call(cudaStreamCreate(&caller));
+  const auto ce = ::cuda::std::execution::prop{::cuda::get_stream, ::cuda::stream_ref{caller}};
+
+  // Producer on the caller stream, then adopt onto lane 1 depending on it:
+  // the fork is part of adoption.
+  spin_kernel<<<1, 1, 0, caller>>>(20'000'000);
+  size_t off = 0;
+  for (size_t i = 0; i < P; i++)
+  {
+    produce_kernel<<<blocks_for(n_per), threads, 0, caller>>>(pieces[i].first, n_per, off, 5);
+    off += n_per;
+  }
+  auto data = sharded_array<int>::adopt(group.lane(1), pieces, ce);
+  EXPECT(data.is_view());
+  EXPECT(data.lane() == ::cuda::std::optional<size_t>{1});
+  auto envs = default_envs(data);
+  for (size_t i = 0; i < P; i++)
+  {
+    EXPECT(data.shard(i).stream == group.get_stream(i, 1));
+    EXPECT(::cuda::experimental::places::query_lane_id(envs[i]) == ::cuda::std::optional<size_t>{1});
+    EXPECT(data.shard(i).global_offset == i * n_per);
+  }
+  // A slice inherits the lane; a plain group means lane 0; adopted foreign
+  // shards have none.
+  EXPECT(data.slice(1, n - 1).lane() == ::cuda::std::optional<size_t>{1});
+  EXPECT(sharded_array<int>::adopt(group, pieces).lane() == ::cuda::std::optional<size_t>{0});
+  EXPECT(!sharded_array<int>::allocate_uniform(64, {0}).lane().has_value());
+
+  // Lane-ordered consumers on the lane's streams, then join back into the
+  // producer's timeline with the same call-environment spelling.
+  data.each_shard->*[](const auto& s) {
+    increment_kernel<<<blocks_for(s.size), threads, 0, s.stream>>>(s.data, s.size);
+  };
+  data.join_into(ce);
+
+  ::std::vector<int> host(n, 0);
+  for (size_t i = 0; i < P; i++)
+  {
+    const auto& s = data.shard(i);
+    cuda_safe_call(cudaMemcpyAsync(host.data() + s.global_offset, s.data, s.size_bytes(), cudaMemcpyDefault, caller));
+  }
+  cuda_safe_call(cudaStreamSynchronize(caller)); // the only host sync
+  for (size_t i = 0; i < n; i++)
+  {
+    EXPECT(host[i] == 2 * static_cast<int>(i) + 5 + 1);
+  }
+
+  // Contract refusals: piece count must match the group; lane ids never wrap.
+  bool threw = false;
+  try
+  {
+    ::std::ignore = sharded_array<int>::adopt(group, ::std::vector<::std::pair<int*, size_t>>(P + 1));
+  }
+  catch (const ::std::invalid_argument&)
+  {
+    threw = true;
+  }
+  EXPECT(threw);
+  threw = false;
+  try
+  {
+    ::std::ignore = group.lane(group.num_lanes());
+  }
+  catch (const ::std::out_of_range&)
+  {
+    threw = true;
+  }
+  EXPECT(threw);
+
+  cuda_safe_call(cudaStreamDestroy(caller));
+  for (size_t i = 0; i < P; i++)
+  {
+    cuda_safe_call(cudaFree(pieces[i].first));
+  }
+}
+
 // fork_from/join_into INSIDE a CUDA graph capture: the record/wait pairs
 // become graph dependencies; the instantiated graph replays the whole
 // fork -> per-shard work -> join chain, repeatedly.
@@ -274,6 +373,7 @@ int main()
 
   test_eager_ordering(group);
   test_adopted_foreign_streams();
+  test_adopt_on_lane(group);
   test_capture(group);
   test_degenerate();
 

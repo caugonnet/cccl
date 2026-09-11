@@ -155,7 +155,7 @@ public:
    *              Empty = nnz-balanced split (see the time-balance caveat in
    *              the file-level comment).
    */
-  sharded_csr(place_group& group,
+  sharded_csr(place_group::lane_view lane,
               ::std::int64_t num_rows,
               ::std::int64_t num_cols,
               const int* h_offsets,
@@ -167,7 +167,7 @@ public:
       , cols_(num_cols)
       , nnz_(h_offsets[num_rows])
   {
-    init(group, h_offsets, h_colinds, h_values, mv(row_boundaries), contiguous);
+    init(lane, h_offsets, h_colinds, h_values, mv(row_boundaries), contiguous);
   }
 
   /**
@@ -189,7 +189,7 @@ public:
    * per-shard library plans.
    */
   static sharded_csr from_device(
-    place_group& group,
+    place_group::lane_view lane,
     ::std::int64_t num_rows,
     ::std::int64_t num_cols,
     const int* d_offsets,
@@ -200,7 +200,7 @@ public:
   {
     ::std::vector<int> h_offsets(static_cast<size_t>(num_rows) + 1);
     cuda_safe_call(cudaMemcpy(h_offsets.data(), d_offsets, h_offsets.size() * sizeof(int), cudaMemcpyDefault));
-    return sharded_csr(group, num_rows, num_cols, h_offsets.data(), d_colinds, d_values, mv(row_boundaries), contiguous);
+    return sharded_csr(lane, num_rows, num_cols, h_offsets.data(), d_colinds, d_values, mv(row_boundaries), contiguous);
   }
 
   /**
@@ -219,7 +219,7 @@ public:
    * base pointers: the whole arrays are contiguous by construction.
    */
   static sharded_csr adopt(
-    place_group& group,
+    place_group::lane_view lane,
     ::std::int64_t num_rows,
     ::std::int64_t num_cols,
     const int* d_offsets,
@@ -234,14 +234,14 @@ public:
     m.rows_ = num_rows;
     m.cols_ = num_cols;
     m.nnz_  = h_offsets[static_cast<size_t>(num_rows)];
-    m.init_adopted(group, h_offsets.data(), d_colinds, d_values, mv(row_boundaries));
+    m.init_adopted(lane, h_offsets.data(), d_colinds, d_values, mv(row_boundaries));
     return m;
   }
 
 private:
   /// @brief Common construction: offsets are HOST data; colinds/values may be
   /// host or device pointers (the shard copies use `cudaMemcpyDefault`).
-  void init(place_group& group,
+  void init(place_group::lane_view lane,
             const int* h_offsets,
             const int* colinds_src,
             const _Tp* values_src,
@@ -249,7 +249,7 @@ private:
             bool contiguous)
   {
     const ::std::int64_t num_rows = rows_;
-    const size_t num_shards       = group.size();
+    const size_t num_shards       = lane.size();
     if (num_shards == 0)
     {
       _CCCL_THROW(::std::invalid_argument, "sharded_csr: place group has no places");
@@ -280,16 +280,15 @@ private:
 
     // Allocation specs for the three backing arrays (one shard per place;
     // offsets get rows+1 entries per shard, colinds/values the nnz slice).
-    // One stream color for the whole matrix: the shards' reference streams.
-    const size_t color = group.next_lane_id();
+    // The matrix lives on the view's lane: the shards' reference streams.
     ::std::vector<shard_spec> off_specs, nnz_specs;
     for (size_t d = 0; d < num_shards; d++)
     {
       const ::std::int64_t r0 = b[d], r1 = b[d + 1];
       const size_t shard_nnz = static_cast<size_t>(h_offsets[r1] - h_offsets[r0]);
-      const auto& eplace     = group.place(d);
+      const auto& eplace     = lane.place(d);
       const auto dplace      = eplace.affine_data_place();
-      cudaStream_t stream    = group.get_stream(d, color);
+      cudaStream_t stream    = lane.stream(d);
       off_specs.emplace_back(static_cast<size_t>(r1 - r0) + 1, dplace, eplace, stream);
       nnz_specs.emplace_back(shard_nnz, dplace, eplace, stream);
     }
@@ -329,9 +328,9 @@ private:
       sh.rows      = b[d + 1] - b[d];
       sh.nnz_begin = h_offsets[b[d]];
       sh.nnz       = h_offsets[b[d + 1]] - h_offsets[b[d]];
-      sh.place     = group.place(d).affine_data_place();
-      sh.exec      = group.place(d);
-      sh.stream    = group.get_stream(d, color);
+      sh.place     = lane.place(d).affine_data_place();
+      sh.exec      = lane.place(d);
+      sh.stream    = lane.stream(d);
       sh.offsets   = offsets_.shard(off_idx++).data; // rows+1 >= 1, never empty
       if (sh.nnz > 0)
       {
@@ -345,14 +344,14 @@ private:
 
   /// @brief Adoption path: rebased offsets are owned; colinds/values shard
   /// views alias the caller's arrays at their nnz slices.
-  void init_adopted(place_group& group,
+  void init_adopted(place_group::lane_view lane,
                     const int* h_offsets,
                     int* colinds_base,
                     _Tp* values_base,
                     ::std::vector<::std::int64_t> row_boundaries)
   {
     const ::std::int64_t num_rows = rows_;
-    const size_t num_shards       = group.size();
+    const size_t num_shards       = lane.size();
     if (num_shards == 0)
     {
       _CCCL_THROW(::std::invalid_argument, "sharded_csr: place group has no places");
@@ -380,13 +379,12 @@ private:
     }
 
     // Owned rebased offsets only (per-place placement as usual).
-    const size_t color = group.next_lane_id();
     ::std::vector<shard_spec> off_specs;
     for (size_t d = 0; d < num_shards; d++)
     {
-      const auto& eplace = group.place(d);
+      const auto& eplace = lane.place(d);
       off_specs.emplace_back(
-        static_cast<size_t>(b[d + 1] - b[d]) + 1, eplace.affine_data_place(), eplace, group.get_stream(d, color));
+        static_cast<size_t>(b[d + 1] - b[d]) + 1, eplace.affine_data_place(), eplace, lane.stream(d));
     }
     offsets_ = sharded_array<int>::allocate(off_specs);
     ::std::vector<int> rebased;
@@ -408,9 +406,9 @@ private:
       sh.rows      = b[d + 1] - b[d];
       sh.nnz_begin = h_offsets[b[d]];
       sh.nnz       = h_offsets[b[d + 1]] - h_offsets[b[d]];
-      sh.place     = group.place(d).affine_data_place();
-      sh.exec      = group.place(d);
-      sh.stream    = group.get_stream(d, color);
+      sh.place     = lane.place(d).affine_data_place();
+      sh.exec      = lane.place(d);
+      sh.stream    = lane.stream(d);
       sh.offsets   = offsets_.shard(d).data;
       sh.colinds   = colinds_base + sh.nnz_begin;
       sh.values    = values_base + sh.nnz_begin;

@@ -424,13 +424,19 @@ attached state).
     place_group by_dev{exec_place::all_devices()};
     place_group one_dev{make_locality_domain_grid(0)};
 
-    // Per-place streams (stable per (place, color)) and memory resources
-    cudaStream_t s = group.get_stream(/*place_idx=*/0, /*color=*/0);
-    auto mr        = group.memory_resource(0);
+    // WHEN is spelled with lanes: one ordering domain across the group (one
+    // stream per place, the same lane id everywhere). group.lane(k) is the
+    // group on lane k; plain `group` is lane 0. Ids are [0, num_lanes()) and
+    // never wrap: out of range throws instead of aliasing another lane.
+    auto l1        = group.lane(1);
+    cudaStream_t s = l1.stream(/*place_idx=*/0); // == group.get_stream(0, 1)
 
     // Environments for CUB single-call algorithms: stream + the place's
-    // memory resource, so temporaries land where the work runs
-    auto env = group.env(0);
+    // memory resource (temporaries land where the work runs) + the lane id
+    // (places::get_lane_id, an optional). envs() is one per place on a lane.
+    auto env  = group.env(0);      // lane 0
+    auto envs = l1.envs();         // lane 1, one per place
+    auto mr   = group.memory_resource(0);
 
 A standalone ``place_group`` owns its stream-pool registry. When it coexists
 with a CUDASTF context, it can *borrow* the context's

@@ -242,11 +242,11 @@ int main()
     vsizes[g] = v_begin[g + 1] - v_begin[g];
     esizes[g] = h_col[g].size();
   }
-  auto deg = sharded_array<int>::allocate_contiguous(group, V, 0); // contiguous: the frontier predicate gathers by
+  auto deg = sharded_array<int>::allocate_contiguous(group, V); // contiguous: the frontier predicate gathers by
                                                                    // vertex id
-  auto y = sharded_array<float>::allocate(group, vsizes, 0);
-  auto z = sharded_array<float>::allocate(group, esizes, 0);
-  auto x = sharded_array<float>::allocate_contiguous(group, V, 0);
+  auto y = sharded_array<float>::allocate(group, vsizes);
+  auto z = sharded_array<float>::allocate(group, esizes);
+  auto x = sharded_array<float>::allocate_contiguous(group, V);
 
   ::std::vector<float> h_x(V);
   for (::std::size_t v = 0; v < V; v++)
@@ -323,9 +323,9 @@ int main()
   //    its data-dependent frontier count, committed atomically (offsets
   //    re-tile, the structure stays valid). The source ids are untouched.
   // =========================================================================
-  auto ids = sharded_array<int>::allocate(group, vsizes, 0);
+  auto ids = sharded_array<int>::allocate(group, vsizes);
   iota(ids, 0); // ids[v] = v (global vertex id)
-  auto frontier_ids   = sharded_array<int>::allocate(group, vsizes, 0); // capacity = worst case
+  auto frontier_ids   = sharded_array<int>::allocate(group, vsizes); // capacity = worst case
   const int* deg_base = static_cast<const int*>(deg.shard(0).data); // contiguous base
 
   const size_t f_kept = copy_if(ids, frontier_ids, frontier_pred{deg_base});
