@@ -12,10 +12,11 @@
  * @file
  *
  * @brief CUDA graph capture of the elementwise sharded pipeline: fork an
- *        origin stream to every shard stream (`fork_from`), record fill/transform/for_each
- *        with `blocking = false`, join back (`join_into`), instantiate, and replay —
+ *        origin stream to every shard stream (`fork_from`) once, record the
+ *        lane-ordered transform/for_each chain, join the lanes back with the
+ *        stream barrier, instantiate, and replay —
  *        including replays with inputs mutated between launches, a
- *        cross-stream (different-color) captured dependency, and a check that
+ *        cross-stream (different-lane_id) captured dependency, and a check that
  *        the per-place SM confinement of the shard streams survives inside
  *        the instantiated graph.
  */
@@ -29,6 +30,7 @@
 
 using namespace cuda::experimental::sharded;
 using cuda::experimental::places::exec_place_scope;
+using cuda::experimental::places::make_locality_domain_grid;
 using cuda::experimental::places::place_group;
 
 namespace
@@ -76,22 +78,31 @@ __global__ void smid_probe_kernel(unsigned* smids)
 void test_pipeline_capture_and_replay(place_group& group)
 {
   const size_t n = 1 << 20;
-  auto in        = sharded_array<float>::allocate(group, n, /*color*/ 0);
-  auto out       = sharded_array<float>::allocate(group, n, /*color*/ 0);
+  auto in        = sharded_array<float>::allocate(group, n, /*lane_id*/ 0);
+  auto out       = sharded_array<float>::allocate(group, n, /*lane_id*/ 0);
 
-  fill(group, in, 1.0f); // eager warm-up outside capture (modules, pools)
+  fill(in, 1.0f); // eager warm-up outside capture (modules, pools)
+  auto envs = default_envs(out);
 
   cudaStream_t origin;
   cuda_safe_call(cudaStreamCreate(&origin));
 
   // Capture the pipeline: fork, then transform(in -> out, x2),
   // transform(out += 0.5 in place), for_each(out += 1), then join
+  const auto origin_prop = ::cuda::std::execution::prop{::cuda::get_stream, ::cuda::stream_ref{origin}};
+  const auto ce          = ::cuda::std::execution::env{origin_prop};
+
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
-  in.fork_from(origin);
-  transform(group, in, out, scale_op{}, /*blocking=*/false);
-  transform(group, out, plus_half_op{}, /*blocking=*/false);
-  for_each(group, out, bump_op{}, /*blocking=*/false);
-  out.join_into(origin);
+  // Lane-ordered pipeline: fork the lanes from the origin ONCE, enqueue the
+  // whole chain in lane order (consecutive calls on the same envs are
+  // stream-ordered per lane — graph edges within each lane, graph-level
+  // parallelism across lanes), then join the lanes back with the stream
+  // barrier. No per-call brackets anywhere.
+  out.fork_from(origin);
+  zip_transform(out, envs, scale_op{}, ce, in);
+  transform(out, envs, plus_half_op{}, ce);
+  for_each(out, envs, bump_op{}, ce);
+  barrier(envs, ::cuda::stream_ref{origin});
 
   cudaGraph_t graph = nullptr;
   cuda_safe_call(cudaStreamEndCapture(origin, &graph));
@@ -123,7 +134,7 @@ void test_pipeline_capture_and_replay(place_group& group)
   }
 
   // Clobber the output and replay: the graph recomputes it
-  fill(group, out, -1.0f);
+  fill(out, -1.0f);
   cuda_safe_call(cudaGraphLaunch(exec, origin));
   cuda_safe_call(cudaStreamSynchronize(origin));
   out.copy_to_host(host.data());
@@ -137,31 +148,33 @@ void test_pipeline_capture_and_replay(place_group& group)
   cuda_safe_call(cudaStreamDestroy(origin));
 }
 
-// A captured cross-stream dependency: input and output allocated at different
-// stream colors, so the out-of-place transform records event edges between
-// two capturing shard streams.
-void test_cross_color_dependency(place_group& group)
+// The bracketed opt-in under capture: input and output allocated at
+// different lanes; a call sealed with composition::bracketed forks its
+// lanes from the capture origin and joins them back per call — the
+// foreign-stream composition case, recorded as graph edges.
+void test_cross_lane_dependency(place_group& group)
 {
-  if (group.num_stream_colors() < 2)
+  if (group.num_lanes() < 2)
   {
     return;
   }
 
   const size_t n = 100003;
-  auto in        = sharded_array<float>::allocate(group, n, /*color*/ 0);
-  auto out       = sharded_array<float>::allocate(group, n, /*color*/ 1);
+  auto in        = sharded_array<float>::allocate(group, n, /*lane_id*/ 0);
+  auto out       = sharded_array<float>::allocate(group, n, /*lane_id*/ 1);
 
-  fill(group, in, 4.0f);
+  fill(in, 4.0f);
 
   cudaStream_t origin;
   cuda_safe_call(cudaStreamCreate(&origin));
 
+  const auto origin_prop  = ::cuda::std::execution::prop{::cuda::get_stream, ::cuda::stream_ref{origin}};
+  const auto bracket_prop = ::cuda::std::execution::prop{get_composition_t{}, composition::bracketed};
+  const auto ce           = ::cuda::std::execution::env{origin_prop, bracket_prop};
+  auto envs_out           = default_envs(out); // lane_id-1 streams
+
   cuda_safe_call(cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal));
-  in.fork_from(origin);
-  out.fork_from(origin);
-  transform(group, in, out, scale_op{}, /*blocking=*/false); // records in->out event edges
-  out.join_into(origin);
-  in.join_into(origin);
+  zip_transform(out, envs_out, scale_op{}, ce, in); // sealed per call: capture edges via the bracket
 
   cudaGraph_t graph = nullptr;
   cuda_safe_call(cudaStreamEndCapture(origin, &graph));
@@ -268,10 +281,10 @@ int main()
 {
   cuda_safe_call(cudaSetDevice(0));
 
-  auto group = place_group::by_locality_domains();
+  auto group = place_group{make_locality_domain_grid()};
 
   test_pipeline_capture_and_replay(group);
-  test_cross_color_dependency(group);
+  test_cross_lane_dependency(group);
   test_confinement_in_graph(group);
 
   return 0;

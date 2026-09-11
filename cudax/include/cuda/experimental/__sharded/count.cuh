@@ -35,7 +35,13 @@
 #include <cuda/std/functional>
 
 #include <cuda/experimental/__places/place_group.cuh>
+#include <cuda/experimental/__sharded/composition.cuh>
+#include <cuda/experimental/__sharded/concepts.cuh>
+#include <cuda/experimental/__sharded/cuda_safe_call.cuh>
+#include <cuda/experimental/__sharded/default_envs.cuh>
+#include <cuda/experimental/__sharded/pinned_staging.cuh>
 #include <cuda/experimental/__sharded/sharded_array.cuh>
+#include <cuda/experimental/__sharded/stream_scope.cuh>
 
 #include <algorithm>
 #include <vector>
@@ -73,82 +79,124 @@ struct equals_value_fn
 };
 } // namespace reserved
 
+// ============================================================================
+// Concept-generic tier: count over any sharded_view
+// ============================================================================
+
 /**
- * @brief Count the elements satisfying a predicate.
- *
- * Phase 1 runs a CUB transform-reduce (predicate mapped to 0/1, summed) per
- * shard on the shard's stream, with temporaries allocated from the shard's
- * place; phase 2 sums the per-place counts. SYNCHRONOUS: returns the count.
- *
- * @param group the place group providing per-place memory resources
- * @param data  the sharded input (not modified)
- * @param pred  host- and device-callable predicate: `bool operator()(T)`
+ * @brief Count elements satisfying @p pred over any `sharded_view`:
+ * per-shard `cub::DeviceReduce::TransformReduce` on each shard's environment,
+ * host sum of the per-shard counts. SYNCHRONOUS-only (host combine): refuses
+ * at entry under `sync_policy::forbid` and under capture. Staging via the
+ * call environment's resource when present, the pinned arena otherwise.
  */
-template <typename _Tp, typename _Pred>
-[[nodiscard]] _CCCL_HOST_API size_t count_if(place_group& group, const sharded_array<_Tp>& data, _Pred pred)
+_CCCL_TEMPLATE(class _S, class _Envs, class _Pred, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(
+  sharded_view<::cuda::std::remove_cvref_t<_S>> _CCCL_AND sharded_alloc_env_range<::cuda::std::remove_cvref_t<_Envs>>)
+[[nodiscard]] _CCCL_HOST_API size_t
+count_if(const _S& data, const _Envs& envs, _Pred pred, const _CallEnv& call_env = {})
 {
-  if (data.empty())
+  using elem_t                   = view_element_t<_S>;
+  const ::std::size_t num_shards = reserved::__shard_count(data);
+  if (reserved::__env_count(envs) < num_shards)
+  {
+    _CCCL_THROW(::std::invalid_argument, "sharded::count_if: fewer environments than shards");
+  }
+  if (num_shards == 0)
   {
     return 0;
   }
 
-  // Host-side combine + synchronization: cannot be recorded into a CUDA graph
-  reserved::check_not_capturing(data, "sharded::count_if");
+  // Refusals first, before any CUDA call: this form synchronizes.
+  require_sync_allowed(call_env, "sharded::count_if (synchronous form)");
+  places::check_not_capturing(nullptr, "sharded::count_if");
+  for (const auto g : each(num_shards))
+  {
+    places::check_not_capturing(::cuda::get_stream(envs[g]).get(), "sharded::count_if");
+  }
 
-  const size_t num_shards = data.num_shards();
-
-  // Pinned host memory for the per-place counts (zero-initialized so skipped
-  // empty shards contribute nothing)
-  places::place_memory_resource host_mr(data_place::host());
-  size_t* h_counts = static_cast<size_t*>(host_mr.allocate_sync(num_shards * sizeof(size_t), alignof(size_t)));
+  constexpr bool __env_has_mr = ::cuda::std::execution::__queryable_with<_CallEnv, ::cuda::mr::get_memory_resource_t>
+                             || ::cuda::mr::__has_member_get_resource<_CallEnv>;
+  size_t* h_counts            = nullptr;
+  if constexpr (__env_has_mr)
+  {
+    auto staging_mr = ::cuda::mr::get_memory_resource(call_env);
+    h_counts        = static_cast<size_t*>(staging_mr.allocate_sync(num_shards * sizeof(size_t), alignof(size_t)));
+  }
+  else
+  {
+    h_counts = static_cast<size_t*>(reserved::__pinned_staging(num_shards * sizeof(size_t)));
+  }
   ::std::fill(h_counts, h_counts + num_shards, size_t{0});
 
-  // Phase 1: local transform-reduce on each shard; free the per-shard outputs
-  // only after the final sync (places without stream-ordered deallocation)
-  ::std::vector<::std::pair<places::place_memory_resource, size_t*>> d_outputs;
-  d_outputs.reserve(num_shards);
-
-  data.each_shard->*[&](const size_t g, const auto& s) {
-    places::place_memory_resource mr(s.place);
-    size_t* d_out = static_cast<size_t*>(mr.allocate(::cuda::stream_ref{s.stream}, sizeof(size_t), alignof(size_t)));
-    d_outputs.emplace_back(mr, d_out);
-
-    // Temporaries come from the shard's place through the group's resources
-    const auto env = group.env(s.place, s.stream);
+  for (const auto g : each(num_shards))
+  {
+    const auto& s = data.shard(g);
+    if (s.size == 0)
+    {
+      continue;
+    }
+    const auto& env                       = envs[g];
+    const ::cuda::stream_ref shard_stream = ::cuda::get_stream(env);
+    stream_scope scope(shard_stream.get());
+    auto mr       = ::cuda::mr::get_memory_resource(env);
+    size_t* d_out = static_cast<size_t*>(mr.allocate(shard_stream, sizeof(size_t), alignof(size_t)));
     cuda_safe_call(cub::DeviceReduce::TransformReduce(
       s.data,
       d_out,
       s.size,
       ::cuda::std::plus<size_t>{},
-      reserved::count_transform_fn<_Tp, _Pred>{pred},
+      reserved::count_transform_fn<elem_t, _Pred>{pred},
       size_t{0},
       env));
+    cuda_safe_call(cudaMemcpyAsync(&h_counts[g], d_out, sizeof(size_t), cudaMemcpyDeviceToHost, shard_stream.get()));
+    mr.deallocate(shard_stream, d_out, sizeof(size_t), alignof(size_t)); // stream-ordered, after the copy
+  }
 
-    cuda_safe_call(cudaMemcpyAsync(&h_counts[g], d_out, sizeof(size_t), cudaMemcpyDeviceToHost, s.stream));
-  };
+  barrier(envs);
 
-  data.sync();
-
-  // Phase 2: sum the per-place counts
   size_t total = 0;
-  for (size_t g = 0; g < num_shards; g++)
+  for (const auto g : each(num_shards))
   {
     total += h_counts[g];
   }
 
-  for (auto& [mr, ptr] : d_outputs)
+  if constexpr (__env_has_mr)
   {
-    mr.deallocate_sync(ptr, sizeof(size_t), alignof(size_t));
+    auto staging_mr = ::cuda::mr::get_memory_resource(call_env);
+    staging_mr.deallocate_sync(h_counts, num_shards * sizeof(size_t), alignof(size_t));
   }
-  host_mr.deallocate_sync(h_counts, num_shards * sizeof(size_t), alignof(size_t));
+  // (arena staging is cached; nothing to release)
 
   return total;
 }
 
-/// @brief Count the elements equal to `value`.
-template <typename _Tp>
-[[nodiscard]] _CCCL_HOST_API size_t count(place_group& group, const sharded_array<_Tp>& data, _Tp value)
+/// @brief Count elements satisfying @p pred (generic, self-bound).
+_CCCL_TEMPLATE(class _S, class _Pred, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(
+  self_bound<::cuda::std::remove_cvref_t<_S>> _CCCL_AND(!sharded_alloc_env_range<::cuda::std::remove_cvref_t<_Pred>>))
+[[nodiscard]] _CCCL_HOST_API size_t count_if(const _S& data, _Pred pred, const _CallEnv& call_env = {})
 {
-  return count_if(group, data, reserved::equals_value_fn<_Tp>{value});
+  const auto envs = default_envs(data);
+  return sharded::count_if(data, envs, pred, call_env);
+}
+
+/// @brief Count elements equal to @p value (generic).
+_CCCL_TEMPLATE(class _S, class _Envs, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(
+  sharded_view<::cuda::std::remove_cvref_t<_S>> _CCCL_AND sharded_alloc_env_range<::cuda::std::remove_cvref_t<_Envs>>)
+[[nodiscard]] _CCCL_HOST_API size_t
+count(const _S& data, const _Envs& envs, view_element_t<_S> value, const _CallEnv& call_env = {})
+{
+  return sharded::count_if(data, envs, reserved::equals_value_fn<view_element_t<_S>>{value}, call_env);
+}
+
+/// @brief Count elements equal to @p value (generic, self-bound).
+_CCCL_TEMPLATE(class _S, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(self_bound<::cuda::std::remove_cvref_t<_S>>)
+[[nodiscard]] _CCCL_HOST_API size_t count(const _S& data, view_element_t<_S> value, const _CallEnv& call_env = {})
+{
+  const auto envs = default_envs(data);
+  return sharded::count_if(data, envs, reserved::equals_value_fn<view_element_t<_S>>{value}, call_env);
 }
 } // namespace cuda::experimental::sharded

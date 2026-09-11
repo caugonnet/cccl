@@ -30,13 +30,14 @@
 #include <cstdio>
 
 using namespace cuda::experimental::sharded;
+using cuda::experimental::places::make_locality_domain_grid;
 using cuda::experimental::places::place_group;
 
 int main()
 {
   // One execution place per locality domain, with lazily created per-place
   // stream pools and memory resources
-  auto group = place_group::by_locality_domains();
+  auto group = place_group{make_locality_domain_grid()};
   printf("place_group with %zu place(s)\n", group.size());
 
   // 256M values, distributed evenly: shard i lives on place i
@@ -44,14 +45,14 @@ int main()
   auto data           = sharded_array<long long>::allocate(group, n);
 
   // data[i] = i + 1 (global index), computed by each place on its shard
-  iota(group, data, 1LL);
+  iota(data, 1LL);
 
   // Per-place CUB reduction + combine across places
-  const long long total    = sum(group, data);
+  const long long total    = sum(data);
   const long long expected = static_cast<long long>(n) * (static_cast<long long>(n) + 1) / 2;
 
   printf("sum(1..%zu) = %lld (expected %lld)\n", n, total, expected);
-  printf("min = %lld, max = %lld\n", min(group, data), max(group, data));
+  printf("min = %lld, max = %lld\n", min(data), max(data));
 
   if (total != expected)
   {
