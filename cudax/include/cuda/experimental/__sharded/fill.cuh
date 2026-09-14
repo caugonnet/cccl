@@ -40,7 +40,11 @@
 #include <thrust/tuple.h>
 
 #include <cuda/experimental/__places/place_group.cuh>
+#include <cuda/experimental/__sharded/concepts.cuh>
+#include <cuda/experimental/__sharded/cuda_safe_call.cuh>
+#include <cuda/experimental/__sharded/default_envs.cuh>
 #include <cuda/experimental/__sharded/sharded_array.cuh>
+#include <cuda/experimental/__sharded/stream_scope.cuh>
 
 #include <cuda_runtime.h>
 
@@ -87,93 +91,141 @@ struct for_each_fn
 };
 } // namespace reserved
 
-/// @brief Set every element to @p value.
-template <typename _Tp>
-_CCCL_HOST_API void fill(place_group&, sharded_array<_Tp>& data, const _Tp& value, bool blocking = true)
+// ============================================================================
+// Concept-generic tier: the elementwise family over any sharded_view
+// ============================================================================
+//
+// The per-call environment selects the contract (stream present =
+// asynchronous, lane-ordered by default per the composition contract —
+// `composition::bracketed` seals a call against the call stream; no stream =
+// synchronous convenience; sync_policy::forbid refuses the synchronous
+// form). Explicit-environment overloads serve any
+// sharded_view; the self-bound overloads derive environments via
+// default_envs.
+
+//! @brief Set every element to @p value (generic).
+_CCCL_TEMPLATE(class _S, class _Envs, class _Tp, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(
+  sharded_view<::cuda::std::remove_cvref_t<_S>> _CCCL_AND sharded_env_range<::cuda::std::remove_cvref_t<_Envs>>)
+_CCCL_HOST_API void fill(_S&& data, const _Envs& envs, const _Tp& value, const _CallEnv& call_env = {})
 {
-  data.each_shard->*[value](auto& s) {
-    thrust::fill(thrust::cuda::par_nosync.on(s.stream), s.data, s.data + s.size, value);
+  __detail::__generic_map(data, envs, call_env, "sharded::fill", [&](const auto& d, cudaStream_t s) {
+    thrust::fill(thrust::cuda::par_nosync.on(s), d.data, d.data + d.size, value);
     cuda_safe_call(cudaGetLastError());
-  };
-  if (blocking)
-  {
-    data.sync();
-  }
+  });
 }
 
-/// @brief data[i] = start + i * step (global index i).
-template <typename _Tp>
-_CCCL_HOST_API void
-sequence(place_group&, sharded_array<_Tp>& data, _Tp start = _Tp{0}, _Tp step = _Tp{1}, bool blocking = true)
+//! @brief Set every element to @p value (generic, self-bound).
+_CCCL_TEMPLATE(class _S, class _Tp, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(
+  self_bound<::cuda::std::remove_cvref_t<_S>> _CCCL_AND(!sharded_env_range<::cuda::std::remove_cvref_t<_Tp>>))
+_CCCL_HOST_API void fill(_S&& data, const _Tp& value, const _CallEnv& call_env = {})
 {
-  using shard_t = typename sharded_array<_Tp>::shard_type;
-  data.each_shard->*[start, step](shard_t& s) {
-    thrust::tabulate(thrust::cuda::par_nosync.on(s.stream),
-                     s.data,
-                     s.data + s.size,
-                     reserved::sequence_fn<_Tp>{start, step, s.global_offset});
+  const auto envs = default_envs(data);
+  sharded::fill(::cuda::std::forward<_S>(data), envs, value, call_env);
+}
+
+//! @brief data[i] = start + i * step for the GLOBAL index i (generic).
+_CCCL_TEMPLATE(class _S, class _Envs, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(
+  sharded_view<::cuda::std::remove_cvref_t<_S>> _CCCL_AND sharded_env_range<::cuda::std::remove_cvref_t<_Envs>>)
+_CCCL_HOST_API void sequence(
+  _S&& data,
+  const _Envs& envs,
+  view_element_t<_S> start = {},
+  view_element_t<_S> step  = view_element_t<_S>{1},
+  const _CallEnv& call_env = {})
+{
+  using elem_t = view_element_t<_S>;
+  __detail::__generic_map(data, envs, call_env, "sharded::sequence", [&](const auto& d, cudaStream_t s) {
+    thrust::tabulate(thrust::cuda::par_nosync.on(s),
+                     d.data,
+                     d.data + d.size,
+                     reserved::sequence_fn<elem_t>{start, step, static_cast<size_t>(d.global_offset)});
     cuda_safe_call(cudaGetLastError());
-  };
-  if (blocking)
-  {
-    data.sync();
-  }
+  });
 }
 
-/// @brief data[i] = start + i (global index i).
-template <typename _Tp>
-_CCCL_HOST_API void iota(place_group& group, sharded_array<_Tp>& data, _Tp start = _Tp{0}, bool blocking = true)
+//! @brief data[i] = start + i for the GLOBAL index i (generic, self-bound).
+_CCCL_TEMPLATE(class _S, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(self_bound<::cuda::std::remove_cvref_t<_S>>)
+_CCCL_HOST_API void iota(_S&& data, view_element_t<_S> start = {}, const _CallEnv& call_env = {})
 {
-  sequence(group, data, start, _Tp{1}, blocking);
+  const auto envs = default_envs(data);
+  sharded::sequence(::cuda::std::forward<_S>(data), envs, start, view_element_t<_S>{1}, call_env);
 }
 
-/// @brief data[i] = f(i) for the GLOBAL index i. `f` must be device-callable.
-template <typename _Tp, typename _Fn>
-_CCCL_HOST_API void tabulate(place_group&, sharded_array<_Tp>& data, _Fn f, bool blocking = true)
+//! @brief data[i] = f(i) for the GLOBAL index i; `f` device-callable (generic).
+_CCCL_TEMPLATE(class _S, class _Envs, class _Fn, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(
+  sharded_view<::cuda::std::remove_cvref_t<_S>> _CCCL_AND sharded_env_range<::cuda::std::remove_cvref_t<_Envs>>)
+_CCCL_HOST_API void tabulate(_S&& data, const _Envs& envs, _Fn f, const _CallEnv& call_env = {})
 {
-  using shard_t = typename sharded_array<_Tp>::shard_type;
-  data.each_shard->*[f](shard_t& s) {
-    thrust::tabulate(
-      thrust::cuda::par_nosync.on(s.stream), s.data, s.data + s.size, reserved::tabulate_fn<_Fn>{f, s.global_offset});
+  __detail::__generic_map(data, envs, call_env, "sharded::tabulate", [&](const auto& d, cudaStream_t s) {
+    thrust::tabulate(thrust::cuda::par_nosync.on(s),
+                     d.data,
+                     d.data + d.size,
+                     reserved::tabulate_fn<_Fn>{f, static_cast<size_t>(d.global_offset)});
     cuda_safe_call(cudaGetLastError());
-  };
-  if (blocking)
-  {
-    data.sync();
-  }
+  });
 }
 
-/// @brief data[i] = gen() with a stateless, device-callable generator.
-template <typename _Tp, typename _Gen>
-_CCCL_HOST_API void generate(place_group&, sharded_array<_Tp>& data, _Gen gen, bool blocking = true)
+//! @brief data[i] = f(i) (generic, self-bound).
+_CCCL_TEMPLATE(class _S, class _Fn, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(
+  self_bound<::cuda::std::remove_cvref_t<_S>> _CCCL_AND(!sharded_env_range<::cuda::std::remove_cvref_t<_Fn>>))
+_CCCL_HOST_API void tabulate(_S&& data, _Fn f, const _CallEnv& call_env = {})
 {
-  data.each_shard->*[gen](auto& s) {
-    thrust::generate(thrust::cuda::par_nosync.on(s.stream), s.data, s.data + s.size, gen);
+  const auto envs = default_envs(data);
+  sharded::tabulate(::cuda::std::forward<_S>(data), envs, f, call_env);
+}
+
+//! @brief data[i] = gen() with a stateless, device-callable generator (generic).
+_CCCL_TEMPLATE(class _S, class _Envs, class _Gen, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(
+  sharded_view<::cuda::std::remove_cvref_t<_S>> _CCCL_AND sharded_env_range<::cuda::std::remove_cvref_t<_Envs>>)
+_CCCL_HOST_API void generate(_S&& data, const _Envs& envs, _Gen gen, const _CallEnv& call_env = {})
+{
+  __detail::__generic_map(data, envs, call_env, "sharded::generate", [&](const auto& d, cudaStream_t s) {
+    thrust::generate(thrust::cuda::par_nosync.on(s), d.data, d.data + d.size, gen);
     cuda_safe_call(cudaGetLastError());
-  };
-  if (blocking)
-  {
-    data.sync();
-  }
+  });
 }
 
-/// @brief Apply `op(element&, global_index)` to every element.
-template <typename _Tp, typename _Op>
-_CCCL_HOST_API void for_each(place_group&, sharded_array<_Tp>& data, _Op op, bool blocking = true)
+//! @brief data[i] = gen() (generic, self-bound).
+_CCCL_TEMPLATE(class _S, class _Gen, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(
+  self_bound<::cuda::std::remove_cvref_t<_S>> _CCCL_AND(!sharded_env_range<::cuda::std::remove_cvref_t<_Gen>>))
+_CCCL_HOST_API void generate(_S&& data, _Gen gen, const _CallEnv& call_env = {})
 {
-  using shard_t = typename sharded_array<_Tp>::shard_type;
-  data.each_shard->*[op](shard_t& s) {
-    const size_t global_offset = s.global_offset;
-    auto begin = thrust::make_zip_iterator(thrust::make_tuple(s.data, thrust::make_counting_iterator(global_offset)));
+  const auto envs = default_envs(data);
+  sharded::generate(::cuda::std::forward<_S>(data), envs, gen, call_env);
+}
+
+//! @brief Apply `op(element&, global_index)` to every element (generic).
+_CCCL_TEMPLATE(class _S, class _Envs, class _Op, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(
+  sharded_view<::cuda::std::remove_cvref_t<_S>> _CCCL_AND sharded_env_range<::cuda::std::remove_cvref_t<_Envs>>)
+_CCCL_HOST_API void for_each(_S&& data, const _Envs& envs, _Op op, const _CallEnv& call_env = {})
+{
+  using elem_t = view_element_t<_S>;
+  __detail::__generic_map(data, envs, call_env, "sharded::for_each", [&](const auto& d, cudaStream_t s) {
+    const size_t global_offset = static_cast<size_t>(d.global_offset);
+    auto begin = thrust::make_zip_iterator(thrust::make_tuple(d.data, thrust::make_counting_iterator(global_offset)));
     auto end   = thrust::make_zip_iterator(
-      thrust::make_tuple(s.data + s.size, thrust::make_counting_iterator(global_offset + s.size)));
-
-    thrust::for_each(thrust::cuda::par_nosync.on(s.stream), begin, end, reserved::for_each_fn<_Tp, _Op>{op});
+      thrust::make_tuple(d.data + d.size, thrust::make_counting_iterator(global_offset + d.size)));
+    thrust::for_each(thrust::cuda::par_nosync.on(s), begin, end, reserved::for_each_fn<elem_t, _Op>{op});
     cuda_safe_call(cudaGetLastError());
-  };
-  if (blocking)
-  {
-    data.sync();
-  }
+  });
+}
+
+//! @brief Apply `op(element&, global_index)` (generic, self-bound).
+_CCCL_TEMPLATE(class _S, class _Op, class _CallEnv = default_call_env)
+_CCCL_REQUIRES(
+  self_bound<::cuda::std::remove_cvref_t<_S>> _CCCL_AND(!sharded_env_range<::cuda::std::remove_cvref_t<_Op>>))
+_CCCL_HOST_API void for_each(_S&& data, _Op op, const _CallEnv& call_env = {})
+{
+  const auto envs = default_envs(data);
+  sharded::for_each(::cuda::std::forward<_S>(data), envs, op, call_env);
 }
 } // namespace cuda::experimental::sharded

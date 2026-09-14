@@ -26,6 +26,7 @@
 #include <vector>
 
 using namespace cuda::experimental::sharded;
+using cuda::experimental::places::make_locality_domain_grid;
 using cuda::experimental::places::place_group;
 
 namespace
@@ -97,7 +98,7 @@ void test_multi_shard_roundtrip()
 
 void test_place_group_allocation()
 {
-  auto group     = place_group::by_locality_domains({0});
+  auto group     = place_group{make_locality_domain_grid(0)};
   const size_t n = 10000;
 
   auto arr = sharded_array<long long>::allocate(group, n);
@@ -133,7 +134,7 @@ void test_place_group_allocation()
 
 void test_allocate_like()
 {
-  auto group = place_group::by_locality_domains({0});
+  auto group = place_group{make_locality_domain_grid(0)};
   auto src   = sharded_array<long long>::allocate(group, 999);
 
   auto dst = sharded_array<long long>::allocate_like(src);
@@ -196,7 +197,7 @@ void test_adoption_and_slice()
   const size_t n = 700;
   auto input     = sequential<long long>(n);
 
-  auto group = place_group::by_locality_domains({0});
+  auto group = place_group{make_locality_domain_grid(0)};
   auto owner = sharded_array<long long>::allocate(group, n);
   owner.copy_from_host(input.data());
 
@@ -240,7 +241,9 @@ void test_adoption_and_slice()
   }
 }
 
-void test_check_compatible_throws()
+// Co-partition validation now lives in the concept tier and is exercised
+// through the generic algorithms (was: the container-tier check_compatible).
+void test_copartition_refusal()
 {
   auto a = sharded_array<long long>::allocate({{100, data_place::device(0), exec_place::device(0), nullptr}});
   auto b = sharded_array<long long>::allocate(
@@ -248,29 +251,34 @@ void test_check_compatible_throws()
      {50, data_place::device(0), exec_place::device(0), nullptr}});
   auto c = sharded_array<long long>::allocate({{60, data_place::device(0), exec_place::device(0), nullptr}});
 
+  const auto identity = [] __device__(long long x) {
+    return x;
+  };
+
   bool threw = false;
   try
   {
-    check_compatible(a, b, "test");
+    zip_transform(a, identity, b);
   }
   catch (const ::std::invalid_argument&)
   {
     threw = true;
   }
-  EXPECT(threw); // shard count mismatch
+  EXPECT(threw); // shard count mismatch refused before any launch
 
   threw = false;
   try
   {
-    check_compatible(a, c, "test");
+    zip_transform(a, identity, c);
   }
   catch (const ::std::invalid_argument&)
   {
     threw = true;
   }
-  EXPECT(threw); // shard size mismatch
+  EXPECT(threw); // shard region mismatch refused before any launch
 
-  check_compatible(a, a, "test"); // must not throw
+  zip_transform(a, identity, a); // co-partitioned with itself: must not throw
+  cuda_safe_call(cudaDeviceSynchronize());
 }
 
 void test_uniform_and_host()
@@ -299,7 +307,7 @@ void test_uniform_and_host()
 
 void test_empty_shard_allocation()
 {
-  auto group = place_group::by_locality_domains();
+  auto group = place_group{make_locality_domain_grid()};
   if (group.size() < 2)
   {
     return; // needs at least two places so one can be empty
@@ -337,7 +345,7 @@ int main()
   test_allocate_like();
   test_copy_between_resharding();
   test_adoption_and_slice();
-  test_check_compatible_throws();
+  test_copartition_refusal();
   test_uniform_and_host();
   test_empty_shard_allocation();
 

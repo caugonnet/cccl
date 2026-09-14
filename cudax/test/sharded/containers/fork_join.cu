@@ -24,6 +24,7 @@
 #include <vector>
 
 using namespace cuda::experimental::sharded;
+using cuda::experimental::places::make_locality_domain_grid;
 using cuda::experimental::places::place_group;
 
 namespace
@@ -85,8 +86,8 @@ void test_eager_ordering(place_group& group)
   auto out       = sharded_array<int>::allocate_like(in);
 
   // Sentinels, quiesced before the ordered chain starts.
-  fill(group, in, -1);
-  fill(group, out, -1);
+  fill(in, -1);
+  fill(out, -1);
   in.sync();
   out.sync();
 
@@ -205,7 +206,7 @@ void test_capture(place_group& group)
   const size_t n = 1 << 20;
   auto data      = sharded_array<int>::allocate(group, n);
 
-  iota(group, data, 0);
+  iota(data, 0);
   data.sync();
 
   cudaStream_t caller = nullptr;
@@ -269,7 +270,7 @@ int main()
 {
   cuda_safe_call(cudaSetDevice(0));
 
-  auto group = place_group::by_locality_domains();
+  auto group = place_group{make_locality_domain_grid()};
 
   test_eager_ordering(group);
   test_adopted_foreign_streams();
