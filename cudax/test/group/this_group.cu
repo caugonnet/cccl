@@ -30,7 +30,7 @@ template <class Level, class Hierarchy, class Group>
 __device__ void test_common_properties(const Hierarchy&, Group& group)
 {
   // Assert that Group satisfies the group concept.
-  static_assert(cudax::is_group<Group>);
+  static_assert(cudax::group<Group>);
 
   // Test types
   static_assert(cuda::std::is_same_v<Level, typename Group::unit_type>);
@@ -42,6 +42,10 @@ __device__ void test_common_properties(const Hierarchy&, Group& group)
     static_assert(cuda::std::is_same_v<decltype(hierarchy), const Hierarchy&>);
   }
 
+  // Test that the group exposes properties.
+  static_assert(Group::is_always_exhaustive());
+  static_assert(Group::is_always_contiguous());
+
   // Test that the group can be synchronized using .sync() method.
   {
     static_assert(cuda::std::is_same_v<void, decltype(group.sync())>);
@@ -49,7 +53,7 @@ __device__ void test_common_properties(const Hierarchy&, Group& group)
 
     // .sync() method must support calls from different branches. Add some dummy work to make sure the branches are not
     // collided.
-    cuda::atomic_ref<unsigned, cuda::thread_scope_device> atomic{global_var};
+    const cuda::atomic_ref<unsigned, cuda::thread_scope_device> atomic{global_var};
     if ((threadIdx.x + threadIdx.y + threadIdx.z) % 2 == 0)
     {
       atomic++;

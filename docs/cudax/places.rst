@@ -415,21 +415,28 @@ attached state).
     #include <cuda/experimental/places.cuh>
     using namespace cuda::experimental::places;
 
-    // One place per locality domain of every device (whole devices where
-    // domains are unsupported)
-    auto group = place_group::by_locality_domains();
+    // WHERE is spelled with the usual place vocabulary (grids, partitions);
+    // the group only attaches resources to it. One place per locality domain
+    // of every device (whole devices where domains are unsupported):
+    place_group group{make_locality_domain_grid()};
 
-    // Alternatives: one place per device, an explicit vector, or a grid
-    auto by_dev    = place_group::by_devices();
-    auto from_grid = place_group{make_locality_domain_grid(0)};
+    // Alternatives: one place per device, a single device, or an explicit vector
+    place_group by_dev{exec_place::all_devices()};
+    place_group one_dev{make_locality_domain_grid(0)};
 
-    // Per-place streams (stable per (place, color)) and memory resources
-    cudaStream_t s = group.get_stream(/*place_idx=*/0, /*color=*/0);
-    auto mr        = group.memory_resource(0);
+    // WHEN is spelled with lanes: one ordering domain across the group (one
+    // stream per place, the same lane id everywhere). group.lane(k) is the
+    // group on lane k; plain `group` is lane 0. Ids are [0, num_lanes()) and
+    // never wrap: out of range throws instead of aliasing another lane.
+    auto l1        = group.lane(1);
+    cudaStream_t s = l1.stream(/*place_idx=*/0); // == group.get_stream(0, 1)
 
     // Environments for CUB single-call algorithms: stream + the place's
-    // memory resource, so temporaries land where the work runs
-    auto env = group.env(0);
+    // memory resource (temporaries land where the work runs) + the lane id
+    // (places::get_lane_id, an optional). envs() is one per place on a lane.
+    auto env  = group.env(0);      // lane 0
+    auto envs = l1.envs();         // lane 1, one per place
+    auto mr   = group.memory_resource(0);
 
 A standalone ``place_group`` owns its stream-pool registry. When it coexists
 with a CUDASTF context, it can *borrow* the context's
@@ -884,7 +891,7 @@ mapping can be **scored before any memory is committed**:
 
    // Dry run: same block-majority decision procedure as a real allocation
    localized_stats stats = evaluate_localized_placement(grid, part, sizeof(double));
-   // stats.bytes_per_place, stats.accuracy() (estimated fraction of local bytes),
+   // stats.bytes_per_place, stats.accuracy (estimated fraction of local bytes),
    // stats.nallocs, ... -- tune the spec, then allocate
 
 Placement through a structured partition

@@ -35,9 +35,19 @@
  * context's `async_resources_handle` stream-pool registry instead of owning
  * its own, so there is exactly one pool owner per program:
  *
+ * WHERE is always spelled with the existing place vocabulary (grids,
+ * partitions); a `place_group` only attaches resources to it. WHEN — the
+ * ordering of work — is spelled with LANES: a lane is one ordering domain
+ * across the group (one stream per place, the same lane id on every place),
+ * `group.lane(k)` is the value-typed view of the group on lane k, and lane 0
+ * is the default everywhere (a plain `place_group&` converts to its lane-0
+ * view). Lane ids are `[0, num_lanes())` and never wrap: sharing a lane
+ * between two users of a group is always spelled with the same id, never
+ * the accident of a hidden counter or a modulo.
+ *
  * @code
  * // Standalone: the group owns its stream pools.
- * auto group = place_group::by_locality_domains();
+ * place_group group{make_locality_domain_grid()};
  *
  * // Coexisting with STF: borrow the context's pools (one pool owner).
  * cuda::experimental::stf::context ctx;
@@ -59,24 +69,26 @@
 
 #include <cuda/memory_resource>
 #include <cuda/std/__execution/env.h>
+#include <cuda/std/optional>
 #include <cuda/std/type_traits>
 #include <cuda/stream>
 
 #include <cuda/experimental/__places/exec_place_resources.cuh>
 #include <cuda/experimental/__places/machine.cuh>
 #include <cuda/experimental/__places/place_memory_resource.cuh>
-#include <cuda/experimental/__places/place_partition.cuh>
 #include <cuda/experimental/__places/places.cuh>
+#include <cuda/experimental/__places/places_communicator.cuh>
 #include <cuda/experimental/__stf/utility/core.cuh>
 #include <cuda/experimental/__stf/utility/cuda_safe_call.cuh>
 
 // Used only by the UNITTEST blocks below, never by the implementation: the
-// borrowing tests exercise the seam against a real STF resource handle.
+// borrowing tests exercise the seam against a real STF resource handle, and
+// the construction tests spell their place layouts with the grid vocabulary.
 #ifdef UNITTESTED_FILE
+#  include <cuda/experimental/__places/exec/locality_domain.cuh>
 #  include <cuda/experimental/__stf/internal/async_resources_handle.cuh>
 #endif
 
-#include <atomic>
 #include <cstddef>
 #include <memory>
 #include <mutex>
@@ -90,71 +102,11 @@
 namespace cuda::experimental::places
 {
 // ============================================================================
-// reserved: place-list builders backing the ctors and factories
+// reserved: implementation details of place_group
 // ============================================================================
 
 namespace reserved
 {
-/// @brief Device ordinals of every visible CUDA device.
-inline ::std::vector<int> all_device_ids()
-{
-  const int ndevs = cuda_try<cudaGetDeviceCount>();
-  ::std::vector<int> ids(static_cast<size_t>(ndevs));
-  for (int d = 0; d < ndevs; d++)
-  {
-    ids[static_cast<size_t>(d)] = d;
-  }
-  return ids;
-}
-
-/// @brief One `exec_place` per listed device ordinal.
-inline ::std::vector<exec_place> places_from_devices(const ::std::vector<int>& device_ids)
-{
-  ::std::vector<exec_place> result;
-  result.reserve(device_ids.size());
-  for (int id : device_ids)
-  {
-    result.push_back(exec_place::device(id));
-  }
-  return result;
-}
-
-/// @brief Flatten an `exec_place` grid (or a scalar place) into a vector of places.
-inline ::std::vector<exec_place> places_from_grid(const exec_place& grid)
-{
-  ::std::vector<exec_place> result;
-  result.reserve(grid.size());
-  for (size_t i = 0; i < grid.size(); i++)
-  {
-    result.push_back(grid.get_place(i));
-  }
-  return result;
-}
-
-/**
- * @brief One `exec_place` per locality domain of every listed device
- * (device-major order); an empty list means all visible devices.
- *
- * Devices without locality-domain support contribute a single whole-device
- * place, so this is safe on every machine.
- */
-inline ::std::vector<exec_place> places_from_locality_domains(::std::vector<int> device_ids = {})
-{
-  if (device_ids.empty())
-  {
-    device_ids = reserved::all_device_ids();
-  }
-
-  ::std::vector<::std::shared_ptr<exec_place>> devices;
-  devices.reserve(device_ids.size());
-  for (int d : device_ids)
-  {
-    devices.push_back(::std::make_shared<exec_place>(exec_place::device(d)));
-  }
-  place_partition partition(devices, place_partition_scope::locality_domain);
-  return ::std::vector<exec_place>(partition.begin(), partition.end());
-}
-
 // Detects handle types exposing `get_place_resources() -> exec_place_resources&`
 // (e.g. the STF `async_resources_handle`), without this header depending on them.
 template <typename Handle, typename = void>
@@ -217,13 +169,100 @@ inline void check_not_capturing(cudaStream_t stream, const char* what)
 }
 
 // ============================================================================
+// Lane identity query
+// ============================================================================
+
+/**
+ * @brief Query object for the lane an environment was manufactured on
+ * (`place_group::lane_view::envs`, a container's `default_envs`).
+ *
+ * The value is a `cuda::std::optional<size_t>`: engaged with the lane id for
+ * environments born from a `place_group` lane, disengaged for environments
+ * whose stream came from elsewhere (an array allocated from explicit
+ * `shard_spec`s, an adopted foreign stream). Environment types that do not
+ * carry the property at all (foreign environments) read as disengaged
+ * through `query_lane_id`.
+ */
+struct get_lane_id_t
+{
+  _CCCL_TEMPLATE(class _Env)
+  _CCCL_REQUIRES(::cuda::std::execution::__queryable_with<_Env, get_lane_id_t>)
+  [[nodiscard]] constexpr auto operator()(const _Env& __env) const noexcept
+  {
+    return __env.query(*this);
+  }
+};
+_CCCL_GLOBAL_CONSTANT get_lane_id_t get_lane_id{};
+
+//! @brief Lane id of an environment; disengaged when the environment carries
+//! none (foreign stream) or cannot be asked (foreign environment type).
+template <class _Env>
+[[nodiscard]] constexpr ::cuda::std::optional<size_t> query_lane_id(const _Env& __env) noexcept
+{
+  if constexpr (::cuda::std::execution::__queryable_with<_Env, get_lane_id_t>)
+  {
+    return __env.query(get_lane_id);
+  }
+  else
+  {
+    (void) __env;
+    return ::cuda::std::nullopt;
+  }
+}
+
+// ============================================================================
+// Group identity query
+// ============================================================================
+
+class place_group;
+
+/**
+ * @brief Query object for the `place_group` an environment was manufactured
+ * from (`place_group::lane_view::envs`, a container's `default_envs`).
+ *
+ * The value is a `place_group*`: the group for environments born from a
+ * group lane, `nullptr` for environments whose stream came from elsewhere.
+ * Environment types that do not carry the property at all (foreign
+ * environments) read as `nullptr` through `query_place_group`. Together with
+ * `get_lane_id` this is what lets an algorithm reach the resources the group
+ * owns for that lane (its streams, its communicators) from the environments
+ * alone.
+ */
+struct get_place_group_t
+{
+  _CCCL_TEMPLATE(class _Env)
+  _CCCL_REQUIRES(::cuda::std::execution::__queryable_with<_Env, get_place_group_t>)
+  [[nodiscard]] constexpr auto operator()(const _Env& __env) const noexcept
+  {
+    return __env.query(*this);
+  }
+};
+_CCCL_GLOBAL_CONSTANT get_place_group_t get_place_group{};
+
+//! @brief The group of an environment; `nullptr` when the environment
+//! carries none (foreign stream) or cannot be asked (foreign environment type).
+template <class _Env>
+[[nodiscard]] constexpr place_group* query_place_group(const _Env& __env) noexcept
+{
+  if constexpr (::cuda::std::execution::__queryable_with<_Env, get_place_group_t>)
+  {
+    return __env.query(get_place_group);
+  }
+  else
+  {
+    (void) __env;
+    return nullptr;
+  }
+}
+
+// ============================================================================
 // place_group
 // ============================================================================
 
 /**
  * @brief A group of execution places plus the execution resources attached to
- * them: lazily initialized per-place stream pools and per-place memory
- * resources.
+ * them: lazily initialized per-place stream pools, per-place memory
+ * resources, and per-lane communicator groups.
  *
  * See the file-level comment for the grid-versus-group rationale. In short: a
  * grid is a stateless value naming places; a `place_group` is the resource
@@ -238,13 +277,17 @@ inline void check_not_capturing(cudaStream_t stream, const char* what)
  * `async_resources_handle` — so that exactly one pool owner exists when both
  * layers coexist. Borrowed handles with shared-ownership semantics are kept
  * alive by the group.
+ *
+ * Ordering is spelled with lanes (see the Streams and lanes section and
+ * `lane_view`): `group.lane(k)` is the group on lane k, plain `group` is lane
+ * 0, and the group itself holds no lane-selection state — only places, the
+ * registry and lazily filled per-lane caches (streams, communicators) — so
+ * it is freely shared by concurrent users.
  */
 class place_group
 {
 public:
-  /// @brief Sentinel color requesting automatic (round-robin) stream-color
-  /// selection.
-  static constexpr size_t auto_stream_color = static_cast<size_t>(-1);
+  class lane_view;
 
   /// @brief Create a group owning its stream pools, over an explicit set of places.
   explicit place_group(::std::vector<exec_place> places)
@@ -258,7 +301,7 @@ public:
   /// @brief Create a group from an `exec_place` grid (or a scalar place),
   /// flattened to one place per grid entry.
   explicit place_group(const exec_place& grid)
-      : place_group(reserved::places_from_grid(grid))
+      : place_group(grid.places())
   {}
 
   /**
@@ -295,35 +338,6 @@ public:
   }
 
   // ==========================================================================
-  // One-call factories for the common place layouts
-  // ==========================================================================
-
-  /**
-   * @brief Group with one place per device: all visible devices, or the
-   * listed ones.
-   */
-  static place_group by_devices(::std::vector<int> device_ids = {})
-  {
-    if (device_ids.empty())
-    {
-      device_ids = reserved::all_device_ids();
-    }
-    return place_group(reserved::places_from_devices(device_ids));
-  }
-
-  /**
-   * @brief Group with one place per locality domain of every device (or of
-   * the listed devices) — compute and memory co-located per domain.
-   *
-   * Devices without locality-domain support contribute a single whole-device
-   * place, so this is safe everywhere.
-   */
-  static place_group by_locality_domains(::std::vector<int> device_ids = {})
-  {
-    return place_group(reserved::places_from_locality_domains(mv(device_ids)));
-  }
-
-  // ==========================================================================
   // Places
   // ==========================================================================
 
@@ -349,52 +363,209 @@ public:
   }
 
   // ==========================================================================
-  // Streams
+  // Streams and lanes
   // ==========================================================================
   // Each place carries a pool of streams (its compute pool in the underlying
-  // registry). A stream "color" is an index into that pool: work mapped to
-  // different colors may overlap since it runs on different streams. Streams
-  // are created lazily, on first use of each (place, color) slot.
+  // registry). A "lane" is one ordering domain across the group — one stream
+  // per place, the same lane id on every place: work is ordered within a
+  // lane and may overlap across lanes. The group has a FIXED number of lanes
+  // (`num_lanes()`), uniform over its places; lane ids are `[0, num_lanes())`
+  // and never wrap — an out-of-range id is refused rather than aliased onto
+  // another lane, so two users of one group share a lane only by naming the
+  // same id. Lane 0 is the default everywhere (containers built from a plain
+  // `place_group`, `envs()`): same lane means stream-ordered, and concurrency
+  // is opt-in and visible (`group.lane(1)`). Streams are created lazily, on
+  // first use of each place. (Naming: a lane here is a host-side stream
+  // pipeline, not CUDA's intra-warp lane — the granularity gap keeps the
+  // homonym unambiguous in context.)
 
-  /// @brief Number of stream colors available per place.
-  [[nodiscard]] size_t num_stream_colors() const noexcept
+  /// @brief Number of lanes of the group (the same on every place).
+  [[nodiscard]] size_t num_lanes() const noexcept
   {
-    return exec_place_default_pool_size;
+    return num_lanes_;
   }
 
-  /// @brief Get the stream of @p place for a given color (default color 0).
-  ///
-  /// Colors wrap modulo the place's ACTUAL stream-pool size (places created
-  /// with custom pool sizes may hold fewer or more streams than
-  /// `exec_place_default_pool_size`; `num_stream_colors()` reports the
-  /// default advertised by the group).
-  cudaStream_t get_stream(const exec_place& place, size_t color = 0)
+  /// @brief Get the stream of @p place on lane @p lane_id (default lane 0).
+  /// @throws std::out_of_range when `lane_id >= num_lanes()`: lane ids never
+  ///         wrap (reduce derived ids against `num_lanes()` explicitly).
+  /// @throws std::invalid_argument when @p place is not a member of the group.
+  cudaStream_t get_stream(const exec_place& place, size_t lane_id = 0)
   {
+    check_lane(lane_id, "place_group::get_stream");
     const auto& streams = get_or_create_streams(place);
-    _CCCL_ASSERT(!streams.empty(), "place has an empty stream pool");
-    return streams[color % streams.size()];
+    return streams[lane_id];
   }
 
-  /// @brief Get the stream of the idx-th place for a given color.
-  cudaStream_t get_stream(size_t place_idx, size_t color = 0)
+  /// @brief Get the stream of the idx-th place on lane @p lane_id.
+  cudaStream_t get_stream(size_t place_idx, size_t lane_id = 0)
   {
-    return get_stream(place(place_idx), color);
+    return get_stream(place(place_idx), lane_id);
   }
 
   /**
-   * @brief Next stream color, round-robin. Thread-safe.
+   * @brief Environment combining a stream with a place's memory resource and,
+   * when known, the lane the stream belongs to and the group it was drawn
+   * from.
    *
-   * Use to spread independent operations over the per-place pools.
+   * Suitable for CUB's single-call device algorithms: temporaries are
+   * allocated from the place that runs the work. The lane id is engaged and
+   * the group non-null for streams drawn from a group lane (`lane_view::env`);
+   * both are absent for foreign streams. (Defined ahead of `lane_view`, which
+   * uses its deduced return type.)
    */
-  [[nodiscard]] size_t next_stream_color() noexcept
+  static auto env(const data_place& dplace,
+                  cudaStream_t stream,
+                  ::cuda::std::optional<size_t> lane_id = ::cuda::std::nullopt,
+                  place_group* group                    = nullptr)
   {
-    return stream_color_counter_.fetch_add(1, ::std::memory_order_relaxed) % exec_place_default_pool_size;
+    const auto stream_prop = ::cuda::std::execution::prop{::cuda::get_stream, ::cuda::stream_ref{stream}};
+    const auto mr_prop   = ::cuda::std::execution::prop{::cuda::mr::get_memory_resource, place_memory_resource(dplace)};
+    const auto lane_prop = ::cuda::std::execution::prop{get_lane_id, lane_id};
+    const auto group_prop = ::cuda::std::execution::prop{get_place_group, group};
+    return ::cuda::std::execution::env{stream_prop, mr_prop, lane_prop, group_prop};
   }
 
-  /// @brief Stream for a place, either at an explicit color or round-robin.
-  cudaStream_t get_colored_stream(const exec_place& place, size_t color = auto_stream_color)
+  /**
+   * @brief The group seen on one lane: the value-typed handle for "these
+   * places, ordered on lane `lane_id`".
+   *
+   * A `lane_view` is what containers are built from (`allocate(group.lane(k),
+   * n)`, `adopt(group.lane(k), ...)`) and what manufactures per-shard
+   * environments (`group.lane(k).envs()`): every environment carries the
+   * place's pool stream on that lane, a memory resource at the place's
+   * affine data place, the lane id (`get_lane_id`) and the group
+   * (`get_place_group`). A plain `place_group&` converts implicitly to its
+   * lane-0 view, so `allocate(group, n)` means lane 0.
+   *
+   * The view borrows the group: the group must outlive it and anything built
+   * from it. Copyable and cheap (a pointer and an index).
+   */
+  class lane_view
   {
-    return get_stream(place, color == auto_stream_color ? next_stream_color() : color);
+  public:
+    /// @brief View of @p group on lane @p lane_id.
+    /// @throws std::out_of_range when `lane_id >= group.num_lanes()`.
+    lane_view(place_group& group, size_t lane_id)
+        : group_(&group)
+        , lane_id_(lane_id)
+    {
+      group.check_lane(lane_id, "place_group::lane");
+    }
+
+    /// @brief The lane-0 view: the default lane of every group (implicit).
+    lane_view(place_group& group)
+        : lane_view(group, 0)
+    {}
+
+    [[nodiscard]] place_group& group() const noexcept
+    {
+      return *group_;
+    }
+    [[nodiscard]] size_t lane_id() const noexcept
+    {
+      return lane_id_;
+    }
+    [[nodiscard]] size_t size() const noexcept
+    {
+      return group_->size();
+    }
+    [[nodiscard]] const ::std::vector<exec_place>& places() const noexcept
+    {
+      return group_->places();
+    }
+    [[nodiscard]] const exec_place& place(size_t idx) const
+    {
+      return group_->place(idx);
+    }
+
+    /// @brief The idx-th place's stream on this lane.
+    [[nodiscard]] cudaStream_t stream(size_t place_idx) const
+    {
+      return group_->get_stream(place_idx, lane_id_);
+    }
+
+    /// @brief Environment of the idx-th place on this lane: its stream, a
+    /// memory resource at its affine data place, the lane id and the group.
+    [[nodiscard]] auto env(size_t place_idx) const
+    {
+      return place_group::env(place(place_idx).affine_data_place(), stream(place_idx), lane_id_, group_);
+    }
+
+    /// @brief The communicator group of this lane (see
+    /// `place_group::communicators`): rank i is the idx-th place's stream on
+    /// this lane.
+    [[nodiscard]] const ::std::vector<places_communicator>& communicators() const
+    {
+      return group_->communicators(lane_id_);
+    }
+
+    /**
+     * @brief One environment per place on this lane: the per-shard
+     * environment range the generic sharded algorithms consume
+     * (`algo(view, envs, ...)`). This is how execution environments are
+     * manufactured from places: e.g.
+     * `place_group(exec_place::all_devices()).lane(1).envs()` binds one
+     * environment per device on lane 1, streams born in each device's
+     * context. The environments borrow the group's pool streams.
+     */
+    [[nodiscard]] auto envs() const
+    {
+      ::std::vector<decltype(env(size_t{}))> result;
+      result.reserve(size());
+      for (size_t i = 0; i < size(); i++)
+      {
+        result.push_back(env(i));
+      }
+      return result;
+    }
+
+  private:
+    place_group* group_;
+    size_t lane_id_;
+  };
+
+  /// @brief The group on lane @p lane_id (see `lane_view`).
+  /// @throws std::out_of_range when `lane_id >= num_lanes()`.
+  [[nodiscard]] lane_view lane(size_t lane_id)
+  {
+    return lane_view(*this, lane_id);
+  }
+
+  /**
+   * @brief The communicator group of lane @p lane_id: P `places_communicator`
+   * handles in place order, rank i's home stream being
+   * `get_stream(i, lane_id)` — so rank i == place i, and for a container
+   * built on this lane, == shard i.
+   *
+   * Created on first use and kept for the life of the group (the returned
+   * reference and the handles stay valid and identical across calls): the
+   * events a group records are pooled in its state, so the algorithms that
+   * run over these communicators pay for event creation once per lane, not
+   * per call. One group per lane is the isolation two concurrent lanes need
+   * — a communicator group is one host thread's sequence of operations, and
+   * so is a lane. Lazy creation is guarded like stream creation (the group's
+   * mutex); using the group is not synchronized, as for the lane's streams.
+   *
+   * @throws std::out_of_range when `lane_id >= num_lanes()`.
+   * @throws std::invalid_argument on more than 64 places.
+   */
+  [[nodiscard]] const ::std::vector<places_communicator>& communicators(size_t lane_id)
+  {
+    check_lane(lane_id, "place_group::communicators");
+    // Gather the lane's streams first: stream creation takes the same lock.
+    ::std::vector<::cuda::stream_ref> streams;
+    streams.reserve(places_.size());
+    for (size_t i = 0; i < places_.size(); i++)
+    {
+      streams.push_back(::cuda::stream_ref{get_stream(i, lane_id)});
+    }
+    ::std::lock_guard<::std::mutex> lock(mutex_);
+    auto& cache = comm_cache_[lane_id];
+    if (cache.empty())
+    {
+      cache = places_communicator::create(streams);
+    }
+    return cache;
   }
 
   /// @brief Synchronize every stream created so far, on every place.
@@ -448,29 +619,24 @@ public:
     return place_memory_resource(dplace);
   }
 
-  /**
-   * @brief Environment combining a stream with the place's memory resource.
-   *
-   * Suitable for CUB's single-call device algorithms: temporaries are
-   * allocated from the place that runs the work.
-   */
-  static auto env(const data_place& dplace, cudaStream_t stream)
-  {
-    const auto stream_prop = ::cuda::std::execution::prop{::cuda::get_stream, ::cuda::stream_ref{stream}};
-    const auto mr_prop = ::cuda::std::execution::prop{::cuda::mr::get_memory_resource, place_memory_resource(dplace)};
-    return ::cuda::std::execution::env{stream_prop, mr_prop};
-  }
-
-  /// @brief Environment for the idx-th place using an explicit stream.
+  /// @brief Environment for the idx-th place using an explicit (foreign)
+  /// stream: no lane id.
   auto env(size_t place_idx, cudaStream_t stream) const
   {
     return env(place(place_idx).affine_data_place(), stream);
   }
 
-  /// @brief Environment for the idx-th place using the group's stream at color 0.
+  /// @brief Environment for the idx-th place on lane 0.
   auto env(size_t place_idx)
   {
-    return env(place_idx, get_stream(place_idx));
+    return lane(0).env(place_idx);
+  }
+
+  /// @brief One environment per place on lane @p lane_id (default lane 0):
+  /// `lane(lane_id).envs()`.
+  [[nodiscard]] auto envs(size_t lane_id = 0)
+  {
+    return lane(lane_id).envs();
   }
 
   // ==========================================================================
@@ -491,16 +657,18 @@ public:
   }
 
   // Non-copyable and not move-assignable; move-CONSTRUCTIBLE so factories
-  // and ownership transfer work. Moving requires exclusive
-  // access to the source: no concurrent lazy stream creation (get_stream)
-  // may run on `other` during the move.
+  // and ownership transfer work. Moving requires exclusive access to the
+  // source: no concurrent lazy creation (get_stream, communicators) may run
+  // on `other` during the move. Environments manufactured from `other`
+  // (`get_place_group`) keep pointing at the moved-from object.
   place_group(place_group&& other) noexcept
       : places_(mv(other.places_))
       , owned_resources_(mv(other.owned_resources_))
       , resources_(other.resources_)
       , keep_alive_(mv(other.keep_alive_))
       , stream_cache_(mv(other.stream_cache_))
-      , stream_color_counter_(other.stream_color_counter_.load(::std::memory_order_relaxed))
+      , comm_cache_(mv(other.comm_cache_))
+      , num_lanes_(other.num_lanes_)
   {
     other.resources_ = nullptr;
   }
@@ -520,11 +688,12 @@ private:
     ::std::ignore = m;
 
     stream_cache_.resize(places_.size());
+    comm_cache_.resize(num_lanes_);
   }
 
   // Materialize (lazily, once) the per-place streams from the registry's
   // compute pool. The registry owns the streams; the group only caches
-  // handles so (place, color) lookups are stable and cheap.
+  // handles so (place, lane_id) lookups are stable and cheap.
   const ::std::vector<cudaStream_t>& get_or_create_streams(const exec_place& place)
   {
     // Locate the cache slot for this place.
@@ -546,8 +715,30 @@ private:
     if (cache.empty())
     {
       cache = place.pick_all_streams(*resources_);
+      // The lane count is a group invariant: every place must be able to
+      // back num_lanes() distinct streams, or lane k would alias lane j on
+      // this place only. Refuse rather than wrap.
+      if (cache.size() < num_lanes_)
+      {
+        const size_t have = cache.size();
+        cache.clear();
+        _CCCL_THROW(::std::runtime_error,
+                    "place_group: place " + place.to_string() + " has a stream pool of " + ::std::to_string(have)
+                      + " stream(s), fewer than the group's num_lanes() (" + ::std::to_string(num_lanes_)
+                      + "); lanes must be uniform across the group");
+      }
     }
     return cache;
+  }
+
+  void check_lane(size_t lane_id, const char* what) const
+  {
+    if (lane_id >= num_lanes_)
+    {
+      _CCCL_THROW(::std::out_of_range,
+                  ::std::string(what) + ": lane id " + ::std::to_string(lane_id)
+                    + " out of range (num_lanes() = " + ::std::to_string(num_lanes_) + "); lane ids never wrap");
+    }
   }
 
   ::std::vector<exec_place> places_;
@@ -557,12 +748,13 @@ private:
 
   mutable ::std::mutex mutex_;
   ::std::vector<::std::vector<cudaStream_t>> stream_cache_; // one slot per place
-  ::std::atomic<size_t> stream_color_counter_{0};
+  ::std::vector<::std::vector<places_communicator>> comm_cache_; // one group per lane
+  size_t num_lanes_ = exec_place_default_pool_size; // uniform over the group, never wraps
 };
 
 #ifdef UNITTESTED_FILE
 
-UNITTEST("place_group construction and factories")
+UNITTEST("place_group construction from the place vocabulary")
 {
   // From an explicit vector of places
   place_group g1(::std::vector<exec_place>{exec_place::device(0)});
@@ -577,46 +769,54 @@ UNITTEST("place_group construction and factories")
   place_group g3(exec_place::device(0));
   EXPECT(g3.size() == 1UL);
 
-  // by_devices covers every visible device
+  // The all-devices grid covers every visible device
   const size_t ndevs = static_cast<size_t>(cuda_try<cudaGetDeviceCount>());
-  auto g4            = place_group::by_devices();
+  place_group g4{exec_place::all_devices()};
   EXPECT(g4.size() == ndevs);
 
-  auto g5 = place_group::by_devices({0});
-  EXPECT(g5.size() == 1UL);
-
-  // by_locality_domains covers every domain of every device (>= one place
-  // per device even without domain support)
+  // The all-devices locality-domain grid covers every domain of every device
+  // (>= one place per device even without domain support)
   size_t total_domains = 0;
   for (size_t d = 0; d < ndevs; d++)
   {
     total_domains += locality_domain_count(static_cast<int>(d));
   }
-  auto g6 = place_group::by_locality_domains();
-  EXPECT(g6.size() == total_domains);
-  EXPECT(g6.size() >= ndevs);
+  place_group g5{make_locality_domain_grid()};
+  EXPECT(g5.size() == total_domains);
+  EXPECT(g5.size() >= ndevs);
 };
 
 UNITTEST("place_group per-place stream pools")
 {
-  auto group = place_group::by_locality_domains();
+  place_group group{make_locality_domain_grid()};
 
-  // A stream can be picked and used on every place, for every color
-  EXPECT(group.num_stream_colors() >= 1UL);
+  // A stream can be picked and used on every place, for every lane_id
+  EXPECT(group.num_lanes() >= 1UL);
   for (size_t i = 0; i < group.size(); i++)
   {
-    for (size_t color = 0; color < group.num_stream_colors(); color++)
+    for (size_t lane_id = 0; lane_id < group.num_lanes(); lane_id++)
     {
-      cudaStream_t s = group.get_stream(i, color);
+      cudaStream_t s = group.get_stream(i, lane_id);
       EXPECT(s != nullptr);
-      // Stable: the same (place, color) always yields the same stream
-      EXPECT(s == group.get_stream(i, color));
+      // Stable: the same (place, lane_id) always yields the same stream
+      EXPECT(s == group.get_stream(i, lane_id));
 
       exec_place_scope scope(group.place(i));
       cuda_safe_call(cudaStreamSynchronize(s));
     }
-    // Different colors are different streams
+    // Different lanes are different streams
     EXPECT(group.get_stream(i, 0) != group.get_stream(i, 1));
+    // Lane ids never wrap: out of range is refused, not aliased
+    bool threw = false;
+    try
+    {
+      ::std::ignore = group.get_stream(i, group.num_lanes());
+    }
+    catch (const ::std::out_of_range&)
+    {
+      threw = true;
+    }
+    EXPECT(threw);
   }
 
   // Streams actually execute work on their place
@@ -644,9 +844,146 @@ UNITTEST("place_group per-place stream pools")
   EXPECT(a.get_stream(0, 0) != b.get_stream(0, 0));
 };
 
+UNITTEST("place_group lanes are views")
+{
+  place_group group{make_locality_domain_grid()};
+
+  // lane(k) is the group on lane k; plain group converts to lane 0
+  auto l1                   = group.lane(1);
+  place_group::lane_view l0 = group;
+  EXPECT(l0.lane_id() == 0UL);
+  EXPECT(l1.lane_id() == 1UL);
+  EXPECT(&l1.group() == &group);
+  EXPECT(l1.size() == group.size());
+  for (size_t i = 0; i < group.size(); i++)
+  {
+    EXPECT(l0.stream(i) == group.get_stream(i, 0));
+    EXPECT(l1.stream(i) == group.get_stream(i, 1));
+    EXPECT(l0.stream(i) != l1.stream(i));
+  }
+
+  // Environments carry the lane's stream and the lane id; envs() is lane 0
+  auto e0 = group.envs();
+  auto e1 = l1.envs();
+  EXPECT(e0.size() == group.size());
+  for (size_t i = 0; i < group.size(); i++)
+  {
+    EXPECT(::cuda::get_stream(e0[i]).get() == group.get_stream(i, 0));
+    EXPECT(::cuda::get_stream(e1[i]).get() == group.get_stream(i, 1));
+    EXPECT(query_lane_id(e0[i]) == ::cuda::std::optional<size_t>{0});
+    EXPECT(query_lane_id(e1[i]) == ::cuda::std::optional<size_t>{1});
+  }
+  // Environments name their group; a foreign stream yields no lane and no
+  // group; a foreign environment type reads as none
+  for (size_t i = 0; i < group.size(); i++)
+  {
+    EXPECT(query_place_group(e0[i]) == &group);
+    EXPECT(query_place_group(e1[i]) == &group);
+  }
+  EXPECT(!query_lane_id(group.env(0, cudaStream_t{})).has_value());
+  EXPECT(query_place_group(group.env(0, cudaStream_t{})) == nullptr);
+  const auto foreign = ::cuda::std::execution::prop{::cuda::get_stream, ::cuda::stream_ref{group.get_stream(0)}};
+  EXPECT(!query_lane_id(foreign).has_value());
+  EXPECT(query_place_group(foreign) == nullptr);
+
+  // Out-of-range lanes are refused at the view
+  bool threw = false;
+  try
+  {
+    ::std::ignore = group.lane(group.num_lanes());
+  }
+  catch (const ::std::out_of_range&)
+  {
+    threw = true;
+  }
+  EXPECT(threw);
+};
+
+UNITTEST("place_group lane communicators")
+{
+  place_group group{make_locality_domain_grid()};
+  const size_t P = group.size();
+
+  // One group per lane, rank i == place i, created once and stable: the same
+  // handles (same group identity) and the same range come back every time
+  const auto& c0 = group.communicators(0);
+  EXPECT(c0.size() == P);
+  for (size_t i = 0; i < P; i++)
+  {
+    EXPECT(c0[i].rank() == static_cast<int>(i));
+    EXPECT(c0[i].size() == static_cast<int>(P));
+    EXPECT(c0[i].native_handle() == c0[0].native_handle());
+  }
+  EXPECT(&group.communicators(0) == &c0);
+  EXPECT(&group.lane(0).communicators() == &c0);
+  EXPECT(group.communicators(0)[0] == c0[0]);
+  EXPECT(group.communicators(0)[0].native_handle() == c0[0].native_handle());
+
+  // Two lanes are two distinct groups (distinct pending-collective state)
+  auto l1        = group.lane(1);
+  const auto& c1 = l1.communicators();
+  EXPECT(c1.size() == P);
+  EXPECT(c1[0].native_handle() != c0[0].native_handle());
+  EXPECT(&c1 == &group.communicators(1));
+
+  // The group works over the lane's streams: an all_reduce of one value per
+  // place on lane 1 (the events it records are pooled in the lane's group)
+  ::std::vector<int*> sendbufs(P), recvbufs(P);
+  for (size_t i = 0; i < P; i++)
+  {
+    exec_place_scope scope(group.place(i));
+    cuda_safe_call(cudaMalloc(&sendbufs[i], sizeof(int)));
+    cuda_safe_call(cudaMalloc(&recvbufs[i], sizeof(int)));
+    const int v = static_cast<int>(10 + i);
+    cuda_safe_call(cudaMemcpyAsync(sendbufs[i], &v, sizeof(int), cudaMemcpyDefault, l1.stream(i)));
+  }
+  for (int round = 0; round < 2; round++)
+  {
+    auto&& guard = c1[0].group_guard();
+    for (size_t i = 0; i < P; i++)
+    {
+      c1[i].all_reduce(guard, sendbufs[i], recvbufs[i], 1, ::cuda::std::plus<int>{}, ::cuda::stream_ref{l1.stream(i)});
+    }
+  }
+  int expected = 0;
+  for (size_t i = 0; i < P; i++)
+  {
+    expected += static_cast<int>(10 + i);
+  }
+  for (size_t i = 0; i < P; i++)
+  {
+    int got = -1;
+    cuda_safe_call(cudaMemcpyAsync(&got, recvbufs[i], sizeof(int), cudaMemcpyDefault, l1.stream(i)));
+    cuda_safe_call(cudaStreamSynchronize(l1.stream(i)));
+    EXPECT(got == expected);
+    exec_place_scope scope(group.place(i));
+    cuda_safe_call(cudaFree(sendbufs[i]));
+    cuda_safe_call(cudaFree(recvbufs[i]));
+  }
+
+  // Out-of-range lanes are refused
+  bool threw = false;
+  try
+  {
+    ::std::ignore = group.communicators(group.num_lanes());
+  }
+  catch (const ::std::out_of_range&)
+  {
+    threw = true;
+  }
+  EXPECT(threw);
+};
+
 UNITTEST("place_group per-place memory resources")
 {
-  auto group = place_group::by_devices({0});
+  // The resource models the cuda::mr concepts and declares the property set
+  // containers built from it inherit.
+  static_assert(::cuda::mr::resource<place_memory_resource>);
+  static_assert(::cuda::mr::synchronous_resource<place_memory_resource>);
+  static_assert(::cuda::mr::resource_with<place_memory_resource, ::cuda::mr::device_accessible>);
+  static_assert(::cuda::mr::__has_default_queries<place_memory_resource>);
+
+  place_group group{exec_place::device(0)};
 
   auto mr        = group.memory_resource(0);
   cudaStream_t s = group.get_stream(0);
