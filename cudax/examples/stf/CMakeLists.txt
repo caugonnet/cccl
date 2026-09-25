@@ -10,8 +10,11 @@ set(
   08-cub-reduce.cu
   axpy-annotated.cu
   void_data_interface.cu
+  exception_policies_reciprocal.cu
   explicit_data_places.cu
   partitioned_axpy.cu
+  partitioned_thrust.cu
+  placement_scoring.cu
   thrust_zip_iterator.cu
   1f1b.cu
 )

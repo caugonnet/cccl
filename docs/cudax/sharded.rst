@@ -32,18 +32,28 @@ placement: a ``data_place``, an ``exec_place`` and a reference stream.
 
    using namespace cuda::experimental::sharded;
 
-   auto group     = place_group::by_locality_domains(); // re-exported from places
+   auto group     = place_group{cuda::experimental::places::exec_place::all_locality_domains()}; // both re-exported from places
    const size_t n = 1u << 28;
    auto data      = sharded_array<double>::allocate(group, n);
 
-   iota(group, data, 0.0);
-   double total = sum(group, data);   // per-place CUB + combine
+   iota(data, 0.0);
+   double total = sum(data);          // per-shard CUB + combine
 
 Factory naming follows a two-word rule: ``adopt`` = zero-copy view over
 caller-owned memory (the container becomes a view and the caller owes the
 memory's lifetime); ``from_*`` = builds owned storage by copying or
-transforming its input. ``sharded_array<T>::adopt(shards)`` is the named
-form of the adopting constructor.
+transforming its input. On the group path adoption is spelled with a lane:
+``adopt(group.lane(k), pieces)`` gives the pieces the lane's streams as
+reference streams (dependencies enforced upfront; memory assumed valid), and
+``adopt(group.lane(k), pieces, ready_on)`` additionally forks the lane from a
+producer's timeline — a ``cudaStream_t``, a ``stream_ref`` or a call
+environment answering ``get_stream`` — consumed at the call and not retained.
+Foreign reference streams have no place on the group path (verbs would have
+to guess at conservative synchronization); ``sharded_array<T>::adopt(shards)``
+remains the low-level form for foreign models consumed with explicit
+environments. The reverse edge stays explicit: join the lane back into the
+producer's stream (``join_into(stream)`` / ``barrier(envs, stream)``) before
+reusing or freeing adopted memory; destroying a view enqueues nothing.
 
 ``allocate_contiguous`` places the shards inside *one* contiguous virtual
 address range (VMM-backed via ``localized_array``): logical shard boundaries
@@ -66,7 +76,7 @@ ordering declarations, not synchronizations — the host returns immediately:
 
    producer<<<grid, block, 0, s>>>(...); // writes data's memory on stream s
    data.fork_from(s);                    // shards now depend on the producer
-   transform(group, data, out, op);      // per-shard work on the shard streams
+   zip_transform(out, op, data);         // per-shard work on the shard streams
    out.join_into(s);                     // s now depends on every shard
    consumer<<<grid, block, 0, s>>>(...); // sees all results; no host sync
 
@@ -80,36 +90,183 @@ stream (or graph) and the per-shard work.
 Algorithms
 ----------
 
-The algorithm family:
+Algorithms are written against the concepts (see below), not against the
+container: the container algorithms are one *instantiation* of the concept
+tier, materialized by ``place_group`` — ``sharded_array`` models
+``sharded_view`` and ``self_bound``, so ``algo(a, ...)`` *is* the generic
+algorithm instantiated with the container. (Earlier revisions carried
+``(place_group&, sharded_array&)`` signatures alongside; they were a
+redundant spelling of that instantiation — the group parameter was unused in
+every algorithm body — and have been removed.)
 
-- elementwise: ``fill``, ``sequence``, ``iota``, ``tabulate``, ``generate``,
-  ``for_each``, ``transform`` (in-place, unary, binary) — no cross-place
-  stage;
-- ``reduce`` / ``sum`` / ``min`` / ``max``: per-place CUB ``DeviceReduce``
-  plus a combine of the per-place partials;
-- ``inclusive_scan`` / ``exclusive_scan``: per-place CUB ``DeviceScan``, then
-  per-place prefixes folded back in place;
-- ``adjacent_difference``: local differences plus one boundary element per
-  shard;
-- ``count`` / ``count_if``: per-place CUB transform-reduce plus a sum of the
-  per-place counts;
-- ``histogram_even``: per-place CUB ``DeviceHistogram`` plus a per-bin sum of
-  the per-place histograms;
-- ``copy_if`` / ``filter`` / ``remove_if``: per-place CUB ``DeviceSelect``
-  compaction in place, then shard sizes and offsets are updated;
-- ``unique``: per-place CUB ``DeviceSelect::Unique`` in place, then
-  duplicates straddling shard boundaries are trimmed with an O(1) size
-  decrement per boundary.
+The algorithm family (``view`` = any ``sharded_view``; every algorithm has
+an explicit-environments form ``algo(view, envs, ...)`` and, for self-bound
+structures, the one-argument form ``algo(view, ...)``; a trailing per-call
+environment selects the contract):
 
-Algorithm temporaries are drawn from each shard's place through the group's
-per-place memory resources.
+- ``for_each_shard`` (a composition verb, ``composition/for_each_shard.cuh``,
+  not an algorithm): the tier's shard visitor made public — run a
+  caller-supplied body once per non-empty shard, on the shard's stream and
+  in its execution context, under the same call contract as every
+  algorithm below (environment-count guard, lane-ordered or bracketed
+  composition, synchronous no-stream form, capture-time refusal). The body
+  receives ``(g, shard, env)``, ``(g, shard, stream)`` or ``(shard, stream)``
+  and only enqueues. This is the extension point for work the tier does not
+  name — a CUB or cuco call per shard, a hand-written or generated kernel,
+  a per-shard reduction whose P results the caller keeps as a vector, a
+  per-shard scan without cross-shard carry, the emit step of a
+  data-dependent expansion — with scratch drawn from
+  ``cuda::mr::get_memory_resource(env)`` so temporaries land on the shard's
+  place;
+- elementwise (asynchronous forms available): ``fill``, ``sequence``,
+  ``iota``, ``tabulate``, ``generate``, ``for_each``, ``transform``
+  (in place); ``zip_transform`` is the out-of-place spelling for any arity
+  (``out[i] = op(in1[i], in2[i], ...)``, in-place into an input supported,
+  co-partitioning checked). ``transform`` and ``zip_transform`` are direct
+  per-shard CUB launches (``thrust::transform`` / ``cub::DeviceTransform``
+  on the shard's stream): the map family never communicates, so it does
+  not go through the communicator-based engines. An implementation of the
+  same two verbs on the MGMN transform engine exists internally
+  (``reserved::mgmn_engine``, ``__sharded/reference/mgmn_transform.cuh``, not part of
+  the API) as the comparison point for the interfacing cost of those
+  engines;
+- ``transform_reduce`` / ``reduce`` / ``sum`` / ``min`` / ``max``,
+  ``transform_reduce_into`` / ``reduce_into``,
+  ``reduce_into_lanes``: the MGMN reduce (``cuda::experimental::mgmn::reduce``:
+  per-shard CUB ``DeviceReduce``, then an all-reduce of the P partials
+  folded in shard order) over the same in-process communicator — the
+  synchronous forms return the value; ``reduce_into`` is the asynchronous
+  form, writing the aggregate through a device-writable output iterator on
+  the call environment's stream; ``reduce_into_lanes`` delivers it once per
+  lane on the lane's own stream (both capture-legal). ``transform_reduce``
+  / ``transform_reduce_into`` apply a unary transform to every element
+  inside the per-shard reduce (one iterator layer, no extra kernel or
+  intermediate); ``reduce`` is the no-transform case. Operators without a
+  known ``cuda::identity_element`` run the engine over a lifted
+  ``{value, present}`` pair, so no identity is required of the caller;
+- ``inclusive_scan`` / ``exclusive_scan`` / ``inclusive_sum`` /
+  ``exclusive_sum``: the MGMN scan (per-shard totals, an all-gather of the
+  P totals, a device prefix, then per-shard seeded CUB scans in place) over
+  the in-process communicator — asynchronous and capture-legal in the
+  stream-bearing form, synchronous convenience without a stream. The
+  per-shard CUB scans run under ``determinism::run_to_run`` whenever CUB can
+  honor it (its known operators on integers, ``plus`` on floating point), or
+  under the requirements the call environment carries;
+- ``adjacent_difference``: per-shard differences, each shard's kernel
+  reading its predecessor's last element directly from the previous shard
+  through the shared address space (one event edge per shard boundary; a
+  map-family call, asynchronous and capture-legal in the stream-bearing
+  form);
+- ``sort``: global in-place sort, each shard keeping its original
+  boundaries (a contiguous array reads as one globally sorted array
+  afterwards). The shared-address-space engine: local per-shard sorts,
+  exact splitters by multi-sequence selection, and a fused gather-merge
+  loading across shard boundaries through the one address space the places
+  share — it requires every shard on device-backed places of one device
+  and refuses otherwise (sorting across separate address spaces is a
+  distinct engine, arriving separately);
+- ``segmented_reduce``: per-segment aggregates via per-shard CUB
+  ``DeviceSegmentedReduce`` — the segments description is two offset views
+  co-partitioned with the output (for CSR-shaped data, shifted aliases of
+  one row-offsets buffer per shard). A member of the map family despite the
+  name: segments are shard-local, there is no cross-shard combine, and the
+  stream-bearing call form records under graph capture;
+- ``count_if`` / ``count_if_into``, ``count`` / ``count_into``:
+  ``transform_reduce`` with a 0/1 transform (the data is read once, inside
+  the per-shard reduce; no intermediate is materialized) — same engine,
+  same forms and contract as ``reduce`` / ``reduce_into``; ``count`` is
+  ``count_if`` with an equality predicate;
+- ``histogram_even``: per-shard CUB ``DeviceHistogram`` plus a per-bin sum;
+- ``select_if`` / ``remove_if`` / ``unique``: in-place per-shard
+  ``DeviceSelect`` over any ``owning_sharded`` structure (``select_if``
+  keeps the elements satisfying the predicate, ``remove_if`` drops them), sizes committed
+  through one atomic ``commit_sizes`` (mutation capability probed at entry
+  by committing the current sizes — contiguous backing refuses there,
+  before anything changes).
+
+Algorithm temporaries are drawn from each shard's environment's memory
+resource; host staging for the synchronous combines comes from a memory
+resource on the per-call environment when present, and from a cached pinned
+arena otherwise.
+
+Concepts: what the algorithms are written against
+--------------------------------------------------
+
+``<cuda/experimental/__sharded/concepts.cuh>`` names the requirements the
+algorithms consume — the concepts ARE the API surface; the container is the
+reference model and ``place_group`` the reference provider. Three tiers,
+with three lifecycles:
+
+- **The view** (``sharded_view``): an indexed collection of shard
+  descriptors — for each shard a contiguous element range (``data``,
+  ``size``), its *region* in the global index space (``global_offset``), and
+  an equality-comparable *place* identity. Views are plain data: no element
+  ownership, no capacity, no execution resources (``basic_shard_view`` is
+  the ready-made portable descriptor type). Semantic guarantees — regions
+  pairwise disjoint, ordered, tiling ``[0, extent)`` exactly — are checkable
+  with ``validate()``. ``owning_sharded`` refines the view with per-shard
+  ``capacity``; it is where the size-mutating algorithms live.
+- **Per-shard environments** (``sharded_env`` / ``sharded_env_range``):
+  standard queryable environments supplying the stream to order shard ``i``'s
+  work on (``cuda::get_stream``, mandatory) and — for scratch-bearing
+  algorithms — a memory resource (``cuda::mr::get_memory_resource``).
+  Structures built by a provider answer ``default_envs`` (the ``self_bound``
+  concept, in the spirit of ``std::execution``'s ``get_env``); anything else
+  is used through the explicit-environment overloads.
+- **The per-call environment**: resources of the scope the whole call is
+  ordered against. A stream present in it selects the *asynchronous
+  contract* (the call forks from and joins into that stream and never
+  synchronizes with the host); no stream selects the synchronous convenience
+  form. ``sync_policy::forbid`` (the ``get_sync_policy`` query) turns every
+  would-be host synchronization into a ``std::runtime_error`` thrown before
+  any work, leaving all state valid — the same discipline as the capture
+  guards.
+
+Generic algorithms need no execution-place object: work launched into a
+shard's stream executes in the stream's context with the stream's SM
+confinement (``stream_scope`` supplies the one thing a launch needs from the
+calling thread — device currency — derived from the stream itself; see
+``test/places/stream_scope.cu``).
+
+``cuda/experimental/__sharded/reference/`` holds the previous hand-written
+bodies of the reductions and scans as a *temporary* reference for
+parity and overhead measurement (``reserved::legacy``); it is not part of the
+API, not included by the umbrella header, and will be removed.
+
+The pilot generic entry points are ``transform`` (in-place unary) and the
+synchronous ``reduce``:
+
+.. code:: cpp
+
+   auto arr = sharded_array<double>::allocate(group, n);   // self-bound
+   sharded::transform(arr, op);                            // envs derived
+   double r = sharded::reduce(arr, cuda::std::plus<>{}, 0.0);
+
+   // explicit environments (any sharded_view, foreign structures included)
+   auto envs = sharded::default_envs(arr);
+   sharded::transform(arr, envs, op);
+
+   // asynchronous: ordered against a caller stream, no host synchronization
+   const auto sp  = cuda::std::execution::prop{cuda::get_stream, stream_ref{s}};
+   const auto env = cuda::std::execution::env{sp};
+   sharded::transform(arr, op, env);
+
+The container models the concepts as-is (see
+``test/sharded/concepts/models.cu``), and independently-written structures
+model them with zero adapters (``test/sharded/concepts/foreign_models.cu``:
+a hand-rolled model over raw buffers and caller streams, and a
+``vector<span<T>>`` upgraded by ``make_sharded_view``).
 
 Size-mutating algorithms and the contiguous backing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``copy_if`` / ``filter`` / ``remove_if`` and ``unique`` shrink shard sizes in
-place (capacities are unchanged; ``reset_sizes_to_capacity()`` reuses the
-buffers). On a contiguous array this is unrepresentable: shrinking a shard
+``select_if`` / ``remove_if`` and ``unique`` shrink shard sizes in place
+(capacities are unchanged; ``reset_sizes_to_capacity()`` reuses the buffers).
+``copy_if`` is the out-of-place form — ``copy_if(src, dst, pred)``, after
+``thrust::copy_if`` — selecting from a read-only view into an owning
+destination whose per-shard sizes become the data-dependent selected counts
+(the frontier shape: derive a new ragged structure without destroying the
+source; per shard the destination's capacity must cover the source's size). On a contiguous array this is unrepresentable: shrinking a shard
 would leave a gap between its valid elements and the next shard's, falsifying
 the read-as-one-array contract of ``contiguous_data()``, while compacting
 across the gap would migrate elements onto other places than the caller asked
@@ -117,6 +274,94 @@ for. These algorithms therefore throw ``std::invalid_argument`` on contiguous
 (``allocate_contiguous``) arrays, leaving them untouched. Read-only
 algorithms (``count`` / ``count_if``, ``histogram_even``, ``reduce`` et al.)
 remain available on every sharded array, contiguous ones included.
+Asynchrony and composition
+--------------------------
+
+One rule
+~~~~~~~~
+
+A *lane* is one ordering domain: one stream per place — the environments'
+streams (``place_group::envs(lane_id)``, a container's ``default_envs``, or
+any environment range you build yourself). The composition contract is one
+rule:
+
+  An asynchronous call (a stream-bearing per-call environment) enqueues each
+  shard's work on ``envs[i]`` and touches nothing else.
+
+Consecutive calls on the same environments are therefore ordered per lane by
+stream order, and independent across lanes: a chain of calls is a pipeline
+with no per-call synchronization anywhere, fields living on different lanes
+(``allocate(..., lane_id)``) overlap by construction, and everything beyond
+stream order is said explicitly with the verbs below. The asynchronous forms
+never synchronize with the host; a call environment carrying
+``sync_policy::forbid`` turns any would-be host synchronization anywhere in
+the surface into an exception thrown *before* work is enqueued.
+
+Results attach to their output's timeline: ``reduce_into`` delivers the
+aggregate on the call environment's stream, so awaiting a result means
+synchronizing that one stream — not the lanes that produced it, which are
+already free to run the next iteration's work. (Terminators like
+``reduce_into`` are the one place call-stream edges remain: their fold
+consumes every lane's partial, so every lane joins the call stream — that is
+the operation's meaning, not a composition policy.)
+
+The verbs
+~~~~~~~~~
+
+All are free functions over any environment range; all are stream/event
+mechanics only.
+
+- ``barrier(envs)`` — synchronize every lane with the host. Refuses under
+  ``sync_policy::forbid`` and under capture.
+- ``barrier(envs, stream)`` — make ``stream`` wait for all work on every
+  lane: event edges, non-blocking, capture-legal. The pipeline-boundary
+  form: join the lanes into a caller's timeline, a capture origin, or a
+  communicator's stream.
+- ``lane_wait(envs, i, {j, ...})`` and
+  ``lane_wait(envs_to, i, envs_from, {j, ...})`` — declare a cross-lane (or
+  cross-field) dependency: lane ``i`` waits for the named source lanes.
+  Event edges, capture-legal. A forgotten ``lane_wait`` between genuinely
+  coupled lanes is a race — the same honesty as any stream programming.
+- ``lane_sync(envs, i)`` — synchronize one lane with the host (refuses under
+  ``forbid``/capture).
+- ``copy_to_host`` / ``copy_from_host`` — synchronous by contract; natural
+  pipeline endpoints.
+
+Sealed calls, per call
+~~~~~~~~~~~~~~~~~~~~~~
+
+A call environment carrying ``composition::bracketed`` (the
+``get_composition`` query) restores the fork-all/join-all seal around that
+one call: every shard's work waits for the call stream, and the call stream
+waits for every shard. Use it when a single call must compose with a foreign
+stream as one opaque unit; leave the default (``composition::lane_ordered``)
+everywhere else — a sealed call in the middle of a pipeline routes every
+lane through one timeline and serializes the pipeline's width.
+
+A two-field pipeline
+~~~~~~~~~~~~~~~~~~~~
+
+The shape that motivates the contract (see
+``examples/places/sharded_multi_field_pipeline.cu`` for the complete
+program): two fields on distinct lanes, per-field chains overlapping, one
+declared coupling per iteration, and a convergence check that awaits only
+the residual's stream:
+
+.. code-block:: cpp
+
+   for (int k = 0; k < iters; k++)
+   {
+     transform(x, envs_x, step_x, ce_x);                    // x's lanes
+     transform(y, envs_y, step_y, ce_r);                    // y's lanes (overlaps x)
+     reduce_into(x, envs_x, d_s, plus, 0.0f, ce_x);         // scalar on cx
+     for (size_t i = 0; i < envs_y.size(); i++)
+       lane_wait(envs_y, i, cx_range, {0});                 // the one coupling edge
+     transform(y, envs_y, couple{d_s}, ce_r);
+     barrier(envs_y, stream_ref{cx});                       // slot-reuse reverse edge
+     reduce_into(y, envs_y, h_res, plus, 0.0f, ce_r);       // residual on cr
+   }
+   cudaStreamSynchronize(cr);                               // await the RESULT
+
 CUDA graph capture
 ------------------
 
@@ -127,25 +372,37 @@ host data or synchronizes refuses cleanly instead of corrupting the capture.
 What captures
 ~~~~~~~~~~~~~
 
-The elementwise algorithms (``fill``, ``sequence``, ``iota``, ``tabulate``,
-``generate``, ``for_each``, ``transform``) called with ``blocking = false``
-are pure per-shard kernel launches on the shards' reference streams, so they
-capture with the containers' fork/join members — the documented way to
-compose sharded work with a caller stream or graph: begin capture on an
-origin stream, ``fork_from(origin)`` so every shard stream depends on it,
-record the pipeline, and ``join_into(origin)`` before ending the capture
-(the record/wait pairs become graph dependencies):
+The asynchronous forms — the elementwise family, ``zip_transform``,
+``segmented_reduce``, ``reduce_into``, ``reduce_into_lanes`` and the scans
+called with a stream-bearing per-call environment — are stream work only
+(kernels, copies, event edges between the lanes), so a pipeline captures
+directly. Under the lane-ordered contract the pipeline forks the
+lanes from the capture origin ONCE, records its chain (per-lane stream order
+becomes graph edges within each lane; distinct lanes become graph-level
+parallelism), and joins the lanes back with the stream barrier:
 
 .. code-block:: cpp
 
+   const auto ce = cuda::std::execution::env{
+     cuda::std::execution::prop{cuda::get_stream, stream_ref{origin}}};
+   auto envs = default_envs(out);
+
    cudaStreamBeginCapture(origin, cudaStreamCaptureModeGlobal);
-   data.fork_from(origin);                          // fork
-
-   transform(group, data, out, op, /*blocking=*/false);
-   for_each(group, out, update, /*blocking=*/false);
-
-   out.join_into(origin);                           // join
+   out.fork_from(origin);                 // the lanes join the capture, once
+   zip_transform(out, envs, op, ce, data);
+   for_each(out, envs, update, ce);
+   reduce_into(out, envs, residual_slot, cuda::std::plus<>{}, 0.0, ce);
+   barrier(envs, stream_ref{origin});     // the lanes rejoin the origin
    cudaStreamEndCapture(origin, &graph);
+
+A lane-ordered call whose call stream is capturing while the lanes are not
+refuses at entry (the work would silently escape the graph); fork the lanes
+first, or seal that call with ``composition::bracketed``.
+
+The reductions and scans keep their cross-shard stage on-device (the
+communicator's all-reduce / all-gather, folded in fixed shard order), so the
+whole iterate-scan-reduce shape replays as one graph, with the aggregate
+landing in a device or pinned location per replay.
 
 The captured graph is placement-faithful: each shard's kernels are recorded
 from that place's stream, and the per-place SM confinement of those streams
@@ -168,16 +425,12 @@ work. The refusing set:
 - container allocation: ``allocate`` (all overloads) and
   ``allocate_contiguous``;
 - host transfers: ``copy_from_host``, ``copy_to_host``, ``copy_between``;
-- synchronization: ``sharded_array::sync`` and ``place_group::sync`` —
-  and therefore the elementwise algorithms when called
-  with ``blocking = true``, which throw at their final sync (their kernels
-  are already recorded; the capture is still valid and can be completed or
-  abandoned);
-- the synchronous algorithms, all of which stage per-place partials through
-  the host: ``reduce`` / ``sum`` / ``min`` / ``max``, ``inclusive_scan`` /
-  ``exclusive_scan``, ``count`` / ``count_if``, ``histogram_even``,
-  ``copy_if`` / ``filter`` / ``remove_if``, ``unique``,
-  ``adjacent_difference``.
+- synchronization: ``sharded_array::sync`` and ``place_group::sync``;
+- the synchronous forms, which synchronize with the host and refuse at
+  ENTRY, before any work is enqueued: ``reduce`` / ``sum`` / ``min`` /
+  ``max`` / ``transform_reduce`` / ``count`` / ``count_if``, the no-stream form of the scans,
+  ``histogram_even``, the no-stream form of ``adjacent_difference``,
+  ``select_if`` / ``remove_if`` / ``copy_if``, ``unique``.
 
 The guards also refuse when a global-mode capture is active anywhere in the
 process, since the underlying synchronization would invalidate it under the
