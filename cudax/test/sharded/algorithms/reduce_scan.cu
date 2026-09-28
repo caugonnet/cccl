@@ -54,6 +54,87 @@ void test_reduce(place_group& group)
   EXPECT(reduce(group, empty, max_op{}, -7LL) == -7LL);
 }
 
+void test_transform_reduce(place_group& group)
+{
+  const size_t n = 10007;
+  auto data      = sharded_array<long long>::allocate(group, n);
+  iota(group, data, 1LL); // 1..n
+
+  // sum of squares: n(n+1)(2n+1)/6
+  const long long nll      = static_cast<long long>(n);
+  const long long expected = nll * (nll + 1) * (2 * nll + 1) / 6;
+  auto square               = [] __host__ __device__(long long x) {
+    return x * x;
+  };
+  EXPECT(transform_reduce(group, data, square, ::cuda::std::plus<long long>{}, 0LL) == expected);
+
+  // Empty array returns the initial value
+  sharded_array<long long> empty;
+  EXPECT(transform_reduce(group, empty, square, ::cuda::std::plus<long long>{}, -7LL) == -7LL);
+}
+
+void test_zip_transform_reduce(place_group& group)
+{
+  // Residual-norm shape: r[i] = b[i] - Ax[i], accumulate sum(r[i]^2) without
+  // ever materializing r — the motivating case for a fused zip reduce over
+  // two STORED sharded arrays (unlike a purely online generator).
+  const size_t n = 10007;
+  auto b         = sharded_array<long long>::allocate(group, n);
+  auto ax        = sharded_array<long long>::allocate(group, n);
+  fill(group, b, 5LL);
+  iota(group, ax, 0LL); // 0..n-1
+
+  auto sq_diff = [] __host__ __device__(long long a, long long c) {
+    long long d = a - c;
+    return d * d;
+  };
+
+  long long expected = 0;
+  for (long long i = 0; i < static_cast<long long>(n); i++)
+  {
+    const long long d = 5LL - i;
+    expected += d * d;
+  }
+  EXPECT(zip_transform_reduce(group, b, ax, sq_diff, ::cuda::std::plus<long long>{}, 0LL) == expected);
+
+  // Simple sum-of-differences sanity check
+  auto minus = [] __host__ __device__(long long a, long long c) {
+    return a - c;
+  };
+  EXPECT(zip_transform_reduce(group, b, ax, minus, ::cuda::std::plus<long long>{}, 0LL)
+         == 5LL * static_cast<long long>(n) - (static_cast<long long>(n) * (static_cast<long long>(n) - 1)) / 2);
+}
+
+void test_reduce_into(place_group& group)
+{
+  const size_t n = 10007;
+  auto data      = sharded_array<long long>::allocate(group, n);
+  iota(group, data, 1LL); // 1..n
+  const long long nll      = static_cast<long long>(n);
+  const long long expected = nll * (nll + 1) / 2;
+
+  // Device-resident output on place 0.
+  cuda::experimental::places::place_memory_resource mr0(data.shard(0).place);
+  auto* d_out = static_cast<long long*>(mr0.allocate(::cuda::stream_ref{data.shard(0).stream}, sizeof(long long)));
+
+  reduce_into(group, data, d_out, ::cuda::std::plus<long long>{}, 0LL);
+
+  long long host_result = 0;
+  cuda_safe_call(cudaMemcpyAsync(
+    &host_result, d_out, sizeof(long long), cudaMemcpyDeviceToHost, data.shard(0).stream));
+  cuda_safe_call(cudaStreamSynchronize(data.shard(0).stream));
+  EXPECT(host_result == expected);
+
+  // Empty array: falls back to the caller-supplied identity (synchronous
+  // path — no shard stream exists to hang an async write off of).
+  sharded_array<long long> empty;
+  reduce_into(group, empty, d_out, ::cuda::std::plus<long long>{}, -7LL);
+  cuda_safe_call(cudaMemcpy(&host_result, d_out, sizeof(long long), cudaMemcpyDeviceToHost));
+  EXPECT(host_result == -7LL);
+
+  mr0.deallocate_sync(d_out, sizeof(long long));
+}
+
 void test_inclusive_scan(place_group& group)
 {
   const size_t n = 262147;
@@ -285,6 +366,9 @@ int main()
   auto group = place_group::by_locality_domains();
 
   test_reduce(group);
+  test_reduce_into(group);
+  test_transform_reduce(group);
+  test_zip_transform_reduce(group);
   test_inclusive_scan(group);
   test_exclusive_scan(group);
   test_adjacent_difference(group);
