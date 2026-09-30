@@ -30,6 +30,7 @@
 #include <vector>
 
 using namespace cuda::experimental::sharded;
+using cuda::experimental::places::exec_place;
 using cuda::experimental::places::place_group;
 using cuda::experimental::places::place_memory_resource;
 
@@ -195,7 +196,7 @@ int main()
 {
   cuda_safe_call(cudaSetDevice(0));
 
-  auto group = place_group::by_locality_domains();
+  auto group = place_group{exec_place::all_locality_domains()};
 
   test_balanced_alloc_free_replays(group);
   test_unbalanced_alloc_fails_predictably(group);

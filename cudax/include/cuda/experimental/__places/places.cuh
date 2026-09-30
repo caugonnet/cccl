@@ -51,7 +51,7 @@
 #endif
 #include <cuda/experimental/__stf/utility/cuda_safe_call.cuh>
 #include <cuda/experimental/__stf/utility/dimensions.cuh>
-#include <cuda/experimental/__stf/utility/scope_guard.cuh>
+#include <cuda/experimental/__stf/utility/exception_policy.cuh>
 
 // Sync only will not move data....
 // Data place none?
@@ -203,11 +203,15 @@ public:
     return device(cuda_try<cudaGetDevice>());
   }
 
-  // User-visible API when using a different partitioner than the one of the grid
-  template <typename partitioner_t /*, typename scalar_exec_place_t */>
+  // User-visible API when using a different partitioner than the one of the grid.
+  // Constrained to partitioner objects so a raw partition function still picks
+  // the partition_mapper overload below rather than being deduced here.
+  template <
+    typename partitioner_t,
+    typename = ::cuda::std::enable_if_t<::cuda::std::is_class_v<partitioner_t>> /*, typename scalar_exec_place_t */>
   static data_place composite(partitioner_t p, const exec_place& g);
 
-  static data_place composite(partition_fn_t f, const exec_place& grid);
+  static data_place composite(partition_mapper f, const exec_place& grid);
 
   /**
    * @brief Replicated data place: one full copy of the data in the affine
@@ -390,7 +394,7 @@ public:
     return p.pimpl_->get_device_ordinal();
   }
 
-  const partition_fn_t& get_partitioner() const
+  const partition_mapper& get_partitioner() const
   {
     return pimpl_->get_partitioner();
   }
@@ -563,6 +567,17 @@ public:
      * For grids, returns the impl of the stored sub-place.
      */
     virtual ::std::shared_ptr<impl> get_place(size_t idx);
+
+    /**
+     * @brief All sub-places of this grid, flattened in linear index order
+     *
+     * For scalar places, a single-element vector holding this place. Grids
+     * override this to hand out their stored members wholesale.
+     */
+    virtual ::std::vector<exec_place> places()
+    {
+      return {exec_place(shared_from_this())};
+    }
 
     // ===== Activation/deactivation (indexed) =====
 
@@ -757,6 +772,18 @@ public:
   exec_place get_place(pos4 p) const
   {
     return get_place(get_dims().get_index(p));
+  }
+
+  /**
+   * @brief All sub-places of this place, flattened in linear index order:
+   * the grid's members, or a single-element vector for a scalar place.
+   *
+   * Equivalent to collecting `get_place(i)` for every `i < size()`, but grids
+   * hand out their stored member vector wholesale.
+   */
+  [[nodiscard]] ::std::vector<exec_place> places() const
+  {
+    return pimpl->places();
   }
 
   /**
@@ -969,6 +996,34 @@ public:
 
   static exec_place all_devices();
 
+  /**
+   * @brief Returns a grid of execution places over all locality domains of a device
+   *
+   * Single-device sugar over `make_locality_domain_grid(dev_id, split)`, the
+   * counterpart of `all_devices()` one level down the hierarchy: one place per
+   * locality domain of `dev_id` (a single whole-device place on devices without
+   * locality-domain support). Defined in `exec/locality_domain.cuh`.
+   *
+   * @param[in] dev_id The CUDA device ordinal
+   * @param[in] split SM split method applied to every place of the grid; see
+   *        `locality_domain_sm_split`
+   * @return exec_place grid with one place per locality domain
+   */
+  static exec_place locality_domains(int dev_id, locality_domain_sm_split split = locality_domain_sm_split::backfill);
+
+  //! @brief Returns a grid of execution places over every locality domain of every visible device
+  //!
+  //! The counterpart of @c all_devices() one level down the hierarchy (as
+  //! @c locality_domains(dev_id) is to @c device(dev_id)): one place per
+  //! locality domain per device, in device-major order (devices without
+  //! locality-domain support contribute a single whole-device place).
+  //! Defined in @c exec/locality_domain.cuh.
+  //!
+  //! @param[in] split SM split method applied to every place of the grid; see
+  //!        @c locality_domain_sm_split
+  //! @return exec_place grid with one place per locality domain per device
+  static exec_place all_locality_domains(locality_domain_sm_split split = locality_domain_sm_split::backfill);
+
   static exec_place n_devices(size_t n, dim4 dims);
 
   static exec_place n_devices(size_t n);
@@ -1073,11 +1128,19 @@ public:
   /**
    * @brief Destructor that restores the previous execution place (if not moved-from).
    */
+  //! \brief Restores the previous execution place. Never throws.
+  //!
+  //! Returning to the device we came from must always succeed; if it does not, continuing would
+  //! run every subsequent launch on the wrong device. deactivate() reaches cuda_try and can also
+  //! allocate, so report and abort rather than propagate out of a destructor.
   ~exec_place_scope()
   {
     if (place_.get_impl())
     {
-      place_.get_impl()->deactivate(prev_, idx_);
+      ON_THROW(abort)
+      {
+        place_.get_impl()->deactivate(prev_, idx_);
+      };
     }
   }
 
@@ -1101,7 +1164,11 @@ public:
     {
       if (place_.get_impl())
       {
-        place_.get_impl()->deactivate(prev_, idx_);
+        // This operator is noexcept, so a throwing deactivate() would terminate without a report.
+        ON_THROW(abort)
+        {
+          place_.get_impl()->deactivate(prev_, idx_);
+        };
       }
       place_       = mv(other.place_);
       idx_         = other.idx_;
@@ -1146,7 +1213,10 @@ public:
   {
     if (place_.get_impl())
     {
-      place_.get_impl()->deactivate(prev_, idx_);
+      ON_THROW(abort)
+      {
+        place_.get_impl()->deactivate(prev_, idx_);
+      };
       place_ = exec_place(); // Mark as inactive
     }
   }
@@ -1574,6 +1644,11 @@ public:
     return places_[idx].get_impl();
   }
 
+  ::std::vector<exec_place> places() override
+  {
+    return places_;
+  }
+
   // ===== Activation (delegates to sub-places) =====
 
   exec_place activate(size_t idx) const override
@@ -1677,13 +1752,7 @@ inline exec_place make_grid(::std::vector<exec_place> places)
 
 _CCCL_HOST_API inline exec_place exec_place::reshape(const dim4& dims) const
 {
-  ::std::vector<exec_place> places;
-  places.reserve(size());
-  for (size_t i = 0; i < size(); i++)
-  {
-    places.push_back(get_place(i));
-  }
-  return ::cuda::experimental::places::make_grid(::cuda::experimental::stf::mv(places), dims);
+  return ::cuda::experimental::places::make_grid(places(), dims);
 }
 
 _CCCL_HOST_API inline exec_place exec_place::collapse_axes(const size_t first_axis, const size_t last_axis) const
@@ -1925,7 +1994,7 @@ inline exec_place partition_tile(exec_place e_place, dim4 tile_sizes, pos4 tile_
 class data_place_composite final : public data_place_interface
 {
 public:
-  data_place_composite(exec_place grid, partition_fn_t partitioner_func)
+  data_place_composite(exec_place grid, partition_mapper partitioner_func)
       : grid_(mv(grid))
       , partitioner_func_(mv(partitioner_func))
   {}
@@ -1965,7 +2034,7 @@ public:
     const auto& o = static_cast<const data_place_composite&>(other);
     if (get_partitioner() != o.get_partitioner())
     {
-      return ::std::less<partition_fn_t>{}(o.get_partitioner(), get_partitioner()) ? 1 : -1;
+      return (o.get_partitioner() < get_partitioner()) ? 1 : -1;
     }
     if (grid_ == o.grid_)
     {
@@ -2005,7 +2074,7 @@ public:
     return grid_.get_impl();
   }
 
-  const partition_fn_t& get_partitioner() const override
+  const partition_mapper& get_partitioner() const override
   {
     return partitioner_func_;
   }
@@ -2017,7 +2086,7 @@ public:
 
 private:
   exec_place grid_;
-  partition_fn_t partitioner_func_;
+  partition_mapper partitioner_func_;
 };
 
 /**
@@ -2269,9 +2338,9 @@ inline size_t data_place::instance_of(size_t place_index) const
   return static_cast<const data_place_replicated*>(get_impl().get())->instance_of(place_index);
 }
 
-inline data_place data_place::composite(partition_fn_t f, const exec_place& grid)
+inline data_place data_place::composite(partition_mapper f, const exec_place& grid)
 {
-  return data_place(::std::make_shared<data_place_composite>(grid, f));
+  return data_place(::std::make_shared<data_place_composite>(grid, mv(f)));
 }
 
 inline data_place data_place::replicated(const exec_place& grid)
@@ -2319,10 +2388,10 @@ data_place data_place::replicated(const exec_place& grid, replicate_over_t<axes.
 }
 
 // User-visible API when the same partitioner as the one of the grid
-template <typename partitioner_t>
+template <typename partitioner_t, typename>
 data_place data_place::composite(partitioner_t, const exec_place& g)
 {
-  return data_place::composite(&partitioner_t::get_executor, g);
+  return data_place::composite(partition_mapper(&partitioner_t::get_executor), g);
 }
 
 inline augmented_stream data_place::getDataStream(exec_place_resources& res) const
@@ -2388,6 +2457,28 @@ UNITTEST("grid exec place equality")
   EXPECT(exec_place::all_devices() == exec_place::all_devices());
 
   EXPECT(all != repeated_dev0);
+};
+
+UNITTEST("exec_place::places flattens grids and scalars alike")
+{
+  // Grid: places() matches the get_place(i) enumeration
+  auto grid = exec_place::repeat(exec_place::device(0), 3);
+  auto flat = grid.places();
+  EXPECT(flat.size() == grid.size());
+  for (size_t i = 0; i < flat.size(); i++)
+  {
+    EXPECT(flat[i] == grid.get_place(i));
+  }
+
+  // Scalar: a single-element vector holding the place itself
+  auto dev    = exec_place::device(0);
+  auto single = dev.places();
+  EXPECT(single.size() == 1UL);
+  EXPECT(single[0] == dev);
+
+  auto host_places = exec_place::host().places();
+  EXPECT(host_places.size() == 1UL);
+  EXPECT(host_places[0] == exec_place::host());
 };
 
 UNITTEST("exec place grid reshape preserves linear place order")

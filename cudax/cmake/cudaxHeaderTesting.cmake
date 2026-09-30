@@ -83,6 +83,11 @@ function(cudax_add_header_test label definitions)
       GLOBS #
         "cuda/experimental/sharded.cuh"
         "cuda/experimental/__sharded/*.cuh"
+      EXCLUDES
+        # Non-shipping reference implementations (MGMN-engine transform, the
+        # legacy hand-written reduce/scan), compiled only by the tests that
+        # include them:
+        "cuda/experimental/__sharded/reference/*"
       HEADER_TEMPLATE "${cudax_SOURCE_DIR}/cmake/header_test.in.cu"
     )
     target_link_libraries(${headertest_target} PUBLIC cudax.compiler_interface)
