@@ -18,6 +18,11 @@
 //     start(x) | transform(x, y, *2) | transform(y, x, +1) | transform(x, y, *3)
 //              | reduce(y, result)
 //
+// Verbs take only data. The memory resource for scratch comes from the
+// environment, read once at the root of the pipeline; `start` puts it and the
+// shard's lane into a per-shard context that the bundle's values carry through
+// the verbs.
+//
 // The composition rule is the point of the example. A verb takes and returns a
 // *bundle* of per-shard senders, one per lane (`start(x) | transform(...) | ...`). Elementwise verbs map over the
 // bundle shard by shard, so a chain of transforms is one stream-ordered chain
@@ -91,8 +96,9 @@ auto map(Tuple&& t, Fn&& fn, cuda::std::index_sequence<I...>)
 // ----------------------------------------------------------------------------
 // Scoped allocation as a sender.
 //
-// `allocate_on<T>(n, mr)` completes with a buffer of n elements allocated,
-// stream-ordered, on the lane the sender runs on. Held by a `let_value` scope,
+// `allocate_on<T>(n)` completes with a buffer of n elements allocated,
+// stream-ordered, on the lane the sender runs on, through the environment's
+// memory resource. Held by a `let_value` scope,
 // the buffer lives in the operation state for the inner work and is freed on
 // the same lane when the scope ends. The lane it is allocated on must be ordered
 // after all of its readers: for data shared by every shard, that is the lane the
@@ -124,36 +130,61 @@ private:
   cuda::device_buffer<T> buf_;
 };
 
-template <class T, class Mr>
-auto allocate_on(size_t n, Mr mr)
+template <class T>
+auto allocate_on(size_t n)
 {
-  return ex::read_env(ex::get_scheduler) | ex::then([=](auto lane) {
+  return ex::when_all(ex::read_env(ex::get_scheduler), ex::read_env(cuda::mr::get_memory_resource))
+       | ex::then([=](auto lane, auto mr) {
            return scoped_buffer<T>{cuda::device_buffer<T>{lane.query(cuda::get_stream), mr, n, cuda::no_init}};
          });
 }
 
+// What a verb body needs on a shard's lane: the lane itself (its stream) and a
+// memory resource for scratch storage. The pipeline reads the resource from the
+// environment once, at its root (a forwarding query, so the caller supplies it
+// once, as the environment of sync_wait or of the receiver under capture);
+// `start` puts it in every shard's context, and every shard sender from then on
+// completes with that context: the bundle's values *are* the per-shard context,
+// and verbs are plain `then`s that pass it along.
+//
+// (Reading the resource with `read_env` inside each shard's chain works too, but
+// makes every downstream sender environment-dependent, which cudax re-derives at
+// each nesting level: the compile time of this file went from about a minute to
+// well over ten. Read the environment once, at the root.)
+template <class Mr>
+struct shard_ctx
+{
+  ex::lane_scheduler lane;
+  Mr mr;
+
+  // The environment a CUB call needs: the lane's stream, and the resource for
+  // CUB's own scratch.
+  auto cub_env() const
+  {
+    return cuda::std::execution::env{cuda::std::execution::prop{cuda::get_stream, lane.query(cuda::get_stream)},
+                                     cuda::std::execution::prop{cuda::mr::get_memory_resource, mr}};
+  }
+};
+
 // ----------------------------------------------------------------------------
 // The verbs.
 
-// start(view): begin on every shard's lane.
-template <size_t N, size_t... I>
-auto start(const sharded_view<N>& v, cuda::std::index_sequence<I...>)
+// start(view, mr): begin on every shard's lane, completing with the shard's
+// context.
+template <size_t N, class Mr, size_t... I>
+auto start(const sharded_view<N>& v, Mr mr, cuda::std::index_sequence<I...>)
 {
-  return bundle{cuda::std::make_tuple(ex::schedule(v.lane[I])...)};
+  auto on_lane = [mr](ex::lane_scheduler lane) {
+    return ex::schedule(lane) | ex::then([=] {
+             return shard_ctx<Mr>{lane, mr};
+           });
+  };
+  return bundle{cuda::std::make_tuple(on_lane(v.lane[I])...)};
 }
-template <size_t N>
-auto start(const sharded_view<N>& v)
+template <size_t N, class Mr>
+auto start(const sharded_view<N>& v, Mr mr)
 {
-  return start(v, cuda::std::make_index_sequence<N>{});
-}
-
-// The environment a CUB call needs to run on a lane: its stream, and a memory
-// resource for CUB's own scratch storage.
-template <class Mr>
-auto cub_env(const ex::lane_scheduler& lane, Mr mr)
-{
-  return cuda::std::execution::env{cuda::std::execution::prop{cuda::get_stream, lane.query(cuda::get_stream)},
-                                   cuda::std::execution::prop{cuda::mr::get_memory_resource, mr}};
+  return start(v, mr, cuda::std::make_index_sequence<N>{});
 }
 
 // Verbs are closures: `bundle | verb(...)` applies the verb to every shard.
@@ -172,18 +203,19 @@ verb(Fn) -> verb<Fn>;
 
 // transform(in, out, op): `out[k] = op(in[k])` on shard k's lane. Elementwise:
 // maps over the bundle, no lane meets another.
-template <size_t N, class Op, class Mr>
-auto transform(const sharded_view<N>& in, const sharded_view<N>& out, Op op, Mr mr)
+template <size_t N, class Op>
+auto transform(const sharded_view<N>& in, const sharded_view<N>& out, Op op)
 {
   return verb{[=](auto b) {
     static_assert(cuda::std::tuple_size_v<decltype(b.shards)> == N, "one sender per shard");
     return map(
       std::move(b.shards),
       [=](auto shard, size_t k) {
-        return std::move(shard) | ex::then([=] {
+        return std::move(shard) | ex::then([=](auto ctx) {
                  check(cub::DeviceTransform::Transform(
-                         cuda::std::make_tuple(in.data[k]), out.data[k], in.shard_size, op, cub_env(in.lane[k], mr)),
+                         cuda::std::make_tuple(in.data[k]), out.data[k], in.shard_size, op, ctx.cub_env()),
                        "DeviceTransform::Transform");
+                 return ctx;
                });
       },
       cuda::std::make_index_sequence<N>{});
@@ -205,15 +237,15 @@ __global__ void sum_partials(const int* partials, int n, int* result)
 // `result`. The partials are the reduce's own scratch: a scoped allocation on
 // lane 0 -- the join target, so that their free is ordered after the sum that
 // reads them -- held for exactly the duration of the reduce.
-template <class Bundle, size_t N, class Mr, size_t... I>
-auto reduce_impl(Bundle b, const sharded_view<N>& in, int* result, Mr mr, cuda::std::index_sequence<I...>)
+template <class Bundle, size_t N, size_t... I>
+auto reduce_impl(Bundle b, const sharded_view<N>& in, int* result, cuda::std::index_sequence<I...>)
 {
-  return allocate_on<int>(N, mr) //
-       | ex::let_value([b = std::move(b), in, result, mr](scoped_buffer<int>& partials) mutable {
+  return allocate_on<int>(N) //
+       | ex::let_value([b = std::move(b), in, result](scoped_buffer<int>& partials) mutable {
            auto shard_reduce = [=, p = partials.data()](auto shard, size_t k) {
-             return std::move(shard) | ex::then([=] {
+             return std::move(shard) | ex::then([=](auto ctx) {
                       check(cub::DeviceReduce::Reduce(
-                              in.data[k], p + k, in.shard_size, cuda::std::plus<>{}, 0, cub_env(in.lane[k], mr)),
+                              in.data[k], p + k, in.shard_size, cuda::std::plus<>{}, 0, ctx.cub_env()),
                             "DeviceReduce::Reduce");
                     });
            };
@@ -224,11 +256,11 @@ auto reduce_impl(Bundle b, const sharded_view<N>& in, int* result, Mr mr, cuda::
                   });
          });
 }
-template <size_t N, class Mr>
-auto reduce(const sharded_view<N>& in, int* result, Mr mr)
+template <size_t N>
+auto reduce(const sharded_view<N>& in, int* result)
 {
   return verb{[=](auto b) {
-    return reduce_impl(std::move(b), in, result, mr, cuda::std::make_index_sequence<N>{});
+    return reduce_impl(std::move(b), in, result, cuda::std::make_index_sequence<N>{});
   }};
 }
 
@@ -265,15 +297,22 @@ __global__ void fill(int* p, int n, int v)
 }
 
 // A receiver for running a sender by hand (needed under stream capture, where
-// sync_wait must not be used: it would synchronize inside the capture).
+// sync_wait must not be used: it would synchronize inside the capture). Its
+// environment carries the memory resource, as sync_wait's does in the eager run.
+template <class Env>
 struct no_op_receiver
 {
   using receiver_concept = ex::receiver_t;
+  Env env;
   void set_value() noexcept {}
   template <class E>
   void set_error(E&&) noexcept
   {}
   void set_stopped() noexcept {}
+  const Env& get_env() const noexcept
+  {
+    return env;
+  }
 };
 
 int main(int argc, char** argv)
@@ -312,12 +351,20 @@ int main(int argc, char** argv)
     // The pipeline. It begins on lane 0: that is the lane the reduce allocates
     // its partials on and forks the other lanes from.
     auto pipeline = ex::schedule(lanes[0]) | ex::let_value([&] {
-                      return start(x) //
-                           | transform(x, y, times2{}, mr) //
-                           | transform(y, x, plus1{}, mr) //
-                           | transform(x, y, times3{}, mr) //
-                           | reduce(y, result.data(), mr);
+                      // Inside this scope the environment's scheduler is lane 0.
+                      return ex::read_env(cuda::mr::get_memory_resource) | ex::let_value([&](auto mr) {
+                               return start(x, mr) //
+                                    | transform(x, y, times2{}) //
+                                    | transform(y, x, plus1{}) //
+                                    | transform(x, y, times3{}) //
+                                    | reduce(y, result.data());
+                             });
                     });
+    // Everything in the pipeline that allocates -- the reduce's partials and
+    // CUB's scratch -- takes its memory resource from this environment.
+    using env_t = cuda::std::execution::env<
+      cuda::std::execution::prop<cuda::mr::get_memory_resource_t, cuda::device_memory_pool_ref>>;
+    const env_t env{{cuda::mr::get_memory_resource, mr}};
 
     const int expected = 3 * (2 * 1 + 1) * n; // 9 per element
 
@@ -325,7 +372,7 @@ int main(int argc, char** argv)
     {
       // Eager: every `then` body above runs now, on the host, and enqueues onto
       // its lane. sync_wait returns when every lane is done.
-      ex::sync_wait(std::move(pipeline));
+      ex::sync_wait(std::move(pipeline), env);
     }
     else
     {
@@ -335,7 +382,7 @@ int main(int argc, char** argv)
       cudaGraph_t graph{};
       check(cudaStreamBeginCapture(streams[0].get(), cudaStreamCaptureModeThreadLocal), "cudaStreamBeginCapture");
       {
-        auto op = ex::connect(std::move(pipeline), no_op_receiver{});
+        auto op = ex::connect(std::move(pipeline), no_op_receiver<decltype(env)>{env});
         ex::start(op);
       } // the operation state dies here: the partials' free is captured too
       // Every lane's tail must be joined back into the capturing stream before
