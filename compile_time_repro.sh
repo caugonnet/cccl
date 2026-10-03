@@ -35,4 +35,4 @@ start=$(date +%s)
 ninja -C build/repro/cudax "${TARGET}" > "${WORK}/build.log" 2>&1 || { tail -30 "${WORK}/build.log"; exit 1; }
 echo "wall time: $(( $(date +%s) - start )) s"
 echo "nvcc phases (ms) for the example's translation unit:"
-grep -i "lane_sharded_pipeline" "${WORK}/nvcc_time.csv" | awk -F, '{printf "  %-30s %10.1f s\n", $4, $5/1000}' || cat "${WORK}/nvcc_time.csv"
+grep -i "lane_sharded_pipeline" "${WORK}/nvcc_time.csv" | awk -F, 'NR>1{printf "  %-30s %10.1f s\n", $2, $7/1000}' || cat "${WORK}/nvcc_time.csv"
