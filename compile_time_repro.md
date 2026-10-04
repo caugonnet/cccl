@@ -77,3 +77,15 @@ only the example target, prints wall time and nvcc's -time phases):
 A single self-contained preprocessed file is not possible with nvcc: it
 auto-includes cuda_runtime.h before compiling, and the expanded include guards in
 `nvcc -E` output make every system header define twice.
+
+Same functor three times (times2 x3 instead of times2/plus1/times3), compiled
+concurrently with a reference run so both carry the same ~40% contention:
+fast 185 s (three functors) vs 177 s (one functor); slow 1128 s either way.
+The functor type does not matter: the cost is in the sender nesting, and the CUB
+kernel instantiations shared by reusing a functor are a few percent.
+
+Type-erasing the resource in the per-shard context (cuda::mr::any_resource, so
+the per-shard sender types no longer depend on the environment's resource type)
+does not help: cicc 1305 s on the 3-transform env-root variant (vs 785 s with
+the templated context; the gcc host pass then failed on an unrelated CTAD quirk).
+The cost is in the dependent sender machinery, not in the context type.
