@@ -710,6 +710,23 @@ struct __ctx_from_stream
 }
 #  endif // _CCCL_CTK_AT_LEAST(12, 5)
 
+#  if _CCCL_CTK_AT_LEAST(12, 5)
+// No-throw variants for callers that report cudaError_t (CUB dispatch). PROTOTYPE.
+[[nodiscard]] _CCCL_HOST_API inline ::cudaError_t __streamGetGreenCtxNoThrow(::CUstream __stream, ::CUgreenCtx* __out)
+{
+  static auto __driver_fn = _CCCLRT_GET_DRIVER_FUNCTION_VERSIONED(cuStreamGetGreenCtx, cuStreamGetGreenCtx, 12, 5);
+  return static_cast<::cudaError_t>(__driver_fn(__stream, __out));
+}
+
+[[nodiscard]] _CCCL_HOST_API inline ::cudaError_t
+__greenCtxGetDevResourceNoThrow(::CUgreenCtx __green, ::CUdevResource* __resource, ::CUdevResourceType __type)
+{
+  static auto __driver_fn =
+    _CCCLRT_GET_DRIVER_FUNCTION_VERSIONED(cuGreenCtxGetDevResource, cuGreenCtxGetDevResource, 12, 5);
+  return static_cast<::cudaError_t>(__driver_fn(__green, __resource, __type));
+}
+#  endif // _CCCL_CTK_AT_LEAST(12, 5)
+
 // TODO: make this available since CUDA 12.8
 #  if _CCCL_CTK_AT_LEAST(13, 0)
 [[nodiscard]] _CCCL_HOST_API inline ::CUdevice __streamGetDevice(::CUstream __stream)
