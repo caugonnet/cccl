@@ -452,8 +452,9 @@ struct scheduler
     {
       return completion_signatures<set_value_t()>{};
     }
+    _CCCL_EXEC_CHECK_DISABLE
     template <class Rcvr>
-    [[nodiscard]] auto connect(Rcvr rcvr) const noexcept -> opstate_t<Rcvr>
+    [[nodiscard]] _CCCL_HOST_DEVICE_API auto connect(Rcvr rcvr) const noexcept -> opstate_t<Rcvr>
     {
       return {{}, static_cast<Rcvr&&>(rcvr), s_};
     }
@@ -617,7 +618,8 @@ struct on_t
     state_t<Sndr, Rcvr> st_;
     connect_result_t<CvSndr, rcvr_t<Sndr, Rcvr>> op_;
 
-    opstate_t(CvSndr&& s, scheduler sch, Rcvr r)
+    _CCCL_EXEC_CHECK_DISABLE
+    _CCCL_HOST_DEVICE_API opstate_t(CvSndr&& s, scheduler sch, Rcvr r)
         : st_{static_cast<Rcvr&&>(r), sch, {}, ::std::is_same_v<Sndr, scheduler::sndr_t>}
         , op_{execution::connect((collect(s, st_.upstream_), static_cast<CvSndr&&>(s)), rcvr_t<Sndr, Rcvr>{&st_})}
     {}
@@ -663,13 +665,15 @@ struct on_t
     {
       return execution::get_completion_signatures<::cuda::std::__copy_cvref_t<Self, Sndr>, __fwd_env_t<Env>...>();
     }
+    _CCCL_EXEC_CHECK_DISABLE
     template <class Rcvr>
-    [[nodiscard]] auto connect(Rcvr r) && -> opstate_t<Sndr, Rcvr>
+    [[nodiscard]] _CCCL_HOST_DEVICE_API auto connect(Rcvr r) && -> opstate_t<Sndr, Rcvr>
     {
       return {static_cast<Sndr&&>(sndr_), sch_, static_cast<Rcvr&&>(r)};
     }
+    _CCCL_EXEC_CHECK_DISABLE
     template <class Rcvr>
-    [[nodiscard]] auto connect(Rcvr r) const& -> opstate_t<const Sndr&, Rcvr>
+    [[nodiscard]] _CCCL_HOST_DEVICE_API auto connect(Rcvr r) const& -> opstate_t<const Sndr&, Rcvr>
     {
       return {sndr_, sch_, static_cast<Rcvr&&>(r)};
     }
@@ -788,7 +792,8 @@ struct fork_when_all_t
     bool reuse_      = false;
     connect_result_t<CvSndr, rcvr_t<Rcvr>> op_;
 
-    opstate_t(CvSndr&& s, Rcvr r)
+    _CCCL_EXEC_CHECK_DISABLE
+    _CCCL_HOST_DEVICE_API opstate_t(CvSndr&& s, Rcvr r)
         : rcvr_{static_cast<Rcvr&&>(r)}
         , op_{execution::connect((prepare(s), static_cast<CvSndr&&>(s)), rcvr_t<Rcvr>{&rcvr_, &fork_})}
     {}
@@ -879,13 +884,15 @@ struct fork_when_all_t
       // transform_sender on it and wrap it a second time.
       return Sndr::template get_completion_signatures<::cuda::std::__copy_cvref_t<Self, Sndr>, __fwd_env_t<Env>...>();
     }
+    _CCCL_EXEC_CHECK_DISABLE
     template <class Rcvr>
-    [[nodiscard]] auto connect(Rcvr r) && -> opstate_t<Sndr, Rcvr>
+    [[nodiscard]] _CCCL_HOST_DEVICE_API auto connect(Rcvr r) && -> opstate_t<Sndr, Rcvr>
     {
       return {static_cast<Sndr&&>(sndr_), static_cast<Rcvr&&>(r)};
     }
+    _CCCL_EXEC_CHECK_DISABLE
     template <class Rcvr>
-    [[nodiscard]] auto connect(Rcvr r) const& -> opstate_t<const Sndr&, Rcvr>
+    [[nodiscard]] _CCCL_HOST_DEVICE_API auto connect(Rcvr r) const& -> opstate_t<const Sndr&, Rcvr>
     {
       return {sndr_, static_cast<Rcvr&&>(r)};
     }
@@ -1193,8 +1200,9 @@ struct split_t
         __eptr_completion(),
         completion_signatures<set_stopped_t()>{});
     }
+    _CCCL_EXEC_CHECK_DISABLE
     template <class Rcvr>
-    [[nodiscard]] auto connect(Rcvr r) const -> opstate_t<Sndr, Rcvr>
+    [[nodiscard]] _CCCL_HOST_DEVICE_API auto connect(Rcvr r) const -> opstate_t<Sndr, Rcvr>
     {
       if (!ctl_->impl_)
       {
@@ -1285,8 +1293,9 @@ struct domain
   // default_domain behaviour. continues_on eagerly wraps its child in a
   // schedule_from sender; we unwrap that so the upstream walk sees the real
   // predecessor (when_all, then-chain...).
+  _CCCL_EXEC_CHECK_DISABLE
   template <class Child>
-  static auto unwrap_schedule_from(Child&& child)
+  _CCCL_HOST_DEVICE_API static auto unwrap_schedule_from(Child&& child)
   {
     if constexpr (sender_for<Child, schedule_from_t>)
     {
@@ -1299,8 +1308,9 @@ struct domain
     }
   }
 
+  _CCCL_EXEC_CHECK_DISABLE
   template <class OpTag, class Sndr, class Env>
-  static auto transform_sender(OpTag, Sndr&& sndr, const Env& env)
+  _CCCL_HOST_DEVICE_API static auto transform_sender(OpTag, Sndr&& sndr, const Env& env)
   {
     if constexpr (is_continues_on_to_lane<::std::decay_t<Sndr>>)
     {
