@@ -362,6 +362,14 @@ tuned_vectorized_policy(::cuda::compute_capability cc, int store_size, bool fill
     {
       return TransformVectorizedPolicy{128, 16, 4};
     }
+    // GR100 experiment (localization-lab, 2026-10-18): f32 triad sweep on sm_107, 128 threads x 8 items x 128-bit
+    // matches torch's elementwise kernel (0.283 ms at 2^28), the 256 x 8 default is 0.288, ublkcp 0.298.
+    // Keyed on the whole sm_100 family: libnvcc compiles GR100 for sm_100 (LLVM 22 has no sm_107) and CUB evaluates
+    // the policy at the kernel's PTX version, so a cc >= 10.7 branch is unreachable from the HostJIT path.
+    if (cc >= ::cuda::compute_capability{10, 0} && cc < ::cuda::compute_capability{11, 0})
+    {
+      return TransformVectorizedPolicy{128, 8, 4};
+    }
   }
 
   // defaults from fill on RTX 5090, but can be changed
@@ -456,6 +464,15 @@ struct policy_selector
       {
         vector_kernel_is_faster &= input.value_type_size < 4;
       }
+      // GR100 experiment (localization-lab, 2026-10-18): for 4-byte value types the 128-bit vectorized kernel beats
+      // ublkcp by 5.5 % on sm_107 (see tuned_vectorized_policy); not yet searched across sizes/types.
+      bool gr100_vector_for_4_byte = cc >= ::cuda::compute_capability{10, 0} && cc < ::cuda::compute_capability{11, 0}
+                                  && output.value_type_size == 4; // sm_100 family, see tuned_vectorized_policy
+      for (const auto& input : inputs)
+      {
+        gr100_vector_for_4_byte &= input.value_type_size == 4;
+      }
+      vector_kernel_is_faster |= gr100_vector_for_4_byte;
 
       const bool enough_threads_for_peeling = async_block_size >= alignment; // head and tail bytes
       const bool fallback_to_vectorized = exhaust_smem || !tile_sizes_retain_alignment || !enough_threads_for_peeling
