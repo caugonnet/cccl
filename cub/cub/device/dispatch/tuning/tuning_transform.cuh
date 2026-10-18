@@ -368,7 +368,8 @@ tuned_vectorized_policy(::cuda::compute_capability cc, int store_size, bool fill
     // the policy at the kernel's PTX version, so a cc >= 10.7 branch is unreachable from the HostJIT path.
     if (cc >= ::cuda::compute_capability{10, 0} && cc < ::cuda::compute_capability{11, 0})
     {
-      return TransformVectorizedPolicy{128, 8, 4};
+      // 8-byte value types: 128 threads x 4 doubles (vec 2), 0.284 ms vs ublkcp 0.296 at 2^27 on GR100.
+      return store_size == 8 ? TransformVectorizedPolicy{128, 4, 2} : TransformVectorizedPolicy{128, 8, 4};
     }
   }
 
@@ -467,10 +468,10 @@ struct policy_selector
       // GR100 experiment (localization-lab, 2026-10-18): for 4-byte value types the 128-bit vectorized kernel beats
       // ublkcp by 5.5 % on sm_107 (see tuned_vectorized_policy); not yet searched across sizes/types.
       bool gr100_vector_for_4_byte = cc >= ::cuda::compute_capability{10, 0} && cc < ::cuda::compute_capability{11, 0}
-                                  && output.value_type_size == 4; // sm_100 family, see tuned_vectorized_policy
+                                  && (output.value_type_size == 4 || output.value_type_size == 8); // sm_100 family
       for (const auto& input : inputs)
       {
-        gr100_vector_for_4_byte &= input.value_type_size == 4;
+        gr100_vector_for_4_byte &= input.value_type_size == output.value_type_size;
       }
       vector_kernel_is_faster |= gr100_vector_for_4_byte;
 
