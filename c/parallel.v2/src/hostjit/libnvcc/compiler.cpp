@@ -1007,7 +1007,7 @@ public:
     arg_strings.push_back(resolved_libdevice_path(config));
     arg_strings.push_back("-target-sdk-version=" CUDA_SDK_VERSION);
     arg_strings.push_back("-target-cpu");
-    arg_strings.push_back("sm_" + std::to_string(config.sm_version));
+    arg_strings.push_back("sm_" + std::to_string(libnvcc_llvm_sm_for_sm(config.sm_version)));
     arg_strings.push_back("-target-feature");
     arg_strings.push_back("+ptx" + std::to_string(ptx_version));
     arg_strings.push_back("-resource-dir");
@@ -1179,7 +1179,7 @@ public:
             llvm::TargetOptions opt;
             auto tm = target->createTargetMachine(
               mod->getTargetTriple(),
-              "sm_" + std::to_string(config.sm_version),
+              "sm_" + std::to_string(libnvcc_llvm_sm_for_sm(config.sm_version)),
               "+ptx" + std::to_string(ptx_version),
               opt,
               llvm::Reloc::PIC_);
@@ -1394,7 +1394,7 @@ public:
     arg_strings.push_back(resolved_libdevice_path(config));
     arg_strings.push_back("-target-sdk-version=" CUDA_SDK_VERSION);
     arg_strings.push_back("-target-cpu");
-    arg_strings.push_back("sm_" + std::to_string(config.sm_version));
+    arg_strings.push_back("sm_" + std::to_string(libnvcc_llvm_sm_for_sm(config.sm_version)));
     arg_strings.push_back("-target-feature");
     arg_strings.push_back("+ptx" + std::to_string(ptx_version));
     arg_strings.push_back("-resource-dir");
@@ -2054,7 +2054,7 @@ public:
       arg_strings.push_back(resolved_libdevice_path(config));
       arg_strings.push_back("-target-sdk-version=" CUDA_SDK_VERSION);
       arg_strings.push_back("-target-cpu");
-      arg_strings.push_back("sm_" + std::to_string(config.sm_version));
+      arg_strings.push_back("sm_" + std::to_string(libnvcc_llvm_sm_for_sm(config.sm_version)));
       arg_strings.push_back("-target-feature");
       arg_strings.push_back("+ptx" + std::to_string(ptx_version));
     }

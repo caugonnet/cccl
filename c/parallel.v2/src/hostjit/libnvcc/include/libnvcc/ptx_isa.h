@@ -18,8 +18,39 @@
 //
 // Floor is 7.8: generated device code uses PTX 7.6 features (e.g. `bmsk`)
 // that older ISAs cannot assemble even for sm_75 / sm_80.
+// SM libnvcc hands to LLVM (`-target-cpu sm_NN`) for a given device SM. The
+// NVPTX backend only knows the SMs listed in llvm/lib/Target/NVPTX/NVPTX.td
+// (LLVM 22.1.1: ..., 90, 100, 101, 103, 110, 120, 121); any other SM makes
+// `createTargetMachine` fail with a fatal error. An unknown SM is compiled for
+// the base SM of its family (sm_107 -> sm_100, the largest known SM not above
+// sm_X0): base PTX is forward compatible inside the family, and ptxas/nvJitLink
+// still finalize the cubin for the real SM (see `-arch=sm_NN` in compiler.cpp),
+// so the fatbin carries the device's own architecture.
+constexpr int libnvcc_llvm_sm_for_sm(int sm_version)
+{
+  constexpr int known[] = {20, 21, 30, 32, 35, 37, 50, 52, 53, 60, 61, 62, 70, 72, 75, 80, 86, 87, 89, 90, 100, 101, 103, 110, 120, 121};
+  for (int sm : known)
+  {
+    if (sm == sm_version)
+    {
+      return sm_version;
+    }
+  }
+  const int family_base = (sm_version / 10) * 10;
+  int best = known[0];
+  for (int sm : known)
+  {
+    if (sm <= family_base && sm > best)
+    {
+      best = sm;
+    }
+  }
+  return best;
+}
+
 constexpr int libnvcc_ptx_isa_for_sm(int sm_version)
 {
+  sm_version = libnvcc_llvm_sm_for_sm(sm_version); // the ISA has to match what LLVM is asked to target
   if (sm_version == 103 || sm_version >= 121) // GB300 and the sm_121+ family: PTX 8.8 (CUDA 13)
   {
     return 88;
@@ -28,9 +59,9 @@ constexpr int libnvcc_ptx_isa_for_sm(int sm_version)
   {
     return 87;
   }
-  if (sm_version >= 100) // Blackwell datacenter (sm_100/101): PTX 8.5
+  if (sm_version >= 100) // Blackwell datacenter (sm_100/101): PTX 8.6 (LLVM 22's NVPTX minimum for sm_100)
   {
-    return 85;
+    return 86;
   }
   if (sm_version >= 90) // Hopper: PTX 8.0
   {
