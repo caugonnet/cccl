@@ -82,7 +82,7 @@ storeTileAggregate(tile_state_t<AccumT>* ptrTileStates, scan_state scanState, Ac
   _CCCL_ASSERT(::cuda::is_aligned(ptrTileStates, alignof(tile_state_t<AccumT>)), "");
   _CCCL_ASSERT(index >= 0 && index < num_tiles, "Reading out of bounds tile state");
 
-  if constexpr (sizeof(tile_state_t<AccumT>) <= cub::detail::warpspeed::max_native_atomic_size()
+  if constexpr (sizeof(tile_state_t<AccumT>) <= 8 /* nvcc 13.5: 16-byte __nv_atomic only for integer types; GB300 lab workaround */
                 && ::cuda::is_trivially_copyable_v<tile_state_t<AccumT>>)
   {
     static_assert(::cuda::is_power_of_two(sizeof(tile_state_t<AccumT>)));
@@ -110,7 +110,7 @@ _CCCL_DEVICE_API tile_state_t<AccumT> loadTileAggregate(tile_state_t<AccumT>* pt
   _CCCL_ASSERT(index >= 0 && index < num_tiles, "Reading out of bounds tile state");
 
   tile_state_t<AccumT> res;
-  if constexpr (sizeof(tile_state_t<AccumT>) <= cub::detail::warpspeed::max_native_atomic_size()
+  if constexpr (sizeof(tile_state_t<AccumT>) <= 8 /* nvcc 13.5: 16-byte __nv_atomic only for integer types; GB300 lab workaround */
                 && ::cuda::is_trivially_copyable_v<tile_state_t<AccumT>>)
   {
     static_assert(::cuda::is_power_of_two(sizeof(tile_state_t<AccumT>)));
