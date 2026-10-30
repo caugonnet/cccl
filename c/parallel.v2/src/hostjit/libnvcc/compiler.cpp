@@ -1290,9 +1290,15 @@ public:
               llvm::raw_fd_ostream dest(output_ptx, EC);
               if (!EC)
               {
-                llvm::legacy::PassManager pass;
-                tm->addPassesToEmitFile(pass, dest, nullptr, llvm::CodeGenFileType::AssemblyFile);
-                pass.run(*mod);
+                {
+                  // The emit pipeline may write through a buffer_ostream that
+                  // hands its bytes to `dest` only when the pass manager is
+                  // destroyed, so the PTX is complete after this block, not
+                  // after flush(); the dump below copies the file afterwards.
+                  llvm::legacy::PassManager pass;
+                  tm->addPassesToEmitFile(pass, dest, nullptr, llvm::CodeGenFileType::AssemblyFile);
+                  pass.run(*mod);
+                }
                 dest.flush();
 
                 // Debug: when LIBNVCC_DUMP_DIR is set, dump the optimized IR
@@ -1313,7 +1319,10 @@ public:
                   std::error_code cec;
                   std::filesystem::copy_file(
                     output_ptx, stem + ".ptx", std::filesystem::copy_options::overwrite_existing, cec);
-                  llvm::errs() << "[hostjit] dumped " << stem << ".opt.ll and " << stem << ".ptx\n";
+                  if (config.verbose)
+                  {
+                    llvm::errs() << "[hostjit] dumped " << stem << ".opt.ll and " << stem << ".ptx\n";
+                  }
                 }
               }
               else
