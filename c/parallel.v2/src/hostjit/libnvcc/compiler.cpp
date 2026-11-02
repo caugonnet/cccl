@@ -149,6 +149,7 @@ struct CompilerOptions
   std::vector<std::string> extra_clang_args;
   int sm_version         = 75;
   int optimization_level = 2;
+  int maxrregcount       = 0; // 0: ptxas default; else nvJitLink -maxrregcount=N
   bool debug             = false;
   bool verbose           = false;
   bool trace_includes    = false;
@@ -524,6 +525,14 @@ static bool parseOptions(int num_options, const char* const* raw_options, Compil
       if (!parseInt(std::string(option.substr(2)), options.optimization_level))
       {
         error = "Invalid optimization level: " + std::string(option);
+        return false;
+      }
+    }
+    else if (option.starts_with("--maxrregcount="))
+    {
+      if (!parseInt(value_after_equals(option, "--maxrregcount="), options.maxrregcount) || options.maxrregcount < 0)
+      {
+        error = "Invalid --maxrregcount: " + std::string(option);
         return false;
       }
     }
@@ -1833,6 +1842,10 @@ public:
       std::string arch_opt  = "-arch=sm_" + std::to_string(config.sm_version);
       std::string opt_level = "-O" + std::to_string(config.optimization_level >= 1 ? 3 : 0);
       std::vector<std::string> jitlink_option_strs{arch_opt, opt_level};
+      if (config.maxrregcount > 0)
+      {
+        jitlink_option_strs.emplace_back("-maxrregcount=" + std::to_string(config.maxrregcount));
+      }
       // LTOIR inputs require -lto. When present, both the PTX and the LTOIRs
       // get linked through the LTO codegen path.
       const bool have_ltoir = !config.device_ltoir_files.empty();
