@@ -148,6 +148,50 @@ template <typename EnvT, typename AlgorithmCallable>
     });
 }
 
+//! Two-phase form of dispatch_with_env_tuning_and_runs_on (temporary storage from the
+//! environment's memory resource): the callable receives
+//! (policy_selector, d_temp_storage, temp_storage_bytes, stream, runs_on).
+template <typename DefaultPolicySelector, typename EnvT, typename AlgorithmCallable>
+[[nodiscard]] CUB_RUNTIME_FUNCTION cudaError_t
+dispatch_with_env_tuning_and_runs_on(const EnvT& env, const AlgorithmCallable& algorithm_callable)
+{
+  return detail::dispatch_with_env_and_runs_on(
+    env,
+    [&algorithm_callable]([[maybe_unused]] auto tuning_env,
+                          void* storage,
+                          size_t& bytes,
+                          ::cudaStream_t stream,
+                          const experimental::RunsOn& runs_on) {
+      using policy_t = decltype(DefaultPolicySelector{}(::cuda::compute_capability{}));
+      using policy_selector =
+        ::cuda::std::execution::__query_result_or_t<decltype(tuning_env), policy_t, DefaultPolicySelector>;
+      return algorithm_callable(policy_selector{}, storage, bytes, stream, runs_on);
+    });
+}
+
+//! Resolves the tuning policy selector (as dispatch_with_env_and_tuning) and the RunsOn
+//! guarantee (as dispatch_with_env_and_runs_on) together. The callable receives
+//! (policy_selector, d_temp_storage, temp_storage_bytes, stream, runs_on).
+template <typename DefaultPolicySelector, typename EnvT, typename AlgorithmCallable>
+[[nodiscard]] CUB_RUNTIME_FUNCTION cudaError_t dispatch_with_env_tuning_and_runs_on(
+  void* d_temp_storage, size_t& temp_storage_bytes, const EnvT& env, const AlgorithmCallable& algorithm_callable)
+{
+  return detail::dispatch_with_env_and_runs_on(
+    d_temp_storage,
+    temp_storage_bytes,
+    env,
+    [&algorithm_callable]([[maybe_unused]] auto tuning_env,
+                          void* storage,
+                          size_t& bytes,
+                          ::cudaStream_t stream,
+                          const experimental::RunsOn& runs_on) {
+      using policy_t = decltype(DefaultPolicySelector{}(::cuda::compute_capability{}));
+      using policy_selector =
+        ::cuda::std::execution::__query_result_or_t<decltype(tuning_env), policy_t, DefaultPolicySelector>;
+      return algorithm_callable(policy_selector{}, storage, bytes, stream, runs_on);
+    });
+}
+
 template <typename DefaultPolicySelector, typename EnvT, typename AlgorithmCallable>
 CUB_RUNTIME_FUNCTION cudaError_t dispatch_with_env_and_tuning(
   void* d_temp_storage, size_t& temp_storage_bytes, const EnvT& env, const AlgorithmCallable& algorithm_callable)

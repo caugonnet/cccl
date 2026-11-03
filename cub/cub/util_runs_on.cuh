@@ -25,6 +25,8 @@
 #include <cuda/std/__execution/env.h>
 #include <cuda/std/__host_stdlib/stdexcept>
 #include <cuda/std/__optional/optional.h>
+
+#include <nv/target>
 #include <cuda/std/__utility/move.h>
 #include <cuda/std/cstdint>
 
@@ -129,9 +131,16 @@ public:
   }
 
   _CCCL_EXEC_CHECK_DISABLE
+  // Resolution order of the SM count: the user's description when the
+  // guarantee carries one; else the SM resource of `stream` when it is a
+  // green-context stream (an SM partition such as one locality domain); else
+  // the device. The compute capability always comes from the device.
   template <class LauncherFactory>
   [[nodiscard]] _CCCL_API ::cudaError_t concrete_description(
-    const LauncherFactory& launcher_factory, const void* d_temp_storage, DeviceDescription& descr) const
+    const LauncherFactory& launcher_factory,
+    const void* d_temp_storage,
+    DeviceDescription& descr,
+    [[maybe_unused]] ::cudaStream_t stream = nullptr) const
   {
     if (__description_.has_value())
     {
@@ -182,7 +191,23 @@ public:
     {
       return error;
     }
-
+#if _CCCL_CTK_AT_LEAST(13, 0)
+    // A stream created on a green context owns a subset of the SMs; its SM
+    // resource says how many. A stream of the primary context reports the
+    // device's count, so the query is harmless there.
+    NV_IF_TARGET(NV_IS_HOST, (if (stream != nullptr) {
+      ::cudaDevResource resource{};
+      if (::cudaStreamGetDevResource(stream, &resource, ::cudaDevResourceTypeSm) == ::cudaSuccess
+          && resource.sm.smCount > 0)
+      {
+        sm_count = static_cast<int>(resource.sm.smCount);
+      }
+      else
+      {
+        static_cast<void>(::cudaGetLastError());
+      }
+    }))
+#endif // _CCCL_CTK_AT_LEAST(13, 0)
     descr = DeviceDescription{DeviceDescription::__private_tag{}, cc, static_cast<::cuda::std::uint32_t>(sm_count)};
     return ::cudaSuccess;
   }

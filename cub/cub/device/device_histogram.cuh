@@ -782,11 +782,12 @@ public:
 
     using default_policy_selector =
       detail::histogram::policy_selector_from_types<SampleT, CounterT, NumChannels, NumActiveChannels, true>;
-    return detail::dispatch_with_env_and_tuning<default_policy_selector>(
+    return detail::dispatch_with_env_tuning_and_runs_on<default_policy_selector>(
       d_temp_storage,
       temp_storage_bytes,
       env,
-      [&](auto policy_selector, void* storage, size_t& bytes, auto stream) -> cudaError_t {
+      [&](auto policy_selector, void* storage, size_t& bytes, auto stream, const experimental::RunsOn& runs_on)
+        -> cudaError_t {
         if constexpr (sizeof(OffsetT) > sizeof(int))
         {
           if ((static_cast<unsigned long long>(num_rows) * row_stride_bytes) < static_cast<unsigned long long>(INT_MAX))
@@ -804,7 +805,8 @@ public:
               (int) (row_stride_bytes / sizeof(SampleT)),
               stream,
               is_byte_sample_t{},
-              policy_selector);
+              policy_selector,
+              runs_on);
           }
         }
 
@@ -821,7 +823,8 @@ public:
           (OffsetT) (row_stride_bytes / sizeof(SampleT)),
           stream,
           is_byte_sample_t{},
-          policy_selector);
+          policy_selector,
+          runs_on);
       });
   }
 
@@ -1511,11 +1514,12 @@ public:
 
     using default_policy_selector =
       detail::histogram::policy_selector_from_types<SampleT, CounterT, NumChannels, NumActiveChannels, false>;
-    return detail::dispatch_with_env_and_tuning<default_policy_selector>(
+    return detail::dispatch_with_env_tuning_and_runs_on<default_policy_selector>(
       d_temp_storage,
       temp_storage_bytes,
       env,
-      [&](auto policy_selector, void* storage, size_t& bytes, auto stream) -> cudaError_t {
+      [&](auto policy_selector, void* storage, size_t& bytes, auto stream, const experimental::RunsOn& runs_on)
+        -> cudaError_t {
         if constexpr (sizeof(OffsetT) > sizeof(int))
         {
           if ((static_cast<unsigned long long>(num_rows) * row_stride_bytes) < static_cast<unsigned long long>(INT_MAX))
@@ -1532,7 +1536,8 @@ public:
               (int) (row_stride_bytes / sizeof(SampleT)),
               stream,
               is_byte_sample_t{},
-              policy_selector);
+              policy_selector,
+              runs_on);
           }
         }
 
@@ -1548,7 +1553,8 @@ public:
           (OffsetT) (row_stride_bytes / sizeof(SampleT)),
           stream,
           is_byte_sample_t{},
-          policy_selector);
+          policy_selector,
+          runs_on);
       });
   }
 
@@ -2076,8 +2082,9 @@ public:
 
     using default_policy_selector =
       detail::histogram::policy_selector_from_types<SampleT, CounterT, NumChannels, NumActiveChannels, true>;
-    return detail::dispatch_with_env_and_tuning<default_policy_selector>(
-      env, [&](auto policy_selector, void* storage, size_t& bytes, auto stream) -> cudaError_t {
+    return detail::dispatch_with_env_tuning_and_runs_on<default_policy_selector>(
+      env, [&](auto policy_selector, void* storage, size_t& bytes, auto stream, const experimental::RunsOn& runs_on)
+        -> cudaError_t {
         if constexpr (sizeof(OffsetT) > sizeof(int))
         {
           if ((unsigned long long) (num_rows * row_stride_bytes) < (unsigned long long) INT_MAX)
@@ -2095,7 +2102,8 @@ public:
               (int) (row_stride_bytes / sizeof(SampleT)),
               stream,
               is_byte_sample_t{},
-              policy_selector);
+              policy_selector,
+              runs_on);
           }
         }
 
@@ -2112,7 +2120,8 @@ public:
           (OffsetT) (row_stride_bytes / sizeof(SampleT)),
           stream,
           is_byte_sample_t{},
-          policy_selector);
+          policy_selector,
+          runs_on);
       });
   }
 
@@ -2541,8 +2550,9 @@ public:
 
     using default_policy_selector =
       detail::histogram::policy_selector_from_types<SampleT, CounterT, NumChannels, NumActiveChannels, false>;
-    return detail::dispatch_with_env_and_tuning<default_policy_selector>(
-      env, [&](auto policy_selector, void* storage, size_t& bytes, auto stream) -> cudaError_t {
+    return detail::dispatch_with_env_tuning_and_runs_on<default_policy_selector>(
+      env, [&](auto policy_selector, void* storage, size_t& bytes, auto stream, const experimental::RunsOn& runs_on)
+        -> cudaError_t {
         if constexpr (sizeof(OffsetT) > sizeof(int))
         {
           if ((unsigned long long) (num_rows * row_stride_bytes) < (unsigned long long) INT_MAX)
@@ -2559,7 +2569,8 @@ public:
               (int) (row_stride_bytes / sizeof(SampleT)),
               stream,
               is_byte_sample_t{},
-              policy_selector);
+              policy_selector,
+              runs_on);
           }
         }
 
@@ -2575,7 +2586,8 @@ public:
           (OffsetT) (row_stride_bytes / sizeof(SampleT)),
           stream,
           is_byte_sample_t{},
-          policy_selector);
+          policy_selector,
+          runs_on);
       });
   }
 

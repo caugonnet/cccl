@@ -30,6 +30,7 @@
 #include <cub/grid/grid_queue.cuh>
 #include <cub/util_debug.cuh>
 #include <cub/util_device.cuh>
+#include <cub/util_runs_on.cuh>
 #include <cub/util_temporary_storage.cuh>
 
 #include <cuda/__cmath/ceil_div.h>
@@ -197,7 +198,8 @@ CUB_RUNTIME_FUNCTION _CCCL_VISIBILITY_HIDDEN _CCCL_FORCEINLINE auto dispatch(
   cudaStream_t stream,
   PolicySelector policy_selector         = {},
   KernelSource kernel_source             = {},
-  KernelLauncherFactory launcher_factory = {})
+  KernelLauncherFactory launcher_factory = {},
+  const experimental::RunsOn& runs_on    = {})
 {
   ::cuda::compute_capability cc{};
   if (const auto error = CubDebug(launcher_factory.PtxComputeCap(cc)))
@@ -233,12 +235,15 @@ CUB_RUNTIME_FUNCTION _CCCL_VISIBILITY_HIDDEN _CCCL_FORCEINLINE auto dispatch(
   const int threads_per_block = active_policy.threads_per_block;
   const int pixels_per_thread = active_policy.pixels_per_thread;
 
-  // Get SM count
-  int sm_count;
-  if (const auto error = CubDebug(launcher_factory.MultiProcessorCount(sm_count)))
+  // The SM count the sweep grid is sized for: the RunsOn guarantee when the
+  // caller gave one, else the SM resource of the stream (a green-context
+  // stream of one locality domain reports that domain's SMs), else the device.
+  experimental::DeviceDescription device_descr;
+  if (const auto error = CubDebug(runs_on.concrete_description(launcher_factory, d_temp_storage, device_descr, stream)))
   {
     return error;
   }
+  const int sm_count = static_cast<int>(device_descr.__max_sm_count());
 
   // Get SM occupancy for sweep_kernel
   int histogram_sweep_sm_occupancy;
@@ -479,7 +484,8 @@ CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE cudaError_t __dispatch_even_device_init(
   ::cuda::std::false_type /*is_byte_sample*/,
   PolicySelector policy_selector         = {},
   KernelSource kernel_source             = {},
-  KernelLauncherFactory launcher_factory = {})
+  KernelLauncherFactory launcher_factory = {},
+  const experimental::RunsOn& runs_on    = {})
 {
   int max_levels = num_output_levels[0];
 
@@ -532,7 +538,8 @@ CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE cudaError_t __dispatch_even_device_init(
             stream,
             policy_selector,
             kernel_source,
-            launcher_factory))))
+            launcher_factory,
+            runs_on))))
     {
       return error;
     }
@@ -564,7 +571,8 @@ CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE cudaError_t __dispatch_even_device_init(
             stream,
             policy_selector,
             kernel_source,
-            launcher_factory))))
+            launcher_factory,
+            runs_on))))
     {
       return error;
     }
@@ -651,7 +659,8 @@ CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE cudaError_t __dispatch_even_device_init(
   ::cuda::std::true_type /*is_byte_sample*/,
   PolicySelector policy_selector         = {},
   KernelSource kernel_source             = {},
-  KernelLauncherFactory launcher_factory = {})
+  KernelLauncherFactory launcher_factory = {},
+  const experimental::RunsOn& runs_on    = {})
 {
   ::cuda::std::array<int, NumActiveChannels> num_privatized_levels;
   int max_levels = num_output_levels[0];
@@ -704,7 +713,8 @@ CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE cudaError_t __dispatch_even_device_init(
           stream,
           policy_selector,
           kernel_source,
-          launcher_factory))))
+          launcher_factory,
+          runs_on))))
   {
     return error;
   }
@@ -801,6 +811,7 @@ CUB_RUNTIME_FUNCTION cudaError_t dispatch_range(
   cudaStream_t stream,
   ::cuda::std::bool_constant<IsByteSample>,
   PolicySelector policy_selector,
+  const experimental::RunsOn& runs_on    = {},
   KernelSource kernel_source             = {},
   KernelLauncherFactory launcher_factory = {})
 {
@@ -855,7 +866,8 @@ CUB_RUNTIME_FUNCTION cudaError_t dispatch_range(
             stream,
             policy_selector,
             kernel_source,
-            launcher_factory))))
+            launcher_factory,
+            runs_on))))
     {
       return error;
     }
@@ -912,7 +924,8 @@ CUB_RUNTIME_FUNCTION cudaError_t dispatch_range(
               stream,
               policy_selector,
               kernel_source,
-              launcher_factory))))
+              launcher_factory,
+              runs_on))))
       {
         return error;
       }
@@ -944,7 +957,8 @@ CUB_RUNTIME_FUNCTION cudaError_t dispatch_range(
               stream,
               policy_selector,
               kernel_source,
-              launcher_factory))))
+              launcher_factory,
+              runs_on))))
       {
         return error;
       }
@@ -981,6 +995,7 @@ CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE cudaError_t dispatch_even(
   cudaStream_t stream,
   ::cuda::std::bool_constant<IsByteSample>,
   PolicySelector policy_selector,
+  const experimental::RunsOn& runs_on    = {},
   KernelSource kernel_source             = {},
   KernelLauncherFactory launcher_factory = {})
 {
@@ -1048,7 +1063,8 @@ CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE cudaError_t dispatch_even(
             stream,
             policy_selector,
             kernel_source,
-            launcher_factory))))
+            launcher_factory,
+            runs_on))))
     {
       return error;
     }
@@ -1116,7 +1132,8 @@ CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE cudaError_t dispatch_even(
               stream,
               policy_selector,
               kernel_source,
-              launcher_factory))))
+              launcher_factory,
+              runs_on))))
       {
         return error;
       }
@@ -1147,7 +1164,8 @@ CUB_RUNTIME_FUNCTION _CCCL_FORCEINLINE cudaError_t dispatch_even(
               stream,
               policy_selector,
               kernel_source,
-              launcher_factory))))
+              launcher_factory,
+              runs_on))))
       {
         return error;
       }
@@ -1297,6 +1315,7 @@ struct CCCL_DEPRECATED_BECAUSE("Use the tuning API for DeviceHistogram") Dispatc
       stream,
       is_byte_sample,
       detail::histogram::policy_selector_from_max_policy<MaxPolicyT>{},
+      experimental::RunsOn{},
       kernel_source,
       launcher_factory);
   }
@@ -1385,6 +1404,7 @@ struct CCCL_DEPRECATED_BECAUSE("Use the tuning API for DeviceHistogram") Dispatc
       stream,
       is_byte_sample,
       detail::histogram::policy_selector_from_max_policy<MaxPolicyT>{},
+      experimental::RunsOn{},
       kernel_source,
       launcher_factory);
   }
